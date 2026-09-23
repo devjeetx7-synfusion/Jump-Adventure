@@ -373,99 +373,55 @@ class MainActivity : AppCompatActivity() {
         saveData.coins += coinsEarned
         saveData.totalCoinsCollected += coinsEarned
         saveData.totalLevelsCompleted++
-
         val prevStars = saveData.levelStars[saveData.currentLevel] ?: 0
-        if (starsEarned > prevStars) {
-            saveData.levelStars[saveData.currentLevel] = starsEarned
-        }
-
-        if (saveData.currentLevel >= saveData.highestLevel) {
-            saveData.highestLevel = saveData.currentLevel + 1
-        }
-
+        if (starsEarned > prevStars) saveData.levelStars[saveData.currentLevel] = starsEarned
+        if (saveData.currentLevel >= saveData.highestLevel) saveData.highestLevel = saveData.currentLevel + 1
         saveManager.saveData(saveData)
 
         incOverlay.visibility = View.VISIBLE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).visibility = View.VISIBLE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.VISIBLE
+        val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
+        val header = incOverlay.findViewById<TextView>(R.id.tvOverlayHeader)
+        val sub = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
+        val stars = incOverlay.findViewById<TextView>(R.id.tvOverlayStars)
+        val coins = incOverlay.findViewById<TextView>(R.id.tvOverlayCoins)
+        val time = incOverlay.findViewById<TextView>(R.id.tvOverlayTime)
+        val primary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
+        val secondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
+        val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
-        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "LEVEL COMPLETE"
-        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
-        val tvOverlayStars = incOverlay.findViewById<TextView>(R.id.tvOverlayStars)
-        val tvOverlayCoins = incOverlay.findViewById<TextView>(R.id.tvOverlayCoins)
-        val tvOverlayTime = incOverlay.findViewById<TextView>(R.id.tvOverlayTime)
-        tvOverlayStars.text = ""
-        tvOverlayCoins.text = ""
-        tvOverlayTime.text = ""
+        board.setImageResource(R.drawable.winner_bg)
+        header.text = "LEVEL COMPLETE!"
+        sub.text = "LEVEL ${saveData.currentLevel}"
+        val earnedStars = starsEarned.coerceIn(0, 3)
+        stars.text = "★".repeat(earnedStars) + "☆".repeat(3 - earnedStars)
+        coins.text = "+${coinsEarned} COINS   •   +${starsEarned} STARS"
+        time.text = "TIME  ${String.format("%.1fs", timeTakenSec)}"
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "NEXT LEVEL"
-        btnPrimary.subText = ""
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).subText = ""
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
-        btnPrimary.setOnClickListener {
+        primary.visibility = View.VISIBLE
+        secondary.visibility = View.VISIBLE
+        home.visibility = View.VISIBLE
+        primary.mainText = "NEXT LEVEL"; primary.subText = ""
+        secondary.mainText = "RESTART"; secondary.subText = ""
+        home.mainText = "HOME"; home.subText = ""
+
+        primary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel + 1)
         }
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).setOnClickListener {
+        secondary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel)
         }
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).setOnClickListener {
+        home.setOnClickListener {
             soundManager.playButtonClick()
+            incOverlay.visibility = View.GONE
             showScreen("MAIN_MENU")
         }
-
-        val delayMs = 400L
-        overlayHandler.postDelayed({
-            soundManager.playCoin()
-            tvOverlayStars.text = "★"
-        }, delayMs)
-
-        if (starsEarned >= 2) {
-            overlayHandler.postDelayed({
-                soundManager.playCoin()
-                tvOverlayStars.text = "★★"
-            }, delayMs * 2)
-        }
-
-        if (starsEarned >= 3) {
-            overlayHandler.postDelayed({
-                soundManager.playCoin()
-                tvOverlayStars.text = "★★★"
-            }, delayMs * 3)
-        }
-
-        overlayHandler.postDelayed({
-            soundManager.playCoin()
-            tvOverlayCoins.text = "+$coinsEarned Coins"
-            tvOverlayTime.text = "Time: ${String.format("%.1fs", timeTakenSec)}"
-
-            val rewardsContainer = incOverlay.findViewById<LinearLayout>(R.id.rewardsContainer)
-            val confettiContainer = LinearLayout(this@MainActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-            }
-            val colors = listOf(Color.RED, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA)
-            for (i in 0..10) {
-                val confetti = View(this@MainActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(16, 16).apply { setMargins(8, 0, 8, 0) }
-                    setBackgroundColor(colors[i % colors.size])
-                    rotation = (Math.random() * 360).toFloat()
-                    animate().translationYBy(200f).rotationBy(360f).setDuration(1000).start()
-                }
-                confettiContainer.addView(confetti)
-            }
-            rewardsContainer.addView(confettiContainer)
-        }, delayMs * 4)
     }
-
     private fun handleGameOver() {
         incOverlay.visibility = View.VISIBLE
         incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.VISIBLE
