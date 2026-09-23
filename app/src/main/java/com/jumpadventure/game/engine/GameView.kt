@@ -398,17 +398,17 @@ class GameView(
                 val scaledW = bgW * scale
                 val scaledH = bgH * scale
 
-                val parallaxX = -(cameraX * 0.15f) % scaledW
+                // Treat each world artwork as one scene, not a repeatable texture.
+                // Clamp the parallax so a second copy can never create a visible seam.
+                val maxOffset = (scaledW - w).coerceAtLeast(0f)
+                val parallaxX = -(cameraX * 0.12f).coerceIn(0f, maxOffset)
 
                 bgSrcRect.set(0, 0, bg.width, bg.height)
-
                 bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
                 canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
 
-                if (parallaxX + scaledW < w) {
-                    bgDstRect.set(parallaxX + scaledW, 0f, parallaxX + scaledW * 2f, h)
-                    canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
-                }
+                // If the camera reaches the end of this artwork, clamp at the final edge.
+                // Never draw the same bitmap a second time.
             } else {
                 skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
                 canvas.drawRect(0f, 0f, w, h, skyPaint)
@@ -557,45 +557,93 @@ class GameView(
     }
 
     private fun drawControls(canvas: Canvas) {
-        val btnBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#E00288D1")
-        }
-        val btnActivePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#E0FFB300")
-        }
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (w <= 0f || h <= 0f) return
 
-        val controlOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#455A64")
+        // Transparent circular 3D game controls.
+        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(85, 0, 30, 70)
+        }
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = 4f
+            color = Color.argb(220, 255, 255, 255)
         }
-        val arrowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
-
-        // LEFT Button
-        btnBgPaint.shader = LinearGradient(leftButtonRect.left, leftButtonRect.top, leftButtonRect.left, leftButtonRect.bottom, if (moveLeftPressed) Color.parseColor("#FFCA28") else Color.parseColor("#29B6F6"), if (moveLeftPressed) Color.parseColor("#FF8F00") else Color.parseColor("#0277BD"), Shader.TileMode.CLAMP)
-        canvas.drawRoundRect(leftButtonRect, 32f, 32f, btnBgPaint)
-        canvas.drawRoundRect(leftButtonRect, 32f, 32f, controlOutlinePaint)
-        val leftArrow = Path().apply { moveTo(leftButtonRect.centerX() + 15f, leftButtonRect.centerY() - 20f); lineTo(leftButtonRect.centerX() - 15f, leftButtonRect.centerY()); lineTo(leftButtonRect.centerX() + 15f, leftButtonRect.centerY() + 20f); close() }
-        canvas.drawPath(leftArrow, arrowPaint)
-
-        // RIGHT Button
-        btnBgPaint.shader = LinearGradient(rightButtonRect.left, rightButtonRect.top, rightButtonRect.left, rightButtonRect.bottom, if (moveRightPressed) Color.parseColor("#FFCA28") else Color.parseColor("#29B6F6"), if (moveRightPressed) Color.parseColor("#FF8F00") else Color.parseColor("#0277BD"), Shader.TileMode.CLAMP)
-        canvas.drawRoundRect(rightButtonRect, 32f, 32f, btnBgPaint)
-        canvas.drawRoundRect(rightButtonRect, 32f, 32f, controlOutlinePaint)
-        val rightArrow = Path().apply { moveTo(rightButtonRect.centerX() - 15f, rightButtonRect.centerY() - 20f); lineTo(rightButtonRect.centerX() + 15f, rightButtonRect.centerY()); lineTo(rightButtonRect.centerX() - 15f, rightButtonRect.centerY() + 20f); close() }
-        canvas.drawPath(rightArrow, arrowPaint)
-
-        // JUMP Button
-        val jumpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = LinearGradient(jumpButtonRect.left, jumpButtonRect.top, jumpButtonRect.left, jumpButtonRect.bottom, Color.parseColor("#81C784"), Color.parseColor("#388E3C"), Shader.TileMode.CLAMP)
+        val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
         }
-        canvas.drawRoundRect(jumpButtonRect, 32f, 32f, jumpPaint)
-        canvas.drawRoundRect(jumpButtonRect, 32f, 32f, controlOutlinePaint)
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+        }
 
-        val jumpTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 32f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-        canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + 12f, jumpTextPaint)
+        fun drawCircleButton(rect: RectF, pressed: Boolean, hueTop: Int, hueBottom: Int) {
+            val radius = minOf(rect.width(), rect.height()) * 0.5f
+            val offset = if (pressed) 2f else 7f
+            canvas.drawCircle(rect.centerX(), rect.centerY() + offset, radius - 2f, shadowPaint)
+
+            glassPaint.shader = LinearGradient(
+                rect.left, rect.top, rect.left, rect.bottom,
+                Color.argb(135, Color.red(hueTop), Color.green(hueTop), Color.blue(hueTop)),
+                Color.argb(170, Color.red(hueBottom), Color.green(hueBottom), Color.blue(hueBottom)),
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawCircle(rect.centerX(), rect.centerY() - (if (pressed) 1f else 0f), radius - 3f, glassPaint)
+            glassPaint.shader = null
+
+            canvas.drawCircle(rect.centerX(), rect.centerY() - (if (pressed) 1f else 0f), radius - 3f, borderPaint)
+        }
+
+        // LEFT
+        drawCircleButton(
+            leftButtonRect,
+            moveLeftPressed,
+            Color.rgb(45, 185, 245),
+            Color.rgb(5, 105, 185)
+        )
+        val leftPath = Path().apply {
+            val cx = leftButtonRect.centerX()
+            val cy = leftButtonRect.centerY()
+            val s = leftButtonRect.width() * 0.23f
+            moveTo(cx + s, cy - s)
+            lineTo(cx - s, cy)
+            lineTo(cx + s, cy + s)
+            close()
+        }
+        canvas.drawPath(leftPath, iconPaint)
+
+        // RIGHT
+        drawCircleButton(
+            rightButtonRect,
+            moveRightPressed,
+            Color.rgb(45, 185, 245),
+            Color.rgb(5, 105, 185)
+        )
+        val rightPath = Path().apply {
+            val cx = rightButtonRect.centerX()
+            val cy = rightButtonRect.centerY()
+            val s = rightButtonRect.width() * 0.23f
+            moveTo(cx - s, cy - s)
+            lineTo(cx + s, cy)
+            lineTo(cx - s, cy + s)
+            close()
+        }
+        canvas.drawPath(rightPath, iconPaint)
+
+        // JUMP — intentionally larger.
+        drawCircleButton(
+            jumpButtonRect,
+            false,
+            Color.rgb(70, 205, 150),
+            Color.rgb(20, 125, 90)
+        )
+        textPaint.textSize = minOf(jumpButtonRect.width() * 0.19f, 28f)
+        canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + textPaint.textSize * 0.34f, textPaint)
     }
-
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val pointerIndex = event.actionIndex
         val x = event.getX(pointerIndex)
