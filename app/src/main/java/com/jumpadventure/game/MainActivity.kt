@@ -647,7 +647,8 @@ class MainActivity : AppCompatActivity() {
 
         val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
         btnSec.visibility = View.VISIBLE
-        btnSec.text = "CLOSE"
+        btnSec.mainText = "CLOSE"
+        btnSec.subText = ""
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
