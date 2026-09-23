@@ -34,6 +34,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCoins: TextView
     private lateinit var tvGems: TextView
     private lateinit var btnPlay: Button
+    private lateinit var charPreviewView: com.jumpadventure.game.graphics.CharacterPreviewView
+
+    private var currentScreenName: String = "MAIN_MENU"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +56,19 @@ class MainActivity : AppCompatActivity() {
         showScreen("MAIN_MENU")
     }
 
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        if (incOverlay.visibility == View.VISIBLE) {
+            incOverlay.visibility = View.GONE
+            return
+        }
+        if (currentScreenName != "MAIN_MENU") {
+            showScreen("MAIN_MENU")
+            return
+        }
+        super.onBackPressed()
+    }
+
     private fun initViews() {
         incMainMenu = findViewById(R.id.incMainMenu)
         incLevelMap = findViewById(R.id.incLevelMap)
@@ -63,12 +79,14 @@ class MainActivity : AppCompatActivity() {
         tvCoins = incMainMenu.findViewById(R.id.tvCoins)
         tvGems = incMainMenu.findViewById(R.id.tvGems)
         btnPlay = incMainMenu.findViewById(R.id.btnPlay)
+        charPreviewView = incMainMenu.findViewById(R.id.charPreviewView)
     }
 
     private fun updateCurrencyHUD() {
         tvCoins.text = "🪙 ${saveData.coins} +"
         tvGems.text = "💎 ${saveData.gems} +"
         btnPlay.text = "▶ PLAY\nLevel ${saveData.currentLevel}"
+        charPreviewView.selectedCharacterId = saveData.selectedCharacter
     }
 
     private fun setupMainMenuListeners() {
@@ -104,6 +122,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showScreen(screenName: String) {
+        currentScreenName = screenName
         incMainMenu.visibility = View.GONE
         incLevelMap.visibility = View.GONE
         incGameplay.visibility = View.GONE
@@ -135,43 +154,24 @@ class MainActivity : AppCompatActivity() {
             showScreen("MAIN_MENU")
         }
 
-        val container = incLevelMap.findViewById<LinearLayout>(R.id.mapNodesContainer)
+        val container = incLevelMap.findViewById<FrameLayout>(R.id.mapNodesContainer)
         container.removeAllViews()
 
-        for (lvl in currentWorld.startLevel..currentWorld.endLevel) {
-            val nodeBtn = Button(this).apply {
-                val isUnlocked = lvl <= saveData.highestLevel
-                val stars = saveData.levelStars[lvl] ?: 0
-
-                val starText = if (isUnlocked && stars > 0) " " + "⭐".repeat(stars) else ""
-                val lockText = if (!isUnlocked) " 🔒" else ""
-                text = "Level $lvl$starText$lockText"
-
-                textSize = 16f
-                typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1B1B2F"))
-                setBackgroundResource(
-                    if (lvl == saveData.currentLevel) R.drawable.bg_button_yellow_primary
-                    else if (isUnlocked) R.drawable.bg_card_white_rounded
-                    else R.drawable.bg_button_outline
-                )
-
-                val params = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    120
-                ).apply {
-                    setMargins(0, 12, 0, 12)
-                }
-                layoutParams = params
-
-                isEnabled = isUnlocked
-                setOnClickListener {
-                    soundManager.playButtonClick()
-                    startLevelGameplay(lvl)
-                }
+        val mapView = com.jumpadventure.game.graphics.LevelMapView(this).apply {
+            selectedCharacterId = saveData.selectedCharacter
+            setupMap(
+                worldInfo = currentWorld,
+                highestLevel = saveData.highestLevel,
+                currentLevel = saveData.currentLevel,
+                levelStars = saveData.levelStars
+            )
+            onNodeClicked = { levelNum ->
+                soundManager.playButtonClick()
+                startLevelGameplay(levelNum)
             }
-            container.addView(nodeBtn)
         }
+
+        container.addView(mapView)
 
         showScreen("LEVEL_MAP")
     }
@@ -362,13 +362,21 @@ class MainActivity : AppCompatActivity() {
         characterList.forEach { item ->
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card_white_rounded)
+                setPadding(20, 20, 20, 20)
+                setBackgroundResource(R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply { setMargins(0, 12, 0, 12) }
+            }
+
+            // Character Illustration Card Icon
+            val charCardView = com.jumpadventure.game.graphics.CharacterCardView(this).apply {
+                characterId = item.id
+                layoutParams = LinearLayout.LayoutParams(140, 160).apply {
+                    setMargins(0, 0, 20, 0)
+                }
             }
 
             val infoLayout = LinearLayout(this).apply {
@@ -386,7 +394,7 @@ class MainActivity : AppCompatActivity() {
             val tvDesc = TextView(this).apply {
                 text = item.description
                 textSize = 12f
-                setTextColor(Color.GRAY)
+                setTextColor(Color.parseColor("#546E7A"))
             }
 
             infoLayout.addView(tvName)
@@ -398,13 +406,13 @@ class MainActivity : AppCompatActivity() {
 
                 if (isSelected) {
                     text = "✓ SELECTED"
-                    setBackgroundResource(R.drawable.bg_button_yellow_primary)
+                    setBackgroundResource(R.drawable.bg_button_game_primary)
                 } else if (isUnlocked) {
                     text = "SELECT"
-                    setBackgroundResource(R.drawable.bg_button_outline)
+                    setBackgroundResource(R.drawable.bg_button_game_secondary)
                 } else {
                     text = "🪙 ${item.priceCoins}"
-                    setBackgroundResource(R.drawable.bg_button_yellow_primary)
+                    setBackgroundResource(R.drawable.bg_button_game_primary)
                 }
 
                 setTextColor(Color.parseColor("#1B1B2F"))
@@ -429,6 +437,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            card.addView(charCardView)
             card.addView(infoLayout)
             card.addView(actionBtn)
             container.addView(card)
@@ -532,13 +541,19 @@ class MainActivity : AppCompatActivity() {
         WorldRepository.worlds.forEach { world ->
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card_white_rounded)
+                setPadding(28, 28, 28, 28)
+                setBackgroundResource(R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 12, 0, 12) }
+                ).apply { setMargins(0, 14, 0, 14) }
+            }
+
+            // World Color Badge
+            val colorBadge = View(this).apply {
+                setBackgroundColor(Color.parseColor(world.skyColorHex))
+                layoutParams = LinearLayout.LayoutParams(16, 80).apply { setMargins(0, 0, 20, 0) }
             }
 
             val infoLayout = LinearLayout(this).apply {
@@ -553,9 +568,10 @@ class MainActivity : AppCompatActivity() {
                 setTextColor(Color.parseColor("#1B1B2F"))
             })
             infoLayout.addView(TextView(this).apply {
-                text = "Levels ${world.startLevel} - ${world.endLevel}"
-                textSize = 12f
-                setTextColor(Color.GRAY)
+                val endLvlText = if (world.endLevel > 10000) "+" else " - ${world.endLevel}"
+                text = "Levels ${world.startLevel}$endLvlText"
+                textSize = 13f
+                setTextColor(Color.parseColor("#546E7A"))
             })
 
             val totalStars = saveData.levelStars.values.sum()
@@ -564,7 +580,7 @@ class MainActivity : AppCompatActivity() {
             val statusBtn = Button(this).apply {
                 if (isUnlocked) {
                     text = "EXPLORE"
-                    setBackgroundResource(R.drawable.bg_button_yellow_primary)
+                    setBackgroundResource(R.drawable.bg_button_game_primary)
                     setOnClickListener {
                         soundManager.playButtonClick()
                         saveData.currentLevel = world.startLevel
@@ -573,13 +589,14 @@ class MainActivity : AppCompatActivity() {
                     }
                 } else {
                     text = "🔒 ${world.requiredStarsToUnlock} ⭐"
-                    setBackgroundResource(R.drawable.bg_button_outline)
+                    setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
                 setTextColor(Color.parseColor("#1B1B2F"))
                 typeface = Typeface.DEFAULT_BOLD
             }
 
+            card.addView(colorBadge)
             card.addView(infoLayout)
             card.addView(statusBtn)
             container.addView(card)
@@ -698,12 +715,12 @@ class MainActivity : AppCompatActivity() {
         // Sound Toggle Button
         val soundBtn = Button(this).apply {
             text = "🔊 Sound: " + if (saveData.soundEnabled) "ON" else "OFF"
-            setBackgroundResource(R.drawable.bg_card_white_rounded)
+            setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             setTextColor(Color.parseColor("#1B1B2F"))
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 120
+                LinearLayout.LayoutParams.MATCH_PARENT, 130
             ).apply { setMargins(0, 12, 0, 12) }
 
             setOnClickListener {
@@ -711,6 +728,7 @@ class MainActivity : AppCompatActivity() {
                 soundManager.soundEnabled = saveData.soundEnabled
                 saveManager.saveData(saveData)
                 text = "🔊 Sound: " + if (saveData.soundEnabled) "ON" else "OFF"
+                setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             }
         }
         container.addView(soundBtn)
@@ -718,12 +736,12 @@ class MainActivity : AppCompatActivity() {
         // Music Toggle Button
         val musicBtn = Button(this).apply {
             text = "🎵 Music: " + if (saveData.musicEnabled) "ON" else "OFF"
-            setBackgroundResource(R.drawable.bg_card_white_rounded)
+            setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             setTextColor(Color.parseColor("#1B1B2F"))
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 120
+                LinearLayout.LayoutParams.MATCH_PARENT, 130
             ).apply { setMargins(0, 12, 0, 12) }
 
             setOnClickListener {
@@ -731,6 +749,7 @@ class MainActivity : AppCompatActivity() {
                 soundManager.musicEnabled = saveData.musicEnabled
                 saveManager.saveData(saveData)
                 text = "🎵 Music: " + if (saveData.musicEnabled) "ON" else "OFF"
+                setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             }
         }
         container.addView(musicBtn)
@@ -738,12 +757,12 @@ class MainActivity : AppCompatActivity() {
         // Reset Progress Button
         val resetBtn = Button(this).apply {
             text = "♻ Reset Progress"
-            setBackgroundResource(R.drawable.bg_button_outline)
+            setBackgroundResource(R.drawable.bg_button_game_secondary)
             setTextColor(Color.RED)
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 120
+                LinearLayout.LayoutParams.MATCH_PARENT, 130
             ).apply { setMargins(0, 24, 0, 12) }
 
             setOnClickListener {

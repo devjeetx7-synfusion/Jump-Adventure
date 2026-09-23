@@ -19,9 +19,9 @@
         <!-- Pause Button -->
         <Button
             android:id="@+id/btnPause"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_card_white_rounded"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_game_secondary"
             android:text="⏸"
             android:textSize="18sp"
             android:textColor="#1B1B2F"
@@ -60,9 +60,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
-            android:background="@drawable/bg_card_white_rounded"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="6dp"
+            android:background="@drawable/bg_card_glossy"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
             android:orientation="horizontal">
 
             <TextView
@@ -98,29 +98,29 @@
 
         <Button
             android:id="@+id/btnPowerUpMagnet"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_card_white_rounded"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_game_primary"
             android:text="🧲"
-            android:textSize="18sp"
-            android:layout_marginBottom="8dp" />
+            android:textSize="20sp"
+            android:layout_marginBottom="10dp" />
 
         <Button
             android:id="@+id/btnPowerUpShield"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_card_white_rounded"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_game_primary"
             android:text="🛡"
-            android:textSize="18sp"
-            android:layout_marginBottom="8dp" />
+            android:textSize="20sp"
+            android:layout_marginBottom="10dp" />
 
         <Button
             android:id="@+id/btnPowerUpSpeed"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_card_white_rounded"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_game_primary"
             android:text="⚡"
-            android:textSize="18sp" />
+            android:textSize="20sp" />
     </LinearLayout>
 
     <View

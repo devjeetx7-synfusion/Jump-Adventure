@@ -10,7 +10,7 @@
     <LinearLayout
         android:layout_width="320dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_card_white_rounded"
+        android:background="@drawable/bg_card_glossy"
         android:orientation="vertical"
         android:padding="24dp"
         android:gravity="center_horizontal">
@@ -72,7 +72,7 @@
             android:id="@+id/btnOverlayPrimary"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:background="@drawable/bg_button_yellow_primary"
+            android:background="@drawable/bg_button_game_primary"
             android:text="▶ NEXT LEVEL"
             android:textColor="#1B1B2F"
             android:textSize="16sp"
@@ -82,8 +82,8 @@
         <Button
             android:id="@+id/btnOverlaySecondary"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_button_outline"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_game_secondary"
             android:text="↻ REPLAY"
             android:textColor="#1B1B2F"
             android:textSize="14sp"
@@ -93,8 +93,8 @@
         <Button
             android:id="@+id/btnOverlayHome"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_button_outline"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_button_game_secondary"
             android:text="🏠 HOME"
             android:textColor="#1B1B2F"
             android:textSize="14sp"

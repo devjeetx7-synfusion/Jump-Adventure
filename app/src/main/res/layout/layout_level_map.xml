@@ -48,20 +48,18 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- Scrollable Level Nodes Grid/Path -->
+    <!-- Scrollable Level Map View -->
     <ScrollView
+        android:id="@+id/mapScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/mapTopBar"
         android:fillViewport="true">
 
-        <LinearLayout
+        <FrameLayout
             android:id="@+id/mapNodesContainer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:padding="24dp" />
+            android:layout_height="wrap_content" />
     </ScrollView>
 
 </RelativeLayout>
