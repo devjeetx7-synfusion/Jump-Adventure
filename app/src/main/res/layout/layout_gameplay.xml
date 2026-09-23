@@ -125,46 +125,35 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- POWER-UP ACTION BAR (Overlay) -->
+    <!-- POWER-UP ACTION BAR -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:id="@+id/powerUpBar"
+        android:layout_width="56dp"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
-        android:layout_centerVertical="true"
+        android:layout_alignParentTop="true"
+        android:layout_below="@id/hudTopBar"
         android:layout_marginEnd="16dp"
+        android:layout_marginTop="10dp"
+        android:gravity="center_horizontal"
         android:orientation="vertical">
 
-        <Button
+        <com.jumpadventure.game.graphics.GamePrimaryButton
             android:id="@+id/btnPowerUpMagnet"
             android:layout_width="52dp"
             android:layout_height="52dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_button_game_primary"
-            android:text="🧲"
-            android:textColor="@color/game_text_dark"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:layout_marginBottom="10dp" />
 
-        <Button
+        <com.jumpadventure.game.graphics.GamePrimaryButton
             android:id="@+id/btnPowerUpShield"
             android:layout_width="52dp"
             android:layout_height="52dp"
-            android:layout_marginBottom="12dp"
-            android:background="@drawable/bg_button_game_primary"
-            android:text="🛡"
-            android:textColor="@color/game_text_dark"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:layout_marginBottom="10dp" />
 
-        <Button
+        <com.jumpadventure.game.graphics.GamePrimaryButton
             android:id="@+id/btnPowerUpSpeed"
             android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:background="@drawable/bg_button_game_primary"
-            android:text="⚡"
-            android:textColor="@color/game_text_dark"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:layout_height="52dp" />
     </LinearLayout>
 
 </RelativeLayout>
