@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
     // Main Menu Views
     private lateinit var tvCoins: TextView
     private lateinit var tvGems: TextView
-    private lateinit var btnPlay: Button
+    private lateinit var btnPlay: com.jumpadventure.game.graphics.GamePrimaryButton
     private lateinit var charPreviewView: com.jumpadventure.game.graphics.CharacterPreviewView
 
     private var currentScreenName: String = "MAIN_MENU"
@@ -42,10 +42,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        com.jumpadventure.game.util.InsetsManager.setupEdgeToEdge(this)
 
         setContentView(R.layout.activity_main)
 
@@ -94,59 +91,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupWindowInsets() {
         val root = findViewById<View>(R.id.rootLayout) ?: return
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
-            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
 
-            // Main Menu top bar & bottom nav inset padding
-            incMainMenu.findViewById<View>(R.id.topBar)?.setPadding(
-                incMainMenu.findViewById<View>(R.id.topBar).paddingLeft,
-                systemBars.top + 12,
-                incMainMenu.findViewById<View>(R.id.topBar).paddingRight,
-                incMainMenu.findViewById<View>(R.id.topBar).paddingBottom
-            )
+        val topViews = listOfNotNull(
+            incMainMenu.findViewById<View>(R.id.topBar),
+            incLevelMap.findViewById<View>(R.id.mapTopBar),
+            incGameplay.findViewById<View>(R.id.hudTopBar),
+            incSecondary.findViewById<View>(R.id.secondaryTopBar)
+        )
 
-            val bottomNav = incMainMenu.findViewById<View>(R.id.bottomNavContainer)
-            if (bottomNav != null) {
-                val params = bottomNav.layoutParams as? RelativeLayout.LayoutParams
-                params?.bottomMargin = systemBars.bottom + 12
-                bottomNav.layoutParams = params
-            }
+        val bottomMarginViews = listOfNotNull(
+            incMainMenu.findViewById<View>(R.id.bottomNavContainer)
+        )
 
-            // Level Map top bar inset padding
-            incLevelMap.findViewById<View>(R.id.mapTopBar)?.setPadding(
-                incLevelMap.findViewById<View>(R.id.mapTopBar).paddingLeft,
-                systemBars.top + 12,
-                incLevelMap.findViewById<View>(R.id.mapTopBar).paddingRight,
-                incLevelMap.findViewById<View>(R.id.mapTopBar).paddingBottom
-            )
+        val overlayViews = listOfNotNull(
+            incOverlay
+        )
 
-            // Gameplay top HUD bar inset padding
-            incGameplay.findViewById<View>(R.id.hudTopBar)?.setPadding(
-                incGameplay.findViewById<View>(R.id.hudTopBar).paddingLeft,
-                systemBars.top + 12,
-                incGameplay.findViewById<View>(R.id.hudTopBar).paddingRight,
-                incGameplay.findViewById<View>(R.id.hudTopBar).paddingBottom
-            )
-
-            // Secondary screen top bar inset padding
-            incSecondary.findViewById<View>(R.id.secondaryTopBar)?.setPadding(
-                incSecondary.findViewById<View>(R.id.secondaryTopBar).paddingLeft,
-                systemBars.top + 12,
-                incSecondary.findViewById<View>(R.id.secondaryTopBar).paddingRight,
-                incSecondary.findViewById<View>(R.id.secondaryTopBar).paddingBottom
-            )
-
-            // Overlay panel top/bottom margin padding
-            incOverlay.setPadding(0, systemBars.top, 0, systemBars.bottom)
-
-            insets
-        }
+        com.jumpadventure.game.util.InsetsManager.applySystemWindowInsets(
+            rootView = root,
+            topViewsToPad = topViews,
+            bottomViewsToMargin = bottomMarginViews,
+            overlayViewsToPad = overlayViews
+        )
     }
 
     private fun updateCurrencyHUD() {
         tvCoins.text = "${saveData.coins}"
         tvGems.text = "${saveData.gems}"
-        btnPlay.text = "▶  PLAY NOW\nLevel ${saveData.currentLevel}"
+        btnPlay.setPlayInfo(saveData.currentLevel)
         charPreviewView.selectedCharacterId = saveData.selectedCharacter
     }
 
@@ -512,9 +484,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            val density = resources.displayMetrics.density
             val charCardView = com.jumpadventure.game.graphics.CharacterCardView(this).apply {
                 characterId = item.id
-                layoutParams = LinearLayout.LayoutParams(160, 180)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (130 * density).toInt()
+                )
             }
 
             val tvName = TextView(this).apply {
@@ -556,7 +532,7 @@ class MainActivity : AppCompatActivity() {
                 textSize = 11f
                 typeface = Typeface.DEFAULT_BOLD
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, 110
+                    LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()
                 )
 
                 setOnClickListener {
@@ -740,9 +716,10 @@ class MainActivity : AppCompatActivity() {
                 ).apply { setMargins(0, 12, 0, 12) }
             }
 
+            val density = resources.displayMetrics.density
             val bannerView = View(this).apply {
                 setBackgroundColor(Color.parseColor(world.skyColorHex))
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 120).apply { setMargins(0, 0, 0, 12) }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (120 * density).toInt()).apply { setMargins(0, 0, 0, 12) }
             }
 
             val infoLayout = LinearLayout(this).apply {
@@ -784,7 +761,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 setTextColor(Color.parseColor("#1F3045"))
                 typeface = Typeface.DEFAULT_BOLD
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 110).apply { setMargins(0, 14, 0, 0) }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()).apply { setMargins(0, 14, 0, 0) }
             }
 
             card.addView(bannerView)
@@ -903,15 +880,17 @@ class MainActivity : AppCompatActivity() {
         val container = incSecondary.findViewById<LinearLayout>(R.id.secondaryContentContainer)
         container.removeAllViews()
 
+        val density = resources.displayMetrics.density
+
         // Sound Toggle
         val soundBtn = Button(this).apply {
             text = "🔊 Sound Effects: " + if (saveData.soundEnabled) "ON" else "OFF"
             setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             setTextColor(Color.parseColor("#1F3045"))
-            textSize = 16f
+            textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 120
+                LinearLayout.LayoutParams.MATCH_PARENT, (52 * density).toInt()
             ).apply { setMargins(0, 10, 0, 10) }
 
             setOnClickListener {
@@ -929,10 +908,10 @@ class MainActivity : AppCompatActivity() {
             text = "🎵 Background Music: " + if (saveData.musicEnabled) "ON" else "OFF"
             setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             setTextColor(Color.parseColor("#1F3045"))
-            textSize = 16f
+            textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 120
+                LinearLayout.LayoutParams.MATCH_PARENT, (52 * density).toInt()
             ).apply { setMargins(0, 10, 0, 10) }
 
             setOnClickListener {
@@ -953,7 +932,7 @@ class MainActivity : AppCompatActivity() {
             textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 120
+                LinearLayout.LayoutParams.MATCH_PARENT, (52 * density).toInt()
             ).apply { setMargins(0, 20, 0, 10) }
 
             setOnClickListener {

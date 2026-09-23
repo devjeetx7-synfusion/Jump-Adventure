@@ -7,109 +7,119 @@
     android:focusable="true"
     android:gravity="center">
 
-    <LinearLayout
-        android:layout_width="320dp"
+    <ScrollView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_game_panel"
-        android:elevation="12dp"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <TextView
-            android:id="@+id/tvOverlayHeader"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:shadowColor="#0F172A"
-            android:shadowDx="0"
-            android:shadowDy="4"
-            android:shadowRadius="2"
-            android:text="LEVEL COMPLETE"
-            android:textColor="#FFD43B"
-            android:textSize="26sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvOverlaySub"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Level 1"
-            android:textColor="@color/game_text_navy"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvOverlayStars"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="10dp"
-            android:text=""
-            android:textColor="#FFD43B"
-            android:textSize="36sp" />
+        android:layout_centerInParent="true"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:scrollbars="none">
 
         <LinearLayout
-            android:id="@+id/rewardsContainer"
-            android:layout_width="match_parent"
+            android:layout_width="320dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_margin="16dp"
+            android:background="@drawable/bg_game_panel"
+            android:elevation="12dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="24dp">
 
             <TextView
-                android:id="@+id/tvOverlayCoins"
+                android:id="@+id/tvOverlayHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=""
-                android:textColor="@color/game_text_dark"
-                android:textSize="18sp"
+                android:shadowColor="#0F172A"
+                android:shadowDx="0"
+                android:shadowDy="4"
+                android:shadowRadius="2"
+                android:text="LEVEL COMPLETE"
+                android:textColor="#FFD43B"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvOverlayTime"
+                android:id="@+id/tvOverlaySub"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="4dp"
+                android:text="Level 1"
+                android:textColor="@color/game_text_navy"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvOverlayStars"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="8dp"
                 android:text=""
-                android:textColor="@color/game_text_muted"
-                android:textSize="13sp" />
+                android:textColor="#FFD43B"
+                android:textSize="32sp" />
+
+            <LinearLayout
+                android:id="@+id/rewardsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvOverlayCoins"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvOverlayTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text=""
+                    android:textColor="@color/game_text_muted"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Primary Action -->
+            <Button
+                android:id="@+id/btnOverlayPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_button_game_primary"
+                android:text="▶ NEXT LEVEL"
+                android:textColor="@color/game_text_dark"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <!-- Secondary Action -->
+            <Button
+                android:id="@+id/btnOverlaySecondary"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_button_game_secondary"
+                android:text="↻ REPLAY"
+                android:textColor="@color/game_text_dark"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Home Action -->
+            <Button
+                android:id="@+id/btnOverlayHome"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/bg_button_game_secondary"
+                android:text="HOME"
+                android:textColor="@color/game_text_dark"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
         </LinearLayout>
-
-        <!-- Primary Action -->
-        <Button
-            android:id="@+id/btnOverlayPrimary"
-            android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_button_game_primary"
-            android:text="▶ NEXT LEVEL"
-            android:textColor="@color/game_text_dark"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <!-- Secondary Action -->
-        <Button
-            android:id="@+id/btnOverlaySecondary"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/bg_button_game_secondary"
-            android:text="↻ REPLAY"
-            android:textColor="@color/game_text_dark"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <!-- Home Action -->
-        <Button
-            android:id="@+id/btnOverlayHome"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:background="@drawable/bg_button_game_secondary"
-            android:text="HOME"
-            android:textColor="@color/game_text_dark"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-    </LinearLayout>
+    </ScrollView>
 
 </RelativeLayout>

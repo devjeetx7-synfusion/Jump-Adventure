@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -8,15 +8,66 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- SCROLLABLE CONTENT LAYER -->
+    <ScrollView
+        android:id="@+id/homeScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="72dp"
+            android:paddingBottom="96dp">
+
+            <!-- LOGO HEADER WITH 3D EFFECT -->
+            <com.jumpadventure.game.graphics.GameLogoView
+                android:id="@+id/logoView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- CHARACTER HERO MAIN FOCAL DISPLAY -->
+            <com.jumpadventure.game.graphics.CharacterPreviewView
+                android:id="@+id/charPreviewView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="8dp" />
+
+            <!-- PRIMARY CTA: GLOSSY ORANGE 3D PLAY NOW BUTTON -->
+            <LinearLayout
+                android:id="@+id/btnPlayContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:gravity="center">
+
+                <com.jumpadventure.game.graphics.GamePrimaryButton
+                    android:id="@+id/btnPlay"
+                    android:layout_width="310dp"
+                    android:layout_height="76dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
     <!-- TOP HUD BAR (Settings + Currency Badges) -->
     <RelativeLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        android:layout_gravity="top"
         android:paddingHorizontal="16dp"
         android:paddingTop="12dp"
-        android:paddingBottom="4dp">
+        android:paddingBottom="8dp">
 
         <!-- Custom Blue Settings Button -->
         <ImageButton
@@ -94,52 +145,12 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- LOGO HEADER WITH 3D EFFECT & BANNER -->
-    <com.jumpadventure.game.graphics.GameLogoView
-        android:id="@+id/logoView"
-        android:layout_width="320dp"
-        android:layout_height="130dp"
-        android:layout_below="@id/topBar"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="2dp" />
-
-    <!-- CHARACTER HERO MAIN FOCAL DISPLAY -->
-    <com.jumpadventure.game.graphics.CharacterPreviewView
-        android:id="@+id/charPreviewView"
-        android:layout_width="340dp"
-        android:layout_height="0dp"
-        android:layout_below="@id/logoView"
-        android:layout_above="@id/btnPlayContainer"
-        android:layout_centerHorizontal="true"
-        android:layout_marginVertical="2dp" />
-
-    <!-- PRIMARY CTA: GLOSSY ORANGE PLAY NOW BUTTON -->
-    <LinearLayout
-        android:id="@+id/btnPlayContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/bottomNavContainer"
-        android:layout_marginBottom="12dp"
-        android:gravity="center"
-        android:paddingHorizontal="24dp">
-
-        <Button
-            android:id="@+id/btnPlay"
-            android:layout_width="310dp"
-            android:layout_height="72dp"
-            android:background="@drawable/bg_button_game_primary"
-            android:text="▶  PLAY NOW\nLevel 1"
-            android:textColor="#1F3045"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
     <!-- FLOATING WARM-WHITE BOTTOM NAVIGATION BAR -->
     <LinearLayout
         android:id="@+id/bottomNavContainer"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:layout_alignParentBottom="true"
+        android:layout_height="72dp"
+        android:layout_gravity="bottom"
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="12dp"
         android:background="@drawable/bg_bottom_nav_container"
@@ -158,14 +169,17 @@
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingVertical="4dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:id="@+id/ivNavShop"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:src="@drawable/ic_shop" />
 
             <TextView
+                android:id="@+id/tvNavShop"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
@@ -184,14 +198,17 @@
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingVertical="4dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:id="@+id/ivNavCharacters"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:src="@drawable/ic_hero" />
 
             <TextView
+                android:id="@+id/tvNavCharacters"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
@@ -210,14 +227,17 @@
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingVertical="4dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:id="@+id/ivNavWorlds"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:src="@drawable/ic_world" />
 
             <TextView
+                android:id="@+id/tvNavWorlds"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
@@ -236,14 +256,17 @@
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingVertical="4dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:id="@+id/ivNavAchievements"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:src="@drawable/ic_trophy" />
 
             <TextView
+                android:id="@+id/tvNavAchievements"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
@@ -254,4 +277,4 @@
         </LinearLayout>
     </LinearLayout>
 
-</RelativeLayout>
+</FrameLayout>
