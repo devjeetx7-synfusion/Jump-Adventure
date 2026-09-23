@@ -3,18 +3,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- FULL SCREEN ILLUSTRATED ENVIRONMENT BACKGROUND -->
-    <com.jumpadventure.game.graphics.HomeEnvironmentView
+    <!-- FULL SCREEN HOME BACKGROUND ASSET -->
+    <ImageView
+        android:id="@+id/ivHomeBg"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:contentDescription="Home Background"
+        android:scaleType="centerCrop"
+        android:src="@drawable/home_bg" />
 
-    <!-- SCROLLABLE CONTENT LAYER -->
+    <!-- SCROLLABLE CENTRAL CONTENT -->
     <ScrollView
         android:id="@+id/homeScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
         android:fillViewport="true"
+        android:overScrollMode="never"
         android:scrollbars="none">
 
         <LinearLayout
@@ -22,38 +27,54 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="72dp"
-            android:paddingBottom="96dp">
+            android:paddingHorizontal="20dp"
+            android:paddingTop="80dp"
+            android:paddingBottom="100dp">
 
-            <!-- LOGO HEADER WITH 3D EFFECT -->
-            <com.jumpadventure.game.graphics.GameLogoView
-                android:id="@+id/logoView"
+            <!-- LOGO ASSET (JUMP ADVENTURE) -->
+            <ImageView
+                android:id="@+id/ivHomeLogo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="12dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="Jump Adventure Logo"
+                android:maxWidth="340dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/jumpadventurename" />
 
             <!-- CHARACTER HERO MAIN FOCAL DISPLAY -->
             <com.jumpadventure.game.graphics.CharacterPreviewView
                 android:id="@+id/charPreviewView"
                 android:layout_width="match_parent"
+                android:layout_height="210dp"
+                android:layout_marginTop="12dp" />
+
+            <!-- MOUNTAIN PLATFORM DIRECTLY UNDER CHARACTER -->
+            <ImageView
+                android:id="@+id/ivMountainPlatform"
+                android:layout_width="280dp"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="8dp" />
+                android:layout_marginTop="-28dp"
+                android:layout_marginBottom="28dp"
+                android:adjustViewBounds="true"
+                android:contentDescription="Mountain Platform"
+                android:scaleType="fitCenter"
+                android:src="@drawable/mountain" />
 
             <!-- PRIMARY CTA: GLOSSY ORANGE 3D PLAY NOW BUTTON -->
             <LinearLayout
                 android:id="@+id/btnPlayContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="16dp"
                 android:gravity="center">
 
                 <com.jumpadventure.game.graphics.GamePrimaryButton
                     android:id="@+id/btnPlay"
-                    android:layout_width="310dp"
-                    android:layout_height="76dp" />
+                    android:layout_width="320dp"
+                    android:layout_height="78dp" />
             </LinearLayout>
 
         </LinearLayout>

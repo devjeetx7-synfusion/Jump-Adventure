@@ -3,10 +3,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Illustrated Environment Background -->
-    <com.jumpadventure.game.graphics.HomeEnvironmentView
+    <!-- Environment Background -->
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:contentDescription="Background"
+        android:scaleType="centerCrop"
+        android:src="@drawable/home_bg" />
 
     <!-- TOP HUD BAR -->
     <RelativeLayout
@@ -74,6 +77,7 @@
 
     <!-- SCROLLABLE CONTENT CONTAINER -->
     <ScrollView
+        android:id="@+id/secondaryScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/secondaryTopBar"
