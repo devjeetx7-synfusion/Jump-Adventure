@@ -89,6 +89,7 @@ class GameView(
     private val bgSrcRect = Rect()
     private val bgDstRect = RectF()
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val bgEdgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     // Colors & Paints
     private val skyPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -421,14 +422,24 @@ class GameView(
                 // Treat each world artwork as one scene, not a repeatable texture.
                 // Clamp the parallax so a second copy can never create a visible seam.
                 val maxOffset = (scaledW - w).coerceAtLeast(0f)
-                val parallaxX = -(cameraX * 0.12f).coerceIn(0f, maxOffset)
+                val parallaxDistance = maxOffset * 0.35f
+                val progress = (cameraX / levelLayout.totalWidth.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                val parallaxX = -(progress * parallaxDistance)
 
                 bgSrcRect.set(0, 0, bg.width, bg.height)
                 bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
                 canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
 
-                // If the camera reaches the end of this artwork, clamp at the final edge.
-                // Never draw the same bitmap a second time.
+                // Do not tile/repeat world artwork. Fill any exposed edge with
+                // the nearest edge colour so no duplicate vertical seam appears.
+                if (parallaxX > 0f) {
+                    bgEdgePaint.color = bg.getPixel(0, bg.height / 2)
+                    canvas.drawRect(0f, 0f, parallaxX, h, bgEdgePaint)
+                }
+                if (parallaxX + scaledW < w) {
+                    bgEdgePaint.color = bg.getPixel(bg.width - 1, bg.height / 2)
+                    canvas.drawRect(parallaxX + scaledW, 0f, w, h, bgEdgePaint)
+                }
             } else {
                 skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
                 canvas.drawRect(0f, 0f, w, h, skyPaint)
