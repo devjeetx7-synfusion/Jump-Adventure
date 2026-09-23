@@ -40,11 +40,11 @@ class GameView(
     private var playerX = 50f
     private var playerY = 700f
     // Visual hero artwork rendering dimensions
-    private val visualWidth = 72f
-    private val visualHeight = 96f
+    private val visualWidth = 92f
+    private val visualHeight = 124f
     // Logical physics collider dimensions (slightly tighter to prevent clipping/getting stuck)
-    private val colliderWidth = 48f
-    private val colliderHeight = 84f
+    private val colliderWidth = 54f
+    private val colliderHeight = 104f
     private val colliderOffsetX = (visualWidth - colliderWidth) / 2f
     private val colliderOffsetY = visualHeight - colliderHeight
 
@@ -625,7 +625,7 @@ class GameView(
         }
 
         canvas.save()
-        canvas.scale(1.15f, 1.15f, playerBounds.centerX(), playerBounds.centerY())
+        canvas.scale(1.28f, 1.28f, playerBounds.centerX(), playerBounds.bottom)
         CharacterRenderer.drawCharacter(
             canvas = canvas,
             bounds = playerBounds,
