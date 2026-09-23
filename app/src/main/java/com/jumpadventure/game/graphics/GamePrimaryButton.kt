@@ -21,7 +21,7 @@ class GamePrimaryButton @JvmOverloads constructor(
     var variant: Variant = Variant.ORANGE
         set(value) { field = value; invalidate() }
 
-    enum class Variant { ORANGE, GREEN, BLUE }
+    enum class Variant { ORANGE, GREEN, BLUE, GLASS }
 
     private var isPressedState = false
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -133,6 +133,7 @@ class GamePrimaryButton @JvmOverloads constructor(
             Variant.ORANGE -> { topColor = Color.parseColor("#FFC107"); bottomColor = Color.parseColor("#FF8F00"); shadowColor = Color.parseColor("#A34A00") }
             Variant.GREEN -> { topColor = Color.parseColor("#8BEA3E"); bottomColor = Color.parseColor("#23A63A"); shadowColor = Color.parseColor("#0F6E21") }
             Variant.BLUE -> { topColor = Color.parseColor("#57D5FF"); bottomColor = Color.parseColor("#0878D8"); shadowColor = Color.parseColor("#07509A") }
+            Variant.GLASS -> { topColor = Color.argb(220, 255, 170, 40); bottomColor = Color.argb(240, 235, 100, 0); shadowColor = Color.argb(255, 120, 40, 0) }
         }
         shadowPaint.color = shadowColor
         bodyPaint.shader = LinearGradient(
@@ -150,41 +151,60 @@ class GamePrimaryButton @JvmOverloads constructor(
         canvas.drawRoundRect(highlightRect, cornerRadius * 0.8f, cornerRadius * 0.8f, highlightPaint)
         canvas.drawRoundRect(buttonRect, cornerRadius, cornerRadius, borderPaint)
 
-        // Keep the PLAY NOW label as one compact centered visual group:
-        // icon + text are centered together instead of anchoring text at a fixed X.
-        val titleSize = minOf(buttonRect.height() * 0.22f, 20f)
+        val density = resources.displayMetrics.density
+        val btnH = buttonRect.height()
+        val hasSubText = subText.isNotBlank()
+
+        // Responsive typography matching target specs
+        val titleSizeSp = when {
+            btnH >= 60f * density -> (btnH * 0.32f / density).coerceIn(22f, 26f)
+            btnH >= 44f * density -> (btnH * 0.36f / density).coerceIn(16f, 20f)
+            else -> (btnH * 0.40f / density).coerceIn(14f, 17f)
+        }
+        val titleSize = titleSizeSp * density
         titlePaint.textSize = titleSize
         titleShadowPaint.textSize = titleSize
 
+        val iconSizeDp = when {
+            btnH >= 60f * density -> (btnH * 0.38f / density).coerceIn(24f, 30f)
+            btnH >= 44f * density -> (btnH * 0.42f / density).coerceIn(22f, 28f)
+            else -> (btnH * 0.44f / density).coerceIn(18f, 24f)
+        }
+        val iconSize = iconSizeDp * density
+
+        val subSizeSp = when {
+            btnH >= 60f * density -> (btnH * 0.20f / density).coerceIn(13f, 16f)
+            else -> (btnH * 0.22f / density).coerceIn(10f, 13f)
+        }
+        val subSize = subSizeSp * density
+        subTitlePaint.textSize = subSize
+
+        // Center group container: [ ICON ][ MAIN TEXT ]
         val titleWidth = titlePaint.measureText(mainText)
-        val iconSize = minOf(h * 0.26f, 19f)
-        val groupGap = 10f
+        val groupGap = 8f * density
         val groupWidth = iconSize + groupGap + titleWidth
         val groupLeft = buttonRect.centerX() - groupWidth / 2f
+
+        val mainY = if (hasSubText) buttonRect.centerY() - (subSize * 0.3f) else buttonRect.centerY() + titleSize * 0.35f
         val iconCenterX = groupLeft + iconSize / 2f
-        val iconCenterY = buttonRect.centerY() - 5f
+        val iconCenterY = mainY - (titleSize * 0.32f)
 
         playIconPath.reset()
-        playIconPath.moveTo(iconCenterX - iconSize * 0.35f, iconCenterY - iconSize * 0.5f)
-        playIconPath.lineTo(iconCenterX + iconSize * 0.5f, iconCenterY)
-        playIconPath.lineTo(iconCenterX - iconSize * 0.35f, iconCenterY + iconSize * 0.5f)
+        playIconPath.moveTo(iconCenterX - iconSize * 0.35f, iconCenterY - iconSize * 0.45f)
+        playIconPath.lineTo(iconCenterX + iconSize * 0.45f, iconCenterY)
+        playIconPath.lineTo(iconCenterX - iconSize * 0.35f, iconCenterY + iconSize * 0.45f)
         playIconPath.close()
         canvas.drawPath(playIconPath, iconPaint)
 
         titlePaint.textAlign = Paint.Align.LEFT
         titleShadowPaint.textAlign = Paint.Align.LEFT
 
-        val hasSubText = subText.isNotBlank()
         val titleX = groupLeft + iconSize + groupGap
-        val titleY = if (hasSubText) buttonRect.centerY() - 4f else buttonRect.centerY() + titleSize * 0.35f
-
-        canvas.drawText(mainText, titleX, titleY + 2f, titleShadowPaint)
-        canvas.drawText(mainText, titleX, titleY, titlePaint)
+        canvas.drawText(mainText, titleX, mainY + 2f, titleShadowPaint)
+        canvas.drawText(mainText, titleX, mainY, titlePaint)
 
         if (hasSubText) {
-            val subSize = minOf(buttonRect.height() * 0.13f, 11f)
-            subTitlePaint.textSize = subSize
-            val subY = buttonRect.centerY() + subSize + 5f
+            val subY = buttonRect.centerY() + (subSize * 0.9f) + (4f * density)
             canvas.drawText(subText, buttonRect.centerX(), subY, subTitlePaint)
         }
     }

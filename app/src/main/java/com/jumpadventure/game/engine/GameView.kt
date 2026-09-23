@@ -192,17 +192,18 @@ class GameView(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
+        android.util.Log.d("JUMP_DEBUG", "SURFACE_CREATED")
         isRunning = true
         gameThread = Thread(this).apply { start() }
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        // Responsive circular controls. Jump is intentionally larger.
-        val sideSize = (width * 0.15f).coerceIn(76f, 98f)
-        val gap = (width * 0.04f).coerceIn(18f, 30f)
-        val jumpSize = (width * 0.19f).coerceIn(94f, 118f)
-        val horizontal = (width * 0.045f).coerceIn(18f, 30f)
-        val bottom = (height * 0.055f).coerceIn(28f, 52f)
+        val density = resources.displayMetrics.density
+        val sideSize = (width * 0.16f).coerceIn(70f * density, 90f * density)
+        val gap = 16f * density
+        val jumpSize = (width * 0.20f).coerceIn(88f * density, 110f * density)
+        val horizontal = 20f * density
+        val bottom = 44f * density
 
         leftButtonRect.set(
             horizontal,
@@ -229,7 +230,7 @@ class GameView(
         var retry = true
         while (retry) {
             try {
-                gameThread?.join()
+                gameThread?.join(500)
                 retry = false
             } catch (e: InterruptedException) {
                 e.printStackTrace()
@@ -241,11 +242,17 @@ class GameView(
         val targetFPS = 60
         val targetTime = 1000L / targetFPS
 
+        android.util.Log.d("JUMP_DEBUG", "GAME_LOOP_STARTED")
+
         while (isRunning) {
             val startTime = System.currentTimeMillis()
 
-            update()
-            drawFrame()
+            try {
+                update()
+                drawFrame()
+            } catch (e: Throwable) {
+                android.util.Log.e("JUMP_DEBUG", "Error in game loop iteration", e)
+            }
 
             val elapsedTime = System.currentTimeMillis() - startTime
             val sleepTime = targetTime - elapsedTime
@@ -466,38 +473,35 @@ class GameView(
 
             // 1. Environmental Background Asset Rendering with Parallax
             val bg = cachedBgBitmap
-            if (bg != null && !bg.isRecycled) {
+            if (bg != null && !bg.isRecycled && w > 0f && h > 0f) {
                 val bgW = bg.width.toFloat()
                 val bgH = bg.height.toFloat()
 
-                val scale = Math.max(w / bgW, h / bgH)
-                val scaledW = bgW * scale
-                val scaledH = bgH * scale
+                if (bgW > 0f && bgH > 0f) {
+                    val scale = maxOf(w / bgW, h / bgH)
+                    val scaledW = bgW * scale
 
-                // Treat each world artwork as one scene, not a repeatable texture.
-                // Clamp the parallax so a second copy can never create a visible seam.
-                val maxOffset = (scaledW - w).coerceAtLeast(0f)
-                val parallaxDistance = maxOffset * 0.35f
-                val progress = (cameraX / levelLayout.totalWidth.coerceAtLeast(1f)).coerceIn(0f, 1f)
-                val parallaxX = -(progress * parallaxDistance)
+                    val maxOffset = (scaledW - w).coerceAtLeast(0f)
+                    val parallaxDistance = maxOffset * 0.35f
+                    val progress = (cameraX / levelLayout.totalWidth.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                    val parallaxX = -(progress * parallaxDistance)
 
-                bgSrcRect.set(0, 0, bg.width, bg.height)
-                bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
-                canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
+                    bgSrcRect.set(0, 0, bg.width, bg.height)
+                    bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
+                    canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
 
-                // Do not tile/repeat world artwork. Fill any exposed edge with
-                // the nearest edge colour so no duplicate vertical seam appears.
-                if (parallaxX > 0f) {
-                    bgEdgePaint.color = bg.getPixel(0, bg.height / 2)
-                    canvas.drawRect(0f, 0f, parallaxX, h, bgEdgePaint)
-                }
-                if (parallaxX + scaledW < w) {
-                    bgEdgePaint.color = bg.getPixel(bg.width - 1, bg.height / 2)
-                    canvas.drawRect(parallaxX + scaledW, 0f, w, h, bgEdgePaint)
+                    if (parallaxX > 0f) {
+                        bgEdgePaint.color = bg.getPixel(0, bg.height / 2)
+                        canvas.drawRect(0f, 0f, parallaxX, h, bgEdgePaint)
+                    }
+                    if (parallaxX + scaledW < w) {
+                        bgEdgePaint.color = bg.getPixel(bg.width - 1, bg.height / 2)
+                        canvas.drawRect(parallaxX + scaledW, 0f, w, h, bgEdgePaint)
+                    }
                 }
             } else {
-                skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
-                canvas.drawRect(0f, 0f, w, h, skyPaint)
+                skyPaint.shader = LinearGradient(0f, 0f, 0f, h.coerceAtLeast(1f), Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, w.coerceAtLeast(1f), h.coerceAtLeast(1f), skyPaint)
                 skyPaint.shader = null
             }
 
