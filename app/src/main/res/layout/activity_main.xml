@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <include
+        android:id="@+id/incMainMenu"
+        layout="@layout/layout_main_menu" />
+
+    <include
+        android:id="@+id/incLevelMap"
+        layout="@layout/layout_level_map"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/incGameplay"
+        layout="@layout/layout_gameplay"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/incSecondary"
+        layout="@layout/layout_secondary_screen"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/incOverlay"
+        layout="@layout/layout_overlay"
+        android:visibility="gone" />
+
+</FrameLayout>
