@@ -85,6 +85,9 @@ class LevelMapView @JvmOverloads constructor(
     private val bgDstRect = RectF()
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val bgOverlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val nodeGlossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255) }
+    private val pulsePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#80FFD54F") }
+    private val lockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#455A64") }
 
     fun setupMap(
         worldInfo: WorldInfo,
@@ -194,9 +197,6 @@ class LevelMapView @JvmOverloads constructor(
             // Pulse effect for current level
             if (node.isCurrent) {
                 val pulseRadius = radius + (sin(animTime * 4.0) * 8.0).toFloat()
-                val pulsePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.parseColor("#80FFD54F")
-                }
                 canvas.drawCircle(node.x, node.y, pulseRadius + 8f, pulsePaint)
             }
 
@@ -219,9 +219,6 @@ class LevelMapView @JvmOverloads constructor(
             canvas.drawCircle(node.x, node.y, radius, nodePaint)
             canvas.drawCircle(node.x, node.y, radius, outlinePaint)
 
-            val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.argb(90, 255, 255, 255)
-            }
             canvas.drawOval(
                 RectF(
                     node.x - radius * 0.58f,
@@ -229,7 +226,7 @@ class LevelMapView @JvmOverloads constructor(
                     node.x + radius * 0.16f,
                     node.y - radius * 0.22f
                 ),
-                gloss
+                nodeGlossPaint
             )
 
             if (node.isUnlocked) {
@@ -247,7 +244,6 @@ class LevelMapView @JvmOverloads constructor(
                     }
                 }
             } else {
-                val lockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#455A64") }
                 val shacklePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = Color.parseColor("#90A4AE")
                     style = Paint.Style.STROKE
