@@ -1,20 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_home_sky"
-    android:fitsSystemWindows="true"
-    android:padding="12dp">
+    android:layout_height="match_parent">
 
-    <!-- TOP HUD BAR -->
+    <!-- FULL SCREEN ILLUSTRATED ENVIRONMENT BACKGROUND -->
+    <com.jumpadventure.game.graphics.HomeEnvironmentView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- TOP HUD BAR (Settings + Currency Badges) -->
     <RelativeLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="4dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp">
 
-        <!-- Settings Button -->
+        <!-- Custom Blue Settings Button -->
         <ImageButton
             android:id="@+id/btnSettings"
             android:layout_width="48dp"
@@ -23,10 +27,10 @@
             android:layout_centerVertical="true"
             android:background="@drawable/bg_button_game_secondary"
             android:contentDescription="Settings"
-            android:padding="10dp"
+            android:padding="11dp"
             android:src="@drawable/ic_settings" />
 
-        <!-- Currency Pills -->
+        <!-- Currency Badges (Coins & Gems) -->
         <LinearLayout
             android:id="@+id/currencyContainer"
             android:layout_width="wrap_content"
@@ -35,20 +39,20 @@
             android:layout_centerVertical="true"
             android:orientation="horizontal">
 
-            <!-- Coins Pill -->
+            <!-- Coins Badge -->
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="42dp"
+                android:layout_height="40dp"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_pill_badge"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="8dp"
+                android:paddingStart="6dp"
                 android:paddingEnd="12dp">
 
                 <ImageView
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_coin" />
 
                 <TextView
@@ -62,19 +66,19 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Gems Pill -->
+            <!-- Gems Badge -->
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="42dp"
+                android:layout_height="40dp"
                 android:background="@drawable/bg_pill_badge"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="8dp"
+                android:paddingStart="6dp"
                 android:paddingEnd="12dp">
 
                 <ImageView
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_gem" />
 
                 <TextView
@@ -90,141 +94,164 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- LOGO & TITLE HEADER -->
-    <LinearLayout
-        android:id="@+id/logoContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <!-- LOGO HEADER WITH 3D EFFECT & BANNER -->
+    <com.jumpadventure.game.graphics.GameLogoView
+        android:id="@+id/logoView"
+        android:layout_width="320dp"
+        android:layout_height="130dp"
         android:layout_below="@id/topBar"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="8dp"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:layout_marginTop="2dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:shadowColor="#8B4500"
-            android:shadowDx="0"
-            android:shadowDy="6"
-            android:shadowRadius="2"
-            android:text="JUMP\nADVENTURE"
-            android:textAlignment="center"
-            android:textColor="#FFCA28"
-            android:textSize="36sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvSubtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="PREMIUM PLATFORMER"
-            android:textColor="@color/game_text_navy"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- CHARACTER DISPLAY AREA -->
+    <!-- CHARACTER HERO MAIN FOCAL DISPLAY -->
     <com.jumpadventure.game.graphics.CharacterPreviewView
         android:id="@+id/charPreviewView"
-        android:layout_width="320dp"
-        android:layout_height="280dp"
-        android:layout_below="@id/logoContainer"
+        android:layout_width="340dp"
+        android:layout_height="0dp"
+        android:layout_below="@id/logoView"
         android:layout_above="@id/btnPlayContainer"
         android:layout_centerHorizontal="true"
-        android:layout_marginVertical="4dp" />
+        android:layout_marginVertical="2dp" />
 
-    <!-- PRIMARY PLAY BUTTON -->
+    <!-- PRIMARY CTA: GLOSSY ORANGE PLAY NOW BUTTON -->
     <LinearLayout
         android:id="@+id/btnPlayContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/bottomNav"
+        android:layout_above="@id/bottomNavContainer"
         android:layout_marginBottom="12dp"
-        android:gravity="center">
+        android:gravity="center"
+        android:paddingHorizontal="24dp">
 
         <Button
             android:id="@+id/btnPlay"
-            android:layout_width="300dp"
-            android:layout_height="68dp"
+            android:layout_width="310dp"
+            android:layout_height="72dp"
             android:background="@drawable/bg_button_game_primary"
-            android:text="PLAY NOW\nLevel 1"
-            android:textColor="@color/game_text_dark"
+            android:text="▶  PLAY NOW\nLevel 1"
+            android:textColor="#1F3045"
             android:textSize="18sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- BOTTOM NAVIGATION BAR -->
+    <!-- FLOATING WARM-WHITE BOTTOM NAVIGATION BAR -->
     <LinearLayout
-        android:id="@+id/bottomNav"
+        android:id="@+id/bottomNavContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginBottom="8dp"
-        android:clipToPadding="false"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_bottom_nav_container"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
         android:weightSum="4">
 
-        <Button
+        <!-- Shop Nav Item -->
+        <LinearLayout
             android:id="@+id/navShop"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_margin="3dp"
-            android:background="@drawable/bg_button_game_secondary"
-            android:drawableTop="@drawable/ic_shop"
-            android:paddingTop="6dp"
-            android:paddingBottom="4dp"
-            android:text="SHOP"
-            android:textColor="@color/game_text_dark"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <Button
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_shop" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Shop"
+                android:textColor="@color/game_text_dark"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Heroes Nav Item -->
+        <LinearLayout
             android:id="@+id/navCharacters"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_margin="3dp"
-            android:background="@drawable/bg_button_game_secondary"
-            android:drawableTop="@drawable/ic_hero"
-            android:paddingTop="6dp"
-            android:paddingBottom="4dp"
-            android:text="HEROES"
-            android:textColor="@color/game_text_dark"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <Button
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_hero" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Heroes"
+                android:textColor="@color/game_text_dark"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Worlds Nav Item -->
+        <LinearLayout
             android:id="@+id/navWorlds"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_margin="3dp"
-            android:background="@drawable/bg_button_game_secondary"
-            android:drawableTop="@drawable/ic_world"
-            android:paddingTop="6dp"
-            android:paddingBottom="4dp"
-            android:text="WORLDS"
-            android:textColor="@color/game_text_dark"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <Button
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_world" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Worlds"
+                android:textColor="@color/game_text_dark"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Trophies Nav Item -->
+        <LinearLayout
             android:id="@+id/navAchievements"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_margin="3dp"
-            android:background="@drawable/bg_button_game_secondary"
-            android:drawableTop="@drawable/ic_trophy"
-            android:paddingTop="6dp"
-            android:paddingBottom="4dp"
-            android:text="TROPHIES"
-            android:textColor="@color/game_text_dark"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_trophy" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Trophies"
+                android:textColor="@color/game_text_dark"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
 </RelativeLayout>

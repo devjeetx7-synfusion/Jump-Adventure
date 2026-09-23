@@ -1,36 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Bottom Shadow Layer -->
-    <item android:top="6dp">
-        <shape android:shape="rectangle">
-            <corners android:radius="18dp" />
-            <solid android:color="@color/game_primary_shadow" />
-        </shape>
-    </item>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40FFFFFF">
+    <item>
+        <layer-list>
+            <!-- Outer Bottom Shadow -->
+            <item android:top="4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="24dp" />
+                    <solid android:color="@color/game_primary_shadow" />
+                </shape>
+            </item>
 
-    <!-- Main Button Body Layer -->
-    <item android:bottom="6dp">
-        <shape android:shape="rectangle">
-            <corners android:radius="18dp" />
-            <gradient
-                android:angle="270"
-                android:startColor="@color/game_primary_start"
-                android:endColor="@color/game_primary_end" />
-            <stroke
-                android:width="2.5dp"
-                android:color="#FFE8A3" />
-        </shape>
-    </item>
+            <!-- Main Glossy Body -->
+            <item android:bottom="4dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="24dp" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/game_primary_start"
+                        android:endColor="@color/game_primary_end" />
+                    <stroke
+                        android:width="2.5dp"
+                        android:color="#FFF3C4" />
+                </shape>
+            </item>
 
-    <!-- Top Glossy Inner Highlight Layer -->
-    <item
-        android:top="2dp"
-        android:left="4dp"
-        android:right="4dp"
-        android:bottom="28dp">
-        <shape android:shape="rectangle">
-            <corners android:radius="14dp" />
-            <solid android:color="#40FFFFFF" />
-        </shape>
+            <!-- Top Highlight Glow -->
+            <item
+                android:bottom="26dp"
+                android:left="6dp"
+                android:right="6dp"
+                android:top="3dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="18dp" />
+                    <solid android:color="#40FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
-</layer-list>
+</ripple>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Panel Outer Shadow -->
+    <item android:top="6dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="28dp" />
+            <solid android:color="#40000000" />
+        </shape>
+    </item>
+
+    <!-- Panel Main Body -->
+    <item android:bottom="6dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="28dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#FFFFFF"
+                android:endColor="@color/game_panel_bg_warm" />
+            <stroke
+                android:width="3.5dp"
+                android:color="@color/game_gold_border" />
+        </shape>
+    </item>
+</layer-list>
