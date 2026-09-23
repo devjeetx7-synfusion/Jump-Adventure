@@ -1,13 +1,11 @@
 package com.jumpadventure.game
 
-import android.app.AlertDialog
 import android.graphics.*
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.jumpadventure.game.audio.SoundManager
@@ -87,9 +85,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCurrencyHUD() {
-        tvCoins.text = "${saveData.coins} Coins"
-        tvGems.text = "${saveData.gems} Gems"
-        btnPlay.text = "▶ PLAY\nLevel ${saveData.currentLevel}"
+        tvCoins.text = "${saveData.coins}"
+        tvGems.text = "${saveData.gems}"
+        btnPlay.text = "PLAY NOW\nLevel ${saveData.currentLevel}"
         charPreviewView.selectedCharacterId = saveData.selectedCharacter
     }
 
@@ -151,10 +149,10 @@ class MainActivity : AppCompatActivity() {
      * ------------------------------------------------------------------------ */
     private fun openLevelMapScreen() {
         val currentWorld = WorldRepository.getWorldForLevel(saveData.currentLevel)
-        incLevelMap.findViewById<TextView>(R.id.tvMapWorldTitle).text = "World ${currentWorld.id}"
-        incLevelMap.findViewById<TextView>(R.id.tvMapWorldSub).text = "${currentWorld.iconEmoji} ${currentWorld.name}"
+        incLevelMap.findViewById<TextView>(R.id.tvMapWorldTitle).text = "WORLD ${currentWorld.id}"
+        incLevelMap.findViewById<TextView>(R.id.tvMapWorldSub).text = currentWorld.name
 
-        incLevelMap.findViewById<Button>(R.id.btnMapBack).setOnClickListener {
+        incLevelMap.findViewById<ImageButton>(R.id.btnMapBack).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -180,7 +178,6 @@ class MainActivity : AppCompatActivity() {
 
         showScreen("LEVEL_MAP")
 
-        // Auto scroll to current level node at bottom/middle of map
         val scrollView = incLevelMap.findViewById<ScrollView>(R.id.mapScrollView)
         scrollView.post {
             scrollView.fullScroll(View.FOCUS_DOWN)
@@ -202,7 +199,7 @@ class MainActivity : AppCompatActivity() {
         val tvHudLevel = incGameplay.findViewById<TextView>(R.id.tvHudLevel)
         val pbLevelProgress = incGameplay.findViewById<ProgressBar>(R.id.pbLevelProgress)
 
-        tvHudLevel.text = "Level $levelNum"
+        tvHudLevel.text = "LEVEL $levelNum"
 
         currentGameView = GameView(
             context = this,
@@ -228,7 +225,7 @@ class MainActivity : AppCompatActivity() {
 
         gameContainer.addView(currentGameView)
 
-        incGameplay.findViewById<Button>(R.id.btnPause).setOnClickListener {
+        incGameplay.findViewById<ImageButton>(R.id.btnPause).setOnClickListener {
             soundManager.playButtonClick()
             showPauseOverlay()
         }
@@ -262,8 +259,10 @@ class MainActivity : AppCompatActivity() {
 
         saveManager.saveData(saveData)
 
-        // Show Overlay
         incOverlay.visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.VISIBLE
+
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "LEVEL COMPLETE"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
         val tvOverlayStars = incOverlay.findViewById<TextView>(R.id.tvOverlayStars)
@@ -294,7 +293,6 @@ class MainActivity : AppCompatActivity() {
             showScreen("MAIN_MENU")
         }
 
-        // Sequential Animation
         val delayMs = 400L
         overlayHandler.postDelayed({
             soundManager.playCoin()
@@ -320,7 +318,7 @@ class MainActivity : AppCompatActivity() {
             tvOverlayCoins.text = "+$coinsEarned Coins"
             tvOverlayTime.text = "Time: ${String.format("%.1fs", timeTakenSec)}"
 
-            // Trigger Confetti Animation Simulation
+            val rewardsContainer = incOverlay.findViewById<LinearLayout>(R.id.rewardsContainer)
             val confettiContainer = LinearLayout(this@MainActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
@@ -335,12 +333,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 confettiContainer.addView(confetti)
             }
-            incOverlay.findViewById<LinearLayout>(R.id.rewardsContainer).addView(confettiContainer)
+            rewardsContainer.addView(confettiContainer)
         }, delayMs * 4)
     }
 
     private fun handleGameOver() {
         incOverlay.visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.VISIBLE
+
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "GAME OVER"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
         incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "FAILED"
@@ -366,6 +366,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPauseOverlay() {
         incOverlay.visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.VISIBLE
+
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "PAUSED"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
         incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "PAUSED"
@@ -381,7 +384,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         val btnSec = incOverlay.findViewById<Button>(R.id.btnOverlaySecondary)
-        btnSec.visibility = View.VISIBLE
         btnSec.text = "↻ RESTART"
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
@@ -402,10 +404,10 @@ class MainActivity : AppCompatActivity() {
     private fun openCharactersScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
-        title.text = "Characters"
-        tvCoinsSec.text = "${saveData.coins} Coins"
+        title.text = "HEROES"
+        tvCoinsSec.text = "${saveData.coins}"
 
-        incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
+        incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -414,7 +416,7 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val characterList = listOf(
-            CharacterItem("DEFAULT", "Red Hoodie", 0, 0, "Default cute runner", "#E53935"),
+            CharacterItem("DEFAULT", "Red Hoodie", 0, 0, "Default adventurous hero", "#E53935"),
             CharacterItem("NINJA", "Shadow Ninja", 3000, 0, "Fast shadow warrior", "#212121"),
             CharacterItem("ROBOT", "Cyber Bot", 5000, 0, "Metallic high jumper", "#78909C"),
             CharacterItem("GIRL", "Pink Runner", 3000, 0, "Stylish cute runner", "#EC407A"),
@@ -422,7 +424,6 @@ class MainActivity : AppCompatActivity() {
             CharacterItem("COWBOY", "Wild Ranger", 4000, 0, "Outlaw quick jumper", "#8D6E63")
         )
 
-        // 2-Column Grid Layout for Characters
         var currentRow: LinearLayout? = null
 
         characterList.forEachIndexed { index, item ->
@@ -437,10 +438,13 @@ class MainActivity : AppCompatActivity() {
                 container.addView(currentRow)
             }
 
+            val isSelected = saveData.selectedCharacter == item.id
+            val isUnlocked = saveData.unlockedCharacters.contains(item.id)
+
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(20, 20, 20, 20)
-                setBackgroundResource(R.drawable.bg_card_glossy)
+                setBackgroundResource(if (isSelected) R.drawable.bg_card_selected else R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                     val marginStart = if (index % 2 == 0) 0 else 8
@@ -458,7 +462,7 @@ class MainActivity : AppCompatActivity() {
                 text = item.name
                 textSize = 15f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -469,7 +473,7 @@ class MainActivity : AppCompatActivity() {
             val tvDesc = TextView(this).apply {
                 text = item.description
                 textSize = 11f
-                setTextColor(Color.parseColor("#546E7A"))
+                setTextColor(Color.parseColor("#6B7280"))
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -478,9 +482,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             val actionBtn = Button(this).apply {
-                val isUnlocked = saveData.unlockedCharacters.contains(item.id)
-                val isSelected = saveData.selectedCharacter == item.id
-
                 if (isSelected) {
                     text = "✓ SELECTED"
                     setBackgroundResource(R.drawable.bg_button_game_primary)
@@ -492,7 +493,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_primary)
                 }
 
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
                 textSize = 11f
                 typeface = Typeface.DEFAULT_BOLD
                 layoutParams = LinearLayout.LayoutParams(
@@ -505,14 +506,8 @@ class MainActivity : AppCompatActivity() {
                         saveData.selectedCharacter = item.id
                         saveManager.saveData(saveData)
                         openCharactersScreen()
-                    } else if (saveData.coins >= item.priceCoins) {
-                        saveData.coins -= item.priceCoins
-                        saveData.unlockedCharacters.add(item.id)
-                        saveData.selectedCharacter = item.id
-                        saveManager.saveData(saveData)
-                        openCharactersScreen()
                     } else {
-                        Toast.makeText(this@MainActivity, "Not enough coins!", Toast.LENGTH_SHORT).show()
+                        showCustomCharacterPreviewDialog(item)
                     }
                 }
             }
@@ -527,16 +522,71 @@ class MainActivity : AppCompatActivity() {
         showScreen("SECONDARY")
     }
 
+    private fun showCustomCharacterPreviewDialog(item: CharacterItem) {
+        incOverlay.visibility = View.VISIBLE
+        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = item.name.uppercase()
+        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = item.description
+        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = ""
+        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = "Price: ${item.priceCoins} Coins"
+        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
+
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "UNLOCK FOR ${item.priceCoins} COINS"
+        btnPrimary.setOnClickListener {
+            soundManager.playButtonClick()
+            if (saveData.coins >= item.priceCoins) {
+                saveData.coins -= item.priceCoins
+                saveData.unlockedCharacters.add(item.id)
+                saveData.selectedCharacter = item.id
+                saveManager.saveData(saveData)
+                incOverlay.visibility = View.GONE
+                openCharactersScreen()
+            } else {
+                showCustomGameDialog("INSUFFICIENT COINS", "You need ${item.priceCoins - saveData.coins} more coins to unlock ${item.name}.")
+            }
+        }
+
+        val btnSec = incOverlay.findViewById<Button>(R.id.btnOverlaySecondary)
+        btnSec.visibility = View.VISIBLE
+        btnSec.text = "CLOSE"
+        btnSec.setOnClickListener {
+            soundManager.playButtonClick()
+            incOverlay.visibility = View.GONE
+        }
+
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.GONE
+    }
+
+    private fun showCustomGameDialog(title: String, message: String, onConfirm: (() -> Unit)? = null) {
+        incOverlay.visibility = View.VISIBLE
+        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = title
+        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = message
+        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = ""
+        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
+        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
+
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "OK"
+        btnPrimary.setOnClickListener {
+            soundManager.playButtonClick()
+            incOverlay.visibility = View.GONE
+            onConfirm?.invoke()
+        }
+
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.GONE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.GONE
+    }
+
     /* ------------------------------------------------------------------------
      * SHOP SCREEN
      * ------------------------------------------------------------------------ */
     private fun openShopScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
-        title.text = "Shop"
-        tvCoinsSec.text = "${saveData.coins} Coins"
+        title.text = "SHOP"
+        tvCoinsSec.text = "${saveData.coins}"
 
-        incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
+        incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -545,9 +595,9 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val packs = listOf(
-            Triple("Small Coin Pack", 500, "Free Claim"),
-            Triple("Medium Coin Pack", 1500, "Earned in game"),
-            Triple("Large Coin Pack", 5000, "Master level pack")
+            Triple("Small Coin Pack", 500, "Free daily claim reward"),
+            Triple("Medium Coin Pack", 1500, "Bonus adventure pack"),
+            Triple("Large Coin Pack", 5000, "Master explorer chest")
         )
 
         packs.forEach { (name, amount, desc) ->
@@ -559,7 +609,7 @@ class MainActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 12, 0, 12) }
+                ).apply { setMargins(0, 10, 0, 10) }
             }
 
             val infoLayout = LinearLayout(this).apply {
@@ -569,28 +619,28 @@ class MainActivity : AppCompatActivity() {
 
             infoLayout.addView(TextView(this).apply {
                 text = name
-                textSize = 18f
+                textSize = 17f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
             })
             infoLayout.addView(TextView(this).apply {
                 text = desc
                 textSize = 12f
-                setTextColor(Color.parseColor("#546E7A"))
+                setTextColor(Color.parseColor("#6B7280"))
             })
 
             val claimBtn = Button(this).apply {
-                text = "+$amount Coins"
+                text = "+$amount COINS"
                 setBackgroundResource(R.drawable.bg_button_game_primary)
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
                 typeface = Typeface.DEFAULT_BOLD
 
                 setOnClickListener {
                     soundManager.playCoin()
                     saveData.coins += amount
                     saveManager.saveData(saveData)
-                    tvCoinsSec.text = "🪙 ${saveData.coins}"
-                    Toast.makeText(this@MainActivity, "Collected $amount coins!", Toast.LENGTH_SHORT).show()
+                    tvCoinsSec.text = "${saveData.coins}"
+                    showCustomGameDialog("REWARD CLAIMED!", "You earned +$amount Coins!")
                 }
             }
 
@@ -608,10 +658,10 @@ class MainActivity : AppCompatActivity() {
     private fun openWorldsScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
-        title.text = "Worlds"
-        tvCoinsSec.text = "${saveData.coins} Coins"
+        title.text = "WORLDS"
+        tvCoinsSec.text = "${saveData.coins}"
 
-        incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
+        incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -622,22 +672,19 @@ class MainActivity : AppCompatActivity() {
         WorldRepository.worlds.forEach { world ->
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(28, 28, 28, 28)
+                setPadding(24, 24, 24, 24)
                 setBackgroundResource(R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    300
-                ).apply { setMargins(0, 14, 0, 14) }
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 12, 0, 12) }
             }
 
-            // Real artwork placeholder container
-            val artView = android.widget.ImageView(this).apply {
+            val bannerView = View(this).apply {
                 setBackgroundColor(Color.parseColor(world.skyColorHex))
-                scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
-                // setImageResource(R.drawable.world_placeholder_art)
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 120).apply { setMargins(0, 0, 0, 12) }
             }
-            artView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
 
             val infoLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -646,16 +693,16 @@ class MainActivity : AppCompatActivity() {
             }
 
             infoLayout.addView(TextView(this).apply {
-                text = "World ${world.id}: ${world.name}"
-                textSize = 20f
+                text = "WORLD ${world.id}: ${world.name.uppercase()}"
+                textSize = 18f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
             })
             infoLayout.addView(TextView(this).apply {
                 val endLvlText = if (world.endLevel > 10000) "+" else " - ${world.endLevel}"
                 text = "Levels ${world.startLevel}$endLvlText"
-                textSize = 14f
-                setTextColor(Color.parseColor("#546E7A"))
+                textSize = 13f
+                setTextColor(Color.parseColor("#6B7280"))
             })
 
             val totalStars = saveData.levelStars.values.sum()
@@ -672,16 +719,16 @@ class MainActivity : AppCompatActivity() {
                         openLevelMapScreen()
                     }
                 } else {
-                    text = "LOCKED: ${world.requiredStarsToUnlock} Stars"
+                    text = "LOCKED: ${world.requiredStarsToUnlock} Stars Required"
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
                 typeface = Typeface.DEFAULT_BOLD
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 120).apply { setMargins(0, 16, 0, 0) }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 110).apply { setMargins(0, 14, 0, 0) }
             }
 
-            card.addView(artView)
+            card.addView(bannerView)
             card.addView(infoLayout)
             card.addView(statusBtn)
             container.addView(card)
@@ -696,10 +743,10 @@ class MainActivity : AppCompatActivity() {
     private fun openAchievementsScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
-        title.text = "Achievements"
-        tvCoinsSec.text = "${saveData.coins} Coins"
+        title.text = "TROPHIES"
+        tvCoinsSec.text = "${saveData.coins}"
 
-        incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
+        incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -725,7 +772,7 @@ class MainActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 12, 0, 12) }
+                ).apply { setMargins(0, 10, 0, 10) }
             }
 
             val infoLayout = LinearLayout(this).apply {
@@ -735,14 +782,14 @@ class MainActivity : AppCompatActivity() {
 
             infoLayout.addView(TextView(this).apply {
                 text = item.title
-                textSize = 18f
+                textSize = 17f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
             })
             infoLayout.addView(TextView(this).apply {
                 text = item.description
                 textSize = 12f
-                setTextColor(Color.parseColor("#546E7A"))
+                setTextColor(Color.parseColor("#6B7280"))
             })
 
             val isUnlocked = item.isUnlocked(saveData)
@@ -754,7 +801,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 } else if (isUnlocked) {
-                    text = "+${item.rewardCoins} Coins"
+                    text = "+${item.rewardCoins} COINS"
                     setBackgroundResource(R.drawable.bg_button_game_primary)
                     setOnClickListener {
                         soundManager.playCoin()
@@ -768,7 +815,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
-                setTextColor(Color.parseColor("#1B1B2F"))
+                setTextColor(Color.parseColor("#1E293B"))
                 typeface = Typeface.DEFAULT_BOLD
             }
 
@@ -786,10 +833,10 @@ class MainActivity : AppCompatActivity() {
     private fun openSettingsScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
-        title.text = "Settings"
-        tvCoinsSec.text = "${saveData.coins} Coins"
+        title.text = "SETTINGS"
+        tvCoinsSec.text = "${saveData.coins}"
 
-        incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
+        incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -797,72 +844,67 @@ class MainActivity : AppCompatActivity() {
         val container = incSecondary.findViewById<LinearLayout>(R.id.secondaryContentContainer)
         container.removeAllViews()
 
-        // Sound Toggle Button
+        // Sound Toggle
         val soundBtn = Button(this).apply {
-            text = "🔊 Sound: " + if (saveData.soundEnabled) "ON" else "OFF"
+            text = "🔊 Sound Effects: " + if (saveData.soundEnabled) "ON" else "OFF"
             setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
-            setTextColor(Color.parseColor("#1B1B2F"))
+            setTextColor(Color.parseColor("#1E293B"))
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 130
-            ).apply { setMargins(0, 12, 0, 12) }
+                LinearLayout.LayoutParams.MATCH_PARENT, 120
+            ).apply { setMargins(0, 10, 0, 10) }
 
             setOnClickListener {
                 saveData.soundEnabled = !saveData.soundEnabled
                 soundManager.soundEnabled = saveData.soundEnabled
                 saveManager.saveData(saveData)
-                text = "🔊 Sound: " + if (saveData.soundEnabled) "ON" else "OFF"
+                text = "🔊 Sound Effects: " + if (saveData.soundEnabled) "ON" else "OFF"
                 setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             }
         }
         container.addView(soundBtn)
 
-        // Music Toggle Button
+        // Music Toggle
         val musicBtn = Button(this).apply {
-            text = "🎵 Music: " + if (saveData.musicEnabled) "ON" else "OFF"
+            text = "🎵 Background Music: " + if (saveData.musicEnabled) "ON" else "OFF"
             setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
-            setTextColor(Color.parseColor("#1B1B2F"))
+            setTextColor(Color.parseColor("#1E293B"))
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 130
-            ).apply { setMargins(0, 12, 0, 12) }
+                LinearLayout.LayoutParams.MATCH_PARENT, 120
+            ).apply { setMargins(0, 10, 0, 10) }
 
             setOnClickListener {
                 saveData.musicEnabled = !saveData.musicEnabled
                 soundManager.musicEnabled = saveData.musicEnabled
                 saveManager.saveData(saveData)
-                text = "🎵 Music: " + if (saveData.musicEnabled) "ON" else "OFF"
+                text = "🎵 Background Music: " + if (saveData.musicEnabled) "ON" else "OFF"
                 setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
             }
         }
         container.addView(musicBtn)
 
-        // Reset Progress Button
+        // Reset Progress (Custom Game Dialog replacing AlertDialog)
         val resetBtn = Button(this).apply {
-            text = "♻ Reset Progress"
-            setBackgroundResource(R.drawable.bg_button_game_secondary)
-            setTextColor(Color.RED)
-            textSize = 16f
+            text = "♻ RESET ALL PROGRESS"
+            setBackgroundResource(R.drawable.bg_button_game_danger)
+            setTextColor(Color.WHITE)
+            textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 130
-            ).apply { setMargins(0, 24, 0, 12) }
+                LinearLayout.LayoutParams.MATCH_PARENT, 120
+            ).apply { setMargins(0, 20, 0, 10) }
 
             setOnClickListener {
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Reset Progress?")
-                    .setMessage("Are you sure you want to reset all game data? This cannot be undone.")
-                    .setPositiveButton("Reset") { _, _ ->
-                        saveManager.resetProgress()
-                        saveData = saveManager.loadData()
-                        updateCurrencyHUD()
-                        showScreen("MAIN_MENU")
-                        Toast.makeText(this@MainActivity, "Progress reset successfully.", Toast.LENGTH_SHORT).show()
-                    }
-                    .setNegativeButton("Cancel", null)
-                    .show()
+                soundManager.playButtonClick()
+                showCustomGameDialog("RESET PROGRESS?", "Are you sure you want to reset all game data? This cannot be undone.") {
+                    saveManager.resetProgress()
+                    saveData = saveManager.loadData()
+                    updateCurrencyHUD()
+                    showScreen("MAIN_MENU")
+                }
             }
         }
         container.addView(resetBtn)
