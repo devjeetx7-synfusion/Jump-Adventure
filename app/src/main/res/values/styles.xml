@@ -11,7 +11,7 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
-        <item name="android:windowBackground">@color/game_sky_top</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
     <style name="GameTitleText">
