@@ -92,14 +92,14 @@ jobs:
           echo "=== Verifying Debug APK ==="
           test -f JumpAdventure-debug.apk
           test -s JumpAdventure-debug.apk
-          DEBUG_PKG=$("$AAPT2" dump badging JumpAdventure-debug.apk | grep "package: name=" | sed -n "s/.*name='\\([^']*\\)'.*/\\1/p")
+          DEBUG_PKG=$("$AAPT2" dump badging JumpAdventure-debug.apk | grep "^package: name=" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")
           echo "Debug package name: $DEBUG_PKG"
           test "$DEBUG_PKG" = "com.jumpadventure.game"
 
           echo "=== Verifying Test Release APK ==="
           test -f JumpAdventure-test-release.apk
           test -s JumpAdventure-test-release.apk
-          RELEASE_PKG=$("$AAPT2" dump badging JumpAdventure-test-release.apk | grep "package: name=" | sed -n "s/.*name='\\([^']*\\)'.*/\\1/p")
+          RELEASE_PKG=$("$AAPT2" dump badging JumpAdventure-test-release.apk | grep "^package: name=" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")
           echo "Release package name: $RELEASE_PKG"
           test "$RELEASE_PKG" = "com.jumpadventure.game"
 
