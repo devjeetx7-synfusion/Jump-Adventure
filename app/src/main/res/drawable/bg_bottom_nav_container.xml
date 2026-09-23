@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Shadow -->
-    <item android:top="4dp">
+    <!-- Bottom Shadow -->
+    <item android:top="5dp">
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
-            <solid android:color="#25000000" />
+            <corners android:radius="32dp" />
+            <solid android:color="#20000000" />
         </shape>
     </item>
 
-    <!-- Main Container Body -->
+    <!-- Warm White Floating Bar -->
     <item android:bottom="4dp">
         <shape android:shape="rectangle">
-            <corners android:radius="24dp" />
+            <corners android:radius="32dp" />
             <gradient
                 android:angle="270"
                 android:startColor="#FFFFFF"
-                android:endColor="#FFF9F0" />
+                android:endColor="#FFFDF7" />
             <stroke
-                android:width="2.5dp"
+                android:width="2dp"
                 android:color="#EAEFF5" />
         </shape>
     </item>

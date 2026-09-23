@@ -7,8 +7,10 @@
         <item name="colorSecondary">@color/game_secondary_end</item>
         <item name="colorSecondaryVariant">@color/game_secondary_shadow</item>
         <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="android:statusBarColor">@color/game_sky_top</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>
         <item name="android:windowBackground">@color/game_sky_top</item>
     </style>
 

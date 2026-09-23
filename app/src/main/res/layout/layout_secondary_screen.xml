@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_home_sky"
-    android:fitsSystemWindows="true"
-    android:padding="12dp">
+    android:layout_height="match_parent">
+
+    <!-- Illustrated Environment Background -->
+    <com.jumpadventure.game.graphics.HomeEnvironmentView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <!-- TOP HUD BAR -->
     <RelativeLayout
@@ -12,7 +14,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="4dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp">
 
         <ImageButton
             android:id="@+id/btnSecondaryBack"
@@ -22,7 +26,7 @@
             android:layout_centerVertical="true"
             android:background="@drawable/bg_button_game_secondary"
             android:contentDescription="Back"
-            android:padding="10dp"
+            android:padding="11dp"
             android:src="@drawable/ic_back" />
 
         <TextView
@@ -30,30 +34,30 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:shadowColor="#8B4500"
+            android:shadowColor="#0F172A"
             android:shadowDx="0"
             android:shadowDy="4"
             android:shadowRadius="2"
             android:text="HEROES"
-            android:textColor="#FFCA28"
+            android:textColor="#FFD43B"
             android:textSize="26sp"
             android:textStyle="bold" />
 
-        <!-- Coins Pill -->
+        <!-- Coins Badge -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="42dp"
+            android:layout_height="40dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_pill_badge"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
+            android:paddingStart="6dp"
             android:paddingEnd="12dp">
 
             <ImageView
-                android:layout_width="26dp"
-                android:layout_height="26dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
                 android:src="@drawable/ic_coin" />
 
             <TextView
@@ -73,15 +77,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/secondaryTopBar"
-        android:layout_marginTop="12dp"
-        android:fillViewport="true">
+        android:layout_marginTop="8dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="24dp">
 
         <LinearLayout
             android:id="@+id/secondaryContentContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="16dp" />
+            android:orientation="vertical" />
     </ScrollView>
 
 </RelativeLayout>

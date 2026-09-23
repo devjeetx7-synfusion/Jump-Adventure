@@ -41,6 +41,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+
         setContentView(R.layout.activity_main)
 
         saveManager = SaveManager.getInstance(this)
@@ -78,16 +84,69 @@ class MainActivity : AppCompatActivity() {
         incSecondary = findViewById(R.id.incSecondary)
         incOverlay = findViewById(R.id.incOverlay)
 
+        setupWindowInsets()
+
         tvCoins = incMainMenu.findViewById(R.id.tvCoins)
         tvGems = incMainMenu.findViewById(R.id.tvGems)
         btnPlay = incMainMenu.findViewById(R.id.btnPlay)
         charPreviewView = incMainMenu.findViewById(R.id.charPreviewView)
     }
 
+    private fun setupWindowInsets() {
+        val root = findViewById<View>(R.id.rootLayout) ?: return
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+
+            // Main Menu top bar & bottom nav inset padding
+            incMainMenu.findViewById<View>(R.id.topBar)?.setPadding(
+                incMainMenu.findViewById<View>(R.id.topBar).paddingLeft,
+                systemBars.top + 12,
+                incMainMenu.findViewById<View>(R.id.topBar).paddingRight,
+                incMainMenu.findViewById<View>(R.id.topBar).paddingBottom
+            )
+
+            val bottomNav = incMainMenu.findViewById<View>(R.id.bottomNavContainer)
+            if (bottomNav != null) {
+                val params = bottomNav.layoutParams as? RelativeLayout.LayoutParams
+                params?.bottomMargin = systemBars.bottom + 12
+                bottomNav.layoutParams = params
+            }
+
+            // Level Map top bar inset padding
+            incLevelMap.findViewById<View>(R.id.mapTopBar)?.setPadding(
+                incLevelMap.findViewById<View>(R.id.mapTopBar).paddingLeft,
+                systemBars.top + 12,
+                incLevelMap.findViewById<View>(R.id.mapTopBar).paddingRight,
+                incLevelMap.findViewById<View>(R.id.mapTopBar).paddingBottom
+            )
+
+            // Gameplay top HUD bar inset padding
+            incGameplay.findViewById<View>(R.id.hudTopBar)?.setPadding(
+                incGameplay.findViewById<View>(R.id.hudTopBar).paddingLeft,
+                systemBars.top + 12,
+                incGameplay.findViewById<View>(R.id.hudTopBar).paddingRight,
+                incGameplay.findViewById<View>(R.id.hudTopBar).paddingBottom
+            )
+
+            // Secondary screen top bar inset padding
+            incSecondary.findViewById<View>(R.id.secondaryTopBar)?.setPadding(
+                incSecondary.findViewById<View>(R.id.secondaryTopBar).paddingLeft,
+                systemBars.top + 12,
+                incSecondary.findViewById<View>(R.id.secondaryTopBar).paddingRight,
+                incSecondary.findViewById<View>(R.id.secondaryTopBar).paddingBottom
+            )
+
+            // Overlay panel top/bottom margin padding
+            incOverlay.setPadding(0, systemBars.top, 0, systemBars.bottom)
+
+            insets
+        }
+    }
+
     private fun updateCurrencyHUD() {
         tvCoins.text = "${saveData.coins}"
         tvGems.text = "${saveData.gems}"
-        btnPlay.text = "PLAY NOW\nLevel ${saveData.currentLevel}"
+        btnPlay.text = "▶  PLAY NOW\nLevel ${saveData.currentLevel}"
         charPreviewView.selectedCharacterId = saveData.selectedCharacter
     }
 
@@ -102,22 +161,22 @@ class MainActivity : AppCompatActivity() {
             openLevelMapScreen()
         }
 
-        incMainMenu.findViewById<Button>(R.id.navShop).setOnClickListener {
+        incMainMenu.findViewById<View>(R.id.navShop).setOnClickListener {
             soundManager.playButtonClick()
             openShopScreen()
         }
 
-        incMainMenu.findViewById<Button>(R.id.navCharacters).setOnClickListener {
+        incMainMenu.findViewById<View>(R.id.navCharacters).setOnClickListener {
             soundManager.playButtonClick()
             openCharactersScreen()
         }
 
-        incMainMenu.findViewById<Button>(R.id.navWorlds).setOnClickListener {
+        incMainMenu.findViewById<View>(R.id.navWorlds).setOnClickListener {
             soundManager.playButtonClick()
             openWorldsScreen()
         }
 
-        incMainMenu.findViewById<Button>(R.id.navAchievements).setOnClickListener {
+        incMainMenu.findViewById<View>(R.id.navAchievements).setOnClickListener {
             soundManager.playButtonClick()
             openAchievementsScreen()
         }
@@ -462,7 +521,7 @@ class MainActivity : AppCompatActivity() {
                 text = item.name
                 textSize = 15f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -473,7 +532,7 @@ class MainActivity : AppCompatActivity() {
             val tvDesc = TextView(this).apply {
                 text = item.description
                 textSize = 11f
-                setTextColor(Color.parseColor("#6B7280"))
+                setTextColor(Color.parseColor("#6B7C93"))
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -493,7 +552,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_primary)
                 }
 
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
                 textSize = 11f
                 typeface = Typeface.DEFAULT_BOLD
                 layoutParams = LinearLayout.LayoutParams(
@@ -621,18 +680,18 @@ class MainActivity : AppCompatActivity() {
                 text = name
                 textSize = 17f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
             })
             infoLayout.addView(TextView(this).apply {
                 text = desc
                 textSize = 12f
-                setTextColor(Color.parseColor("#6B7280"))
+                setTextColor(Color.parseColor("#6B7C93"))
             })
 
             val claimBtn = Button(this).apply {
                 text = "+$amount COINS"
                 setBackgroundResource(R.drawable.bg_button_game_primary)
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
                 typeface = Typeface.DEFAULT_BOLD
 
                 setOnClickListener {
@@ -696,13 +755,13 @@ class MainActivity : AppCompatActivity() {
                 text = "WORLD ${world.id}: ${world.name.uppercase()}"
                 textSize = 18f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
             })
             infoLayout.addView(TextView(this).apply {
                 val endLvlText = if (world.endLevel > 10000) "+" else " - ${world.endLevel}"
                 text = "Levels ${world.startLevel}$endLvlText"
                 textSize = 13f
-                setTextColor(Color.parseColor("#6B7280"))
+                setTextColor(Color.parseColor("#6B7C93"))
             })
 
             val totalStars = saveData.levelStars.values.sum()
@@ -723,7 +782,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
                 typeface = Typeface.DEFAULT_BOLD
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 110).apply { setMargins(0, 14, 0, 0) }
             }
@@ -784,12 +843,12 @@ class MainActivity : AppCompatActivity() {
                 text = item.title
                 textSize = 17f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
             })
             infoLayout.addView(TextView(this).apply {
                 text = item.description
                 textSize = 12f
-                setTextColor(Color.parseColor("#6B7280"))
+                setTextColor(Color.parseColor("#6B7C93"))
             })
 
             val isUnlocked = item.isUnlocked(saveData)
@@ -815,7 +874,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
-                setTextColor(Color.parseColor("#1E293B"))
+                setTextColor(Color.parseColor("#1F3045"))
                 typeface = Typeface.DEFAULT_BOLD
             }
 
@@ -848,7 +907,7 @@ class MainActivity : AppCompatActivity() {
         val soundBtn = Button(this).apply {
             text = "🔊 Sound Effects: " + if (saveData.soundEnabled) "ON" else "OFF"
             setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
-            setTextColor(Color.parseColor("#1E293B"))
+            setTextColor(Color.parseColor("#1F3045"))
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
@@ -869,7 +928,7 @@ class MainActivity : AppCompatActivity() {
         val musicBtn = Button(this).apply {
             text = "🎵 Background Music: " + if (saveData.musicEnabled) "ON" else "OFF"
             setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
-            setTextColor(Color.parseColor("#1E293B"))
+            setTextColor(Color.parseColor("#1F3045"))
             textSize = 16f
             typeface = Typeface.DEFAULT_BOLD
             layoutParams = LinearLayout.LayoutParams(
@@ -886,7 +945,7 @@ class MainActivity : AppCompatActivity() {
         }
         container.addView(musicBtn)
 
-        // Reset Progress (Custom Game Dialog replacing AlertDialog)
+        // Reset Progress
         val resetBtn = Button(this).apply {
             text = "♻ RESET ALL PROGRESS"
             setBackgroundResource(R.drawable.bg_button_game_danger)

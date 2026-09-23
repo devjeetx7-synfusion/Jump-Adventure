@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Blue Glow Shadow -->
     <item android:top="4dp">
         <shape android:shape="rectangle">
-            <corners android:radius="20dp" />
-            <solid android:color="@color/game_gold_shadow" />
+            <corners android:radius="24dp" />
+            <solid android:color="#168AF0" />
         </shape>
     </item>
+
+    <!-- Main Container Body -->
     <item android:bottom="4dp">
         <shape android:shape="rectangle">
-            <corners android:radius="20dp" />
-            <solid android:color="@color/game_panel_bg_warm" />
+            <corners android:radius="24dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#F0F8FF"
+                android:endColor="#E1F0FF" />
             <stroke
-                android:width="3.5dp"
-                android:color="@color/game_gold_end" />
+                android:width="3dp"
+                android:color="#168AF0" />
         </shape>
     </item>
 </layer-list>
