@@ -37,13 +37,14 @@
                 android:id="@+id/tvOverlayHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:shadowColor="#5A2600"
                 android:shadowDx="0"
                 android:shadowDy="4"
                 android:shadowRadius="2"
                 android:text="PAUSED"
                 android:textColor="#FFD43B"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
