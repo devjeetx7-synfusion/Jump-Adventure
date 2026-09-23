@@ -1,6 +1,7 @@
 package com.jumpadventure.game
 
 import android.app.AlertDialog
+import android.graphics.*
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -16,6 +17,8 @@ import com.jumpadventure.game.level.WorldRepository
 import com.jumpadventure.game.model.*
 
 class MainActivity : AppCompatActivity() {
+
+    private val overlayHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     private lateinit var saveManager: SaveManager
     private lateinit var saveData: GameSaveData
@@ -60,6 +63,7 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         if (incOverlay.visibility == View.VISIBLE) {
             incOverlay.visibility = View.GONE
+            overlayHandler.removeCallbacksAndMessages(null)
             return
         }
         if (currentScreenName != "MAIN_MENU") {
@@ -83,8 +87,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCurrencyHUD() {
-        tvCoins.text = "🪙 ${saveData.coins} +"
-        tvGems.text = "💎 ${saveData.gems} +"
+        tvCoins.text = "${saveData.coins} Coins"
+        tvGems.text = "${saveData.gems} Gems"
         btnPlay.text = "▶ PLAY\nLevel ${saveData.currentLevel}"
         charPreviewView.selectedCharacterId = saveData.selectedCharacter
     }
@@ -128,6 +132,7 @@ class MainActivity : AppCompatActivity() {
         incGameplay.visibility = View.GONE
         incSecondary.visibility = View.GONE
         incOverlay.visibility = View.GONE
+        overlayHandler.removeCallbacksAndMessages(null)
 
         when (screenName) {
             "MAIN_MENU" -> {
@@ -214,8 +219,8 @@ class MainActivity : AppCompatActivity() {
             },
             onProgressUpdated = { coins, stars, progress ->
                 runOnUiThread {
-                    tvHudCoins.text = "🪙 $coins"
-                    tvHudStars.text = "⭐ $stars"
+                    tvHudCoins.text = "$coins"
+                    tvHudStars.text = "$stars"
                     pbLevelProgress.progress = (progress * 100).toInt()
                 }
             }
@@ -261,21 +266,26 @@ class MainActivity : AppCompatActivity() {
         incOverlay.visibility = View.VISIBLE
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "LEVEL COMPLETE"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "⭐".repeat(starsEarned.coerceAtLeast(1))
-        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = "🪙 +$coinsEarned"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = "⏱ Time: ${String.format("%.1fs", timeTakenSec)}"
+        val tvOverlayStars = incOverlay.findViewById<TextView>(R.id.tvOverlayStars)
+        val tvOverlayCoins = incOverlay.findViewById<TextView>(R.id.tvOverlayCoins)
+        val tvOverlayTime = incOverlay.findViewById<TextView>(R.id.tvOverlayTime)
+        tvOverlayStars.text = ""
+        tvOverlayCoins.text = ""
+        tvOverlayTime.text = ""
 
         val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
         btnPrimary.text = "▶ NEXT LEVEL"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
+            overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel + 1)
         }
 
         incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
+            overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel)
         }
 
@@ -283,14 +293,58 @@ class MainActivity : AppCompatActivity() {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
+
+        // Sequential Animation
+        val delayMs = 400L
+        overlayHandler.postDelayed({
+            soundManager.playCoin()
+            tvOverlayStars.text = "★"
+        }, delayMs)
+
+        if (starsEarned >= 2) {
+            overlayHandler.postDelayed({
+                soundManager.playCoin()
+                tvOverlayStars.text = "★★"
+            }, delayMs * 2)
+        }
+
+        if (starsEarned >= 3) {
+            overlayHandler.postDelayed({
+                soundManager.playCoin()
+                tvOverlayStars.text = "★★★"
+            }, delayMs * 3)
+        }
+
+        overlayHandler.postDelayed({
+            soundManager.playCoin()
+            tvOverlayCoins.text = "+$coinsEarned Coins"
+            tvOverlayTime.text = "Time: ${String.format("%.1fs", timeTakenSec)}"
+
+            // Trigger Confetti Animation Simulation
+            val confettiContainer = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+            val colors = listOf(Color.RED, Color.YELLOW, Color.GREEN, Color.BLUE, Color.MAGENTA)
+            for (i in 0..10) {
+                val confetti = View(this@MainActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(16, 16).apply { setMargins(8, 0, 8, 0) }
+                    setBackgroundColor(colors[i % colors.size])
+                    rotation = (Math.random() * 360).toFloat()
+                    animate().translationYBy(200f).rotationBy(360f).setDuration(1000).start()
+                }
+                confettiContainer.addView(confetti)
+            }
+            incOverlay.findViewById<LinearLayout>(R.id.rewardsContainer).addView(confettiContainer)
+        }, delayMs * 4)
     }
 
     private fun handleGameOver() {
         incOverlay.visibility = View.VISIBLE
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "GAME OVER"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "💔"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = "Try again!"
+        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "FAILED"
+        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
         val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
@@ -298,6 +352,7 @@ class MainActivity : AppCompatActivity() {
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
+            overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel)
         }
 
@@ -313,7 +368,7 @@ class MainActivity : AppCompatActivity() {
         incOverlay.visibility = View.VISIBLE
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "PAUSED"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "⏸"
+        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "PAUSED"
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
@@ -322,6 +377,7 @@ class MainActivity : AppCompatActivity() {
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
+            overlayHandler.removeCallbacksAndMessages(null)
         }
 
         val btnSec = incOverlay.findViewById<Button>(R.id.btnOverlaySecondary)
@@ -330,6 +386,7 @@ class MainActivity : AppCompatActivity() {
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
+            overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel)
         }
 
@@ -346,7 +403,7 @@ class MainActivity : AppCompatActivity() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "Characters"
-        tvCoinsSec.text = "🪙 ${saveData.coins}"
+        tvCoinsSec.text = "${saveData.coins} Coins"
 
         incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -431,7 +488,7 @@ class MainActivity : AppCompatActivity() {
                     text = "SELECT"
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                 } else {
-                    text = "🪙 ${item.priceCoins}"
+                    text = "${item.priceCoins} Coins"
                     setBackgroundResource(R.drawable.bg_button_game_primary)
                 }
 
@@ -477,7 +534,7 @@ class MainActivity : AppCompatActivity() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "Shop"
-        tvCoinsSec.text = "🪙 ${saveData.coins}"
+        tvCoinsSec.text = "${saveData.coins} Coins"
 
         incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -488,9 +545,9 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val packs = listOf(
-            Triple("Small Coin Pack", 500, "🪙 Free Claim"),
-            Triple("Medium Coin Pack", 1500, "🪙 Earned in game"),
-            Triple("Large Coin Pack", 5000, "🪙 Master level pack")
+            Triple("Small Coin Pack", 500, "Free Claim"),
+            Triple("Medium Coin Pack", 1500, "Earned in game"),
+            Triple("Large Coin Pack", 5000, "Master level pack")
         )
 
         packs.forEach { (name, amount, desc) ->
@@ -523,7 +580,7 @@ class MainActivity : AppCompatActivity() {
             })
 
             val claimBtn = Button(this).apply {
-                text = "+$amount 🪙"
+                text = "+$amount Coins"
                 setBackgroundResource(R.drawable.bg_button_game_primary)
                 setTextColor(Color.parseColor("#1B1B2F"))
                 typeface = Typeface.DEFAULT_BOLD
@@ -552,7 +609,7 @@ class MainActivity : AppCompatActivity() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "Worlds"
-        tvCoinsSec.text = "🪙 ${saveData.coins}"
+        tvCoinsSec.text = "${saveData.coins} Coins"
 
         incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -564,37 +621,40 @@ class MainActivity : AppCompatActivity() {
 
         WorldRepository.worlds.forEach { world ->
             val card = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
+                orientation = LinearLayout.VERTICAL
                 setPadding(28, 28, 28, 28)
                 setBackgroundResource(R.drawable.bg_card_glossy)
-                gravity = Gravity.CENTER_VERTICAL
+                gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    300
                 ).apply { setMargins(0, 14, 0, 14) }
             }
 
-            // World Color Badge
-            val colorBadge = View(this).apply {
+            // Real artwork placeholder container
+            val artView = android.widget.ImageView(this).apply {
                 setBackgroundColor(Color.parseColor(world.skyColorHex))
-                layoutParams = LinearLayout.LayoutParams(16, 80).apply { setMargins(0, 0, 20, 0) }
+                scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                // setImageResource(R.drawable.world_placeholder_art)
             }
+            artView.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
 
             val infoLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             }
 
             infoLayout.addView(TextView(this).apply {
-                text = "${world.iconEmoji} World ${world.id}: ${world.name}"
-                textSize = 18f
+                text = "World ${world.id}: ${world.name}"
+                textSize = 20f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.parseColor("#1B1B2F"))
             })
             infoLayout.addView(TextView(this).apply {
                 val endLvlText = if (world.endLevel > 10000) "+" else " - ${world.endLevel}"
                 text = "Levels ${world.startLevel}$endLvlText"
-                textSize = 13f
+                textSize = 14f
                 setTextColor(Color.parseColor("#546E7A"))
             })
 
@@ -612,15 +672,16 @@ class MainActivity : AppCompatActivity() {
                         openLevelMapScreen()
                     }
                 } else {
-                    text = "🔒 ${world.requiredStarsToUnlock} ⭐"
+                    text = "LOCKED: ${world.requiredStarsToUnlock} Stars"
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
                 setTextColor(Color.parseColor("#1B1B2F"))
                 typeface = Typeface.DEFAULT_BOLD
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 120).apply { setMargins(0, 16, 0, 0) }
             }
 
-            card.addView(colorBadge)
+            card.addView(artView)
             card.addView(infoLayout)
             card.addView(statusBtn)
             container.addView(card)
@@ -636,7 +697,7 @@ class MainActivity : AppCompatActivity() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "Achievements"
-        tvCoinsSec.text = "🪙 ${saveData.coins}"
+        tvCoinsSec.text = "${saveData.coins} Coins"
 
         incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -647,12 +708,12 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val achievements = listOf(
-            AchievementItem("A1", "First Jump", "Complete Level 1", "🏆", 100) { it.highestLevel > 1 },
-            AchievementItem("A2", "Explorer", "Complete 10 levels", "🏆", 300) { it.highestLevel > 10 },
-            AchievementItem("A3", "Collector", "Collect 1,000 coins", "🏆", 500) { it.totalCoinsCollected >= 1000 },
-            AchievementItem("A4", "Star Player", "Earn 50 stars", "🏆", 500) { it.levelStars.values.sum() >= 50 },
-            AchievementItem("A5", "World Traveler", "Unlock 5 worlds", "🏆", 1000) { it.unlockedWorlds.size >= 5 },
-            AchievementItem("A6", "Master", "Complete 100 levels", "🏆", 2000) { it.highestLevel > 100 }
+            AchievementItem("A1", "First Jump", "Complete Level 1", "", 100) { it.highestLevel > 1 },
+            AchievementItem("A2", "Explorer", "Complete 10 levels", "", 300) { it.highestLevel > 10 },
+            AchievementItem("A3", "Collector", "Collect 1,000 coins", "", 500) { it.totalCoinsCollected >= 1000 },
+            AchievementItem("A4", "Star Player", "Earn 50 stars", "", 500) { it.levelStars.values.sum() >= 50 },
+            AchievementItem("A5", "World Traveler", "Unlock 5 worlds", "", 1000) { it.unlockedWorlds.size >= 5 },
+            AchievementItem("A6", "Master", "Complete 100 levels", "", 2000) { it.highestLevel > 100 }
         )
 
         achievements.forEach { item ->
@@ -673,7 +734,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             infoLayout.addView(TextView(this).apply {
-                text = "${item.icon} ${item.title}"
+                text = item.title
                 textSize = 18f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.parseColor("#1B1B2F"))
@@ -693,7 +754,7 @@ class MainActivity : AppCompatActivity() {
                     setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 } else if (isUnlocked) {
-                    text = "+${item.rewardCoins} 🪙"
+                    text = "+${item.rewardCoins} Coins"
                     setBackgroundResource(R.drawable.bg_button_game_primary)
                     setOnClickListener {
                         soundManager.playCoin()
@@ -726,7 +787,7 @@ class MainActivity : AppCompatActivity() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "Settings"
-        tvCoinsSec.text = "🪙 ${saveData.coins}"
+        tvCoinsSec.text = "${saveData.coins} Coins"
 
         incSecondary.findViewById<Button>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()

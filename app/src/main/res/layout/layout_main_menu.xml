@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main_gradient"
+    android:background="#12151C"
     android:fitsSystemWindows="true"
     android:padding="16dp">
 
@@ -43,7 +43,7 @@
                     android:id="@+id/tvCoins"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🪙 1250 +"
+                    android:text="1250 Coins"
                     android:textColor="#1B1B2F"
                     android:textStyle="bold"
                     android:textSize="15sp" />
@@ -61,7 +61,7 @@
                     android:id="@+id/tvGems"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💎 35 +"
+                    android:text="35 Gems"
                     android:textColor="#1B1B2F"
                     android:textStyle="bold"
                     android:textSize="15sp" />
@@ -85,20 +85,20 @@
             android:layout_height="wrap_content"
             android:text="JUMP\nADVENTURE"
             android:textAlignment="center"
-            android:textColor="#FF9800"
+            android:textColor="#FFCA28"
             android:textSize="38sp"
             android:textStyle="bold"
-            android:shadowColor="#1B1B2F"
-            android:shadowDx="4"
-            android:shadowDy="6"
-            android:shadowRadius="2" />
+            android:shadowColor="#C62828"
+            android:shadowDx="0"
+            android:shadowDy="8"
+            android:shadowRadius="1" />
 
         <TextView
             android:id="@+id/tvSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:text="⭐ CASUAL PLATFORMER ⭐"
+            android:text="PREMIUM PLATFORMER"
             android:textColor="#1B1B2F"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -107,8 +107,8 @@
     <!-- Character Display Area (Using dynamic CharacterPreviewView) -->
     <com.jumpadventure.game.graphics.CharacterPreviewView
         android:id="@+id/charPreviewView"
-        android:layout_width="260dp"
-        android:layout_height="280dp"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
         android:layout_centerInParent="true"
         android:layout_marginVertical="8dp" />
 
@@ -123,10 +123,10 @@
 
         <Button
             android:id="@+id/btnPlay"
-            android:layout_width="260dp"
+            android:layout_width="320dp"
             android:layout_height="72dp"
             android:background="@drawable/bg_button_game_primary"
-            android:text="▶ PLAY\nLevel 1"
+            android:text="PLAY NOW\nLevel 1"
             android:textColor="#1B1B2F"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -138,7 +138,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:paddingBottom="12dp"
+        android:layout_marginBottom="16dp"
         android:clipToPadding="false"
         android:orientation="horizontal"
         android:weightSum="4">
@@ -150,8 +150,11 @@
             android:layout_weight="1"
             android:layout_margin="3dp"
             android:background="@drawable/bg_button_game_secondary"
-            android:text="🏪 SHOP"
-            android:textSize="12sp"
+            android:text="SHOP"
+            android:drawableTop="@drawable/ic_game_shop"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="10sp"
             android:textColor="#1B1B2F"
             android:textStyle="bold" />
 
@@ -162,8 +165,11 @@
             android:layout_weight="1"
             android:layout_margin="3dp"
             android:background="@drawable/bg_button_game_secondary"
-            android:text="👤 HEROES"
-            android:textSize="12sp"
+            android:text="HEROES"
+            android:drawableTop="@drawable/ic_game_hero"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="10sp"
             android:textColor="#1B1B2F"
             android:textStyle="bold" />
 
@@ -174,8 +180,11 @@
             android:layout_weight="1"
             android:layout_margin="3dp"
             android:background="@drawable/bg_button_game_secondary"
-            android:text="🌍 WORLDS"
-            android:textSize="12sp"
+            android:text="WORLDS"
+            android:drawableTop="@drawable/ic_game_world"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="10sp"
             android:textColor="#1B1B2F"
             android:textStyle="bold" />
 
@@ -186,8 +195,11 @@
             android:layout_weight="1"
             android:layout_margin="3dp"
             android:background="@drawable/bg_button_game_secondary"
-            android:text="🏆 TROPHIES"
-            android:textSize="12sp"
+            android:text="TROPHIES"
+            android:drawableTop="@drawable/ic_game_trophy"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textSize="10sp"
             android:textColor="#1B1B2F"
             android:textStyle="bold" />
     </LinearLayout>

@@ -136,7 +136,15 @@ class LevelMapView @JvmOverloads constructor(
 
         if (nodes.isEmpty()) return
 
-        // 1. Draw Path connecting nodes
+        // 1. Draw Environment and Path connecting nodes
+        val envPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(currentWorldInfo?.skyColorHex ?: "#4CAF50") }
+        nodes.forEachIndexed { index, node ->
+            if (index % 2 == 0) {
+                canvas.drawCircle(node.x - 120f, node.y + 40f, 30f, envPaint)
+            } else {
+                canvas.drawCircle(node.x + 120f, node.y + 40f, 25f, envPaint)
+            }
+        }
         val path = Path()
         path.moveTo(nodes.first().x, nodes.first().y)
         for (i in 1 until nodes.size) {
@@ -160,15 +168,22 @@ class LevelMapView @JvmOverloads constructor(
                 canvas.drawCircle(node.x, node.y, pulseRadius + 8f, pulsePaint)
             }
 
-            val paint = when {
-                node.isCurrent -> currentNodePaint
-                node.isBoss -> bossNodePaint
-                node.isUnlocked -> unlockedNodePaint
-                else -> lockedNodePaint
+            val baseColor = when {
+                node.isCurrent -> currentNodePaint.color
+                node.isBoss -> bossNodePaint.color
+                node.isUnlocked -> unlockedNodePaint.color
+                else -> lockedNodePaint.color
+            }
+            val hsv = FloatArray(3)
+            Color.colorToHSV(baseColor, hsv)
+            hsv[2] *= 0.7f
+            val darkColor = Color.HSVToColor(hsv)
+            val nodePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = RadialGradient(node.x - radius * 0.3f, node.y - radius * 0.3f, radius * 1.2f, baseColor, darkColor, Shader.TileMode.CLAMP)
             }
 
             // Node Circle Face
-            canvas.drawCircle(node.x, node.y, radius, paint)
+            canvas.drawCircle(node.x, node.y, radius, nodePaint)
             canvas.drawCircle(node.x, node.y, radius, outlinePaint)
 
             if (node.isUnlocked) {
@@ -186,9 +201,15 @@ class LevelMapView @JvmOverloads constructor(
                     }
                 }
             } else {
-                // Lock Icon Symbol
-                textPaint.textSize = 24f
-                canvas.drawText("🔒", node.x, node.y + 8f, textPaint)
+                val lockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#455A64") }
+                val shacklePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.parseColor("#90A4AE")
+                    style = Paint.Style.STROKE
+                    strokeWidth = 6f
+                }
+                canvas.drawArc(RectF(node.x - 12f, node.y - 14f, node.x + 12f, node.y + 6f), 180f, 180f, false, shacklePaint)
+                canvas.drawRoundRect(RectF(node.x - 16f, node.y - 4f, node.x + 16f, node.y + 16f), 4f, 4f, lockPaint)
+                canvas.drawRoundRect(RectF(node.x - 16f, node.y - 4f, node.x + 16f, node.y + 16f), 4f, 4f, outlinePaint)
             }
 
             // Draw Character Marker on Current Level Node
