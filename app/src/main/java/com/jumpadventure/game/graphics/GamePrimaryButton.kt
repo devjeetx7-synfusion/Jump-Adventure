@@ -138,12 +138,12 @@ class GamePrimaryButton @JvmOverloads constructor(
 
         // Keep the PLAY NOW label as one compact centered visual group:
         // icon + text are centered together instead of anchoring text at a fixed X.
-        val titleSize = minOf(buttonRect.height() * 0.25f, 22f)
+        val titleSize = minOf(buttonRect.height() * 0.22f, 20f)
         titlePaint.textSize = titleSize
         titleShadowPaint.textSize = titleSize
 
         val titleWidth = titlePaint.measureText(mainText)
-        val iconSize = minOf(h * 0.30f, 22f)
+        val iconSize = minOf(h * 0.26f, 19f)
         val groupGap = 10f
         val groupWidth = iconSize + groupGap + titleWidth
         val groupLeft = buttonRect.centerX() - groupWidth / 2f
@@ -162,7 +162,7 @@ class GamePrimaryButton @JvmOverloads constructor(
         canvas.drawText(mainText, titleX, titleY + 2f, titleShadowPaint)
         canvas.drawText(mainText, titleX, titleY, titlePaint)
 
-        val subSize = minOf(buttonRect.height() * 0.15f, 13f)
+        val subSize = minOf(buttonRect.height() * 0.13f, 11f)
         subTitlePaint.textSize = subSize
         val subY = buttonRect.centerY() + subSize + 5f
         canvas.drawText(subText, buttonRect.centerX(), subY, subTitlePaint)
