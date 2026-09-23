@@ -56,10 +56,12 @@ class GameView(
     private var isGrounded = false
     private var lives = 3
     private var checkpointX = 50f
-    private var checkpointY = 700f
+    private var checkpointY = 676f
 
     @Volatile
     private var levelCompletionHandled = false
+    @Volatile
+    private var gameOverHandled = false
 
     // Power-ups state
     var isMagnetActive = false
@@ -138,14 +140,21 @@ class GameView(
         worldInfo = WorldRepository.getWorldForLevel(levelNum)
         levelLayout = LevelGenerator.generateLevel(levelNum)
 
+        // Always spawn the hero on top of the actual starting platform.
+        // The previous hard-coded Y=700 placed the 124px visual hero below the
+        // 800px platform, so gravity made the character fall immediately.
         playerX = 50f
-        playerY = 700f
+        playerY = findSafeSpawnY(playerX)
         velocityX = 0f
         velocityY = 0f
-        checkpointX = 50f
-        checkpointY = 700f
+        checkpointX = playerX
+        checkpointY = playerY
         lives = 3
         levelCompletionHandled = false
+        gameOverHandled = false
+        isGrounded = false
+        moveLeftPressed = false
+        moveRightPressed = false
 
         coinsCollectedInLevel = 0
         starsCollectedInLevel = 0
@@ -386,7 +395,7 @@ class GameView(
                         if (!active.isActivated) {
                             active.isActivated = true
                             checkpointX = active.currentX
-                            checkpointY = active.currentY - visualHeight
+                            checkpointY = findSafeSpawnY(checkpointX)
                         }
                     }
 
@@ -419,15 +428,44 @@ class GameView(
     }
 
     private fun handlePlayerHit() {
+        if (gameOverHandled || levelCompletionHandled) return
+
         soundManager.playHit()
         lives--
+
         if (lives <= 0) {
-            onGameOver()
-        } else {
-            playerX = checkpointX
-            playerY = checkpointY
+            // Stop the game loop BEFORE showing the game-over UI. Otherwise the
+            // loop keeps firing GAME OVER every frame and can steal button input.
+            gameOverHandled = true
+            isRunning = false
+            moveLeftPressed = false
+            moveRightPressed = false
+            velocityX = 0f
             velocityY = 0f
+            onGameOver()
+            return
         }
+
+        playerX = checkpointX
+        playerY = checkpointY
+        velocityX = 0f
+        velocityY = 0f
+        isGrounded = false
+    }
+
+    private fun findSafeSpawnY(x: Float): Float {
+        val support = levelLayout.elements
+            .asSequence()
+            .filter {
+                (it.type == ElementType.PLATFORM ||
+                 it.type == ElementType.MOVING_PLATFORM ||
+                 it.type == ElementType.BOX) &&
+                x + colliderOffsetX + colliderWidth > it.x &&
+                x + colliderOffsetX < it.x + it.width
+            }
+            .minByOrNull { it.y }
+
+        return support?.y?.minus(visualHeight) ?: (800f - visualHeight)
     }
 
     private fun completeLevel() {
