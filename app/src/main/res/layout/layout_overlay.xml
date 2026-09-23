@@ -15,111 +15,131 @@
         android:overScrollMode="never"
         android:scrollbars="none">
 
-        <LinearLayout
+        <!-- PAUSE / OVERLAY PANEL BOARD -->
+        <FrameLayout
             android:layout_width="320dp"
             android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:background="@drawable/bg_game_panel"
-            android:elevation="12dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:padding="24dp">
+            android:layout_margin="16dp">
 
-            <TextView
-                android:id="@+id/tvOverlayHeader"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:shadowColor="#0F172A"
-                android:shadowDx="0"
-                android:shadowDy="4"
-                android:shadowRadius="2"
-                android:text="LEVEL COMPLETE"
-                android:textColor="#FFD43B"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvOverlaySub"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Level 1"
-                android:textColor="@color/game_text_navy"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvOverlayStars"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginVertical="8dp"
-                android:text=""
-                android:textColor="#FFD43B"
-                android:textSize="32sp" />
-
-            <LinearLayout
-                android:id="@+id/rewardsContainer"
+            <!-- Pause Board Background Image -->
+            <ImageView
+                android:id="@+id/ivPauseBoard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:adjustViewBounds="true"
+                android:contentDescription="Pause Board"
+                android:scaleType="fitCenter"
+                android:src="@drawable/pause_board" />
+
+            <!-- Content Container overlaid on Board -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingTop="36dp"
+                android:paddingBottom="28dp">
 
                 <TextView
-                    android:id="@+id/tvOverlayCoins"
+                    android:id="@+id/tvOverlayHeader"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="@color/game_text_dark"
-                    android:textSize="16sp"
+                    android:shadowColor="#0F172A"
+                    android:shadowDx="0"
+                    android:shadowDy="4"
+                    android:shadowRadius="2"
+                    android:text="PAUSED"
+                    android:textColor="#FFD43B"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvOverlayTime"
+                    android:id="@+id/tvOverlaySub"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="4dp"
+                    android:text="Level 1"
+                    android:textColor="@color/game_text_navy"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvOverlayStars"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="6dp"
                     android:text=""
-                    android:textColor="@color/game_text_muted"
-                    android:textSize="13sp" />
+                    android:textColor="#FFD43B"
+                    android:textSize="28sp" />
+
+                <LinearLayout
+                    android:id="@+id/rewardsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvOverlayCoins"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/game_text_dark"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvOverlayTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text=""
+                        android:textColor="@color/game_text_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Primary Action Button (3D Styled) -->
+                <Button
+                    android:id="@+id/btnOverlayPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_game_primary"
+                    android:text="RESUME"
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <!-- Secondary Action Button (3D Styled) -->
+                <Button
+                    android:id="@+id/btnOverlaySecondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_game_secondary"
+                    android:text="RESTART"
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- Home Action Button (3D Styled) -->
+                <Button
+                    android:id="@+id/btnOverlayHome"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_game_secondary"
+                    android:text="HOME"
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
             </LinearLayout>
 
-            <!-- Primary Action -->
-            <Button
-                android:id="@+id/btnOverlayPrimary"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="10dp"
-                android:background="@drawable/bg_button_game_primary"
-                android:text="▶ NEXT LEVEL"
-                android:textColor="@color/game_text_dark"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+        </FrameLayout>
 
-            <!-- Secondary Action -->
-            <Button
-                android:id="@+id/btnOverlaySecondary"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/bg_button_game_secondary"
-                android:text="↻ REPLAY"
-                android:textColor="@color/game_text_dark"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <!-- Home Action -->
-            <Button
-                android:id="@+id/btnOverlayHome"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/bg_button_game_secondary"
-                android:text="HOME"
-                android:textColor="@color/game_text_dark"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
     </ScrollView>
 
 </RelativeLayout>

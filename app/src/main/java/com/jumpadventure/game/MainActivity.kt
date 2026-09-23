@@ -105,8 +105,7 @@ class MainActivity : AppCompatActivity() {
 
         val bottomPadViews = listOfNotNull(
             incSecondary.findViewById<View>(R.id.secondaryScrollView),
-            incLevelMap.findViewById<View>(R.id.mapScrollView),
-            incMainMenu.findViewById<View>(R.id.homeScrollView)
+            incLevelMap.findViewById<View>(R.id.mapScrollView)
         )
 
         val overlayViews = listOfNotNull(
@@ -161,6 +160,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateBottomNavSelection(activeTab: String) {
+        val navItems = mapOf(
+            "SHOP" to Pair(incMainMenu.findViewById<View>(R.id.navShop), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavShop), incMainMenu.findViewById<TextView>(R.id.tvNavShop))),
+            "CHARACTERS" to Pair(incMainMenu.findViewById<View>(R.id.navCharacters), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavCharacters), incMainMenu.findViewById<TextView>(R.id.tvNavCharacters))),
+            "WORLDS" to Pair(incMainMenu.findViewById<View>(R.id.navWorlds), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavWorlds), incMainMenu.findViewById<TextView>(R.id.tvNavWorlds))),
+            "ACHIEVEMENTS" to Pair(incMainMenu.findViewById<View>(R.id.navAchievements), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavAchievements), incMainMenu.findViewById<TextView>(R.id.tvNavAchievements)))
+        )
+
+        navItems.forEach { (key, views) ->
+            val container = views.first ?: return@forEach
+            val icon = views.second.first ?: return@forEach
+            val text = views.second.second ?: return@forEach
+
+            if (key == activeTab) {
+                container.setBackgroundResource(R.drawable.bg_nav_active_capsule)
+                icon.setColorFilter(Color.WHITE)
+                text.setTextColor(Color.WHITE)
+            } else {
+                container.background = null
+                icon.setColorFilter(Color.parseColor("#1F3045"))
+                text.setTextColor(Color.parseColor("#1F3045"))
+            }
+        }
+    }
+
     private fun showScreen(screenName: String) {
         currentScreenName = screenName
         incMainMenu.visibility = View.GONE
@@ -173,6 +197,7 @@ class MainActivity : AppCompatActivity() {
         when (screenName) {
             "MAIN_MENU" -> {
                 updateCurrencyHUD()
+                updateBottomNavSelection("")
                 incMainMenu.visibility = View.VISIBLE
             }
             "LEVEL_MAP" -> incLevelMap.visibility = View.VISIBLE
@@ -311,7 +336,7 @@ class MainActivity : AppCompatActivity() {
         tvOverlayTime.text = ""
 
         val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
-        btnPrimary.text = "▶ NEXT LEVEL"
+        btnPrimary.text = "NEXT LEVEL"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -386,7 +411,7 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
         val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
-        btnPrimary.text = "↻ RETRY"
+        btnPrimary.text = "RETRY"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -414,7 +439,7 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
         val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
-        btnPrimary.text = "▶ RESUME"
+        btnPrimary.text = "RESUME"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -422,7 +447,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val btnSec = incOverlay.findViewById<Button>(R.id.btnOverlaySecondary)
-        btnSec.text = "↻ RESTART"
+        btnSec.text = "RESTART"
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -440,6 +465,7 @@ class MainActivity : AppCompatActivity() {
      * CHARACTERS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openCharactersScreen() {
+        updateBottomNavSelection("CHARACTERS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "HEROES"
@@ -623,6 +649,7 @@ class MainActivity : AppCompatActivity() {
      * SHOP SCREEN
      * ------------------------------------------------------------------------ */
     private fun openShopScreen() {
+        updateBottomNavSelection("SHOP")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "SHOP"
@@ -698,6 +725,7 @@ class MainActivity : AppCompatActivity() {
      * WORLDS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openWorldsScreen() {
+        updateBottomNavSelection("WORLDS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "WORLDS"
@@ -784,6 +812,7 @@ class MainActivity : AppCompatActivity() {
      * ACHIEVEMENTS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openAchievementsScreen() {
+        updateBottomNavSelection("ACHIEVEMENTS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "TROPHIES"

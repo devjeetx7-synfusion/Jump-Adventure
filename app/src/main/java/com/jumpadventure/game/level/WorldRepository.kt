@@ -119,4 +119,21 @@ object WorldRepository {
     fun getWorldForLevel(level: Int): WorldInfo {
         return worlds.lastOrNull { level >= it.startLevel } ?: worlds.first()
     }
+
+    fun getWorldBackgroundRes(worldId: Int): Int {
+        return when (worldId) {
+            1 -> com.jumpadventure.game.R.drawable.green_forest
+            2 -> com.jumpadventure.game.R.drawable.desert_land
+            3 -> com.jumpadventure.game.R.drawable.snow_mountain
+            4 -> com.jumpadventure.game.R.drawable.lava_cave
+            else -> {
+                when ((worldId - 1) % 4) {
+                    0 -> com.jumpadventure.game.R.drawable.green_forest
+                    1 -> com.jumpadventure.game.R.drawable.desert_land
+                    2 -> com.jumpadventure.game.R.drawable.snow_mountain
+                    else -> com.jumpadventure.game.R.drawable.lava_cave
+                }
+            }
+        }
+    }
 }
