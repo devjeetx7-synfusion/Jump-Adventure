@@ -5,7 +5,24 @@
     android:background="@android:color/transparent"
         android:elevation="0dp">
 
-    <!-- TOP HUD BAR -->
+    <!-- MAP IS DRAWN FULL-SCREEN BEHIND THE HUD AND SYSTEM BARS.
+         This removes the blue window/action-bar strip and keeps the
+         status/navigation bars visually transparent over the world artwork. -->
+    <ScrollView
+        android:id="@+id/mapScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        android:fitsSystemWindows="false">
+
+        <FrameLayout
+            android:id="@+id/mapNodesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </ScrollView>
+
+    <!-- TOP HUD FLOATS OVER THE MAP -->
     <RelativeLayout
         android:id="@+id/mapTopBar"
         android:layout_width="match_parent"
@@ -14,7 +31,8 @@
         android:paddingEnd="16dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
-        android:background="@android:color/transparent">
+        android:background="@android:color/transparent"
+        android:elevation="8dp">
 
         <ImageButton
             android:id="@+id/btnMapBack"
@@ -57,19 +75,5 @@
                 android:textStyle="bold" />
         </LinearLayout>
     </RelativeLayout>
-
-    <!-- SCROLLABLE LEVEL MAP VIEW -->
-    <ScrollView
-        android:id="@+id/mapScrollView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/mapTopBar"
-        android:fillViewport="true">
-
-        <FrameLayout
-            android:id="@+id/mapNodesContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </ScrollView>
 
 </RelativeLayout>
