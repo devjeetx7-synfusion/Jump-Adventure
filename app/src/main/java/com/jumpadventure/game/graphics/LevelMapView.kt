@@ -8,6 +8,7 @@ import android.view.View
 import com.jumpadventure.game.model.WorldInfo
 import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.math.cos
 
 class LevelMapView @JvmOverloads constructor(
     context: Context,
@@ -66,9 +67,17 @@ class LevelMapView @JvmOverloads constructor(
         typeface = Typeface.DEFAULT_BOLD
         textAlign = Paint.Align.CENTER
     }
-    private val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#FFD700")
+    private val starFacePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val starShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#B06A00") }
+    private val starHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(190, 255, 255, 255) }
+    private val starStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        color = Color.parseColor("#8A5400")
     }
+    private val starPath = Path()
+    private val nodePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val nodeShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(110, 0, 0, 0) }
 
     private var animTime = 0f
     private var cachedBgBitmap: Bitmap? = null
@@ -201,13 +210,27 @@ class LevelMapView @JvmOverloads constructor(
             Color.colorToHSV(baseColor, hsv)
             hsv[2] *= 0.7f
             val darkColor = Color.HSVToColor(hsv)
-            val nodePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = RadialGradient(node.x - radius * 0.3f, node.y - radius * 0.3f, radius * 1.2f, baseColor, darkColor, Shader.TileMode.CLAMP)
-            }
-
-            // Node Circle Face
+            // 3D node: bottom shadow/extrusion, glossy gradient face, rim and highlight.
+            canvas.drawCircle(node.x, node.y + 7f, radius + 1f, nodeShadowPaint)
+            nodePaint.shader = RadialGradient(
+                node.x - radius * 0.32f, node.y - radius * 0.34f,
+                radius * 1.25f, baseColor, darkColor, Shader.TileMode.CLAMP
+            )
             canvas.drawCircle(node.x, node.y, radius, nodePaint)
             canvas.drawCircle(node.x, node.y, radius, outlinePaint)
+
+            val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(90, 255, 255, 255)
+            }
+            canvas.drawOval(
+                RectF(
+                    node.x - radius * 0.58f,
+                    node.y - radius * 0.64f,
+                    node.x + radius * 0.16f,
+                    node.y - radius * 0.22f
+                ),
+                gloss
+            )
 
             if (node.isUnlocked) {
                 // Level Number
@@ -235,6 +258,11 @@ class LevelMapView @JvmOverloads constructor(
                 canvas.drawRoundRect(RectF(node.x - 16f, node.y - 4f, node.x + 16f, node.y + 16f), 4f, 4f, outlinePaint)
             }
 
+            if (node.isUnlocked) {
+                val starCount = node.stars.coerceIn(0, 3)
+                draw3DStars(canvas, node.x, node.y + radius + 26f, starCount, radius)
+            }
+
             // Draw Character Marker on Current Level Node
             if (node.isCurrent) {
                 val markerBounds = RectF(
@@ -254,6 +282,54 @@ class LevelMapView @JvmOverloads constructor(
             }
         }
     }
+
+    private fun draw3DStars(canvas: Canvas, centerX: Float, centerY: Float, count: Int, nodeRadius: Float) {
+        val total = 3
+        val size = (nodeRadius * 0.34f).coerceIn(13f, 21f)
+        val spacing = size * 1.65f
+        for (i in 0 until total) {
+            val x = centerX + (i - 1) * spacing
+            val earned = i < count
+
+            starFacePaint.shader = if (earned) {
+                LinearGradient(x - size, centerY - size, x + size, centerY + size,
+                    Color.parseColor("#FFF59D"), Color.parseColor("#FFC107"), Shader.TileMode.CLAMP)
+            } else {
+                LinearGradient(x - size, centerY - size, x + size, centerY + size,
+                    Color.parseColor("#D9E1EA"), Color.parseColor("#8C9BAE"), Shader.TileMode.CLAMP)
+            }
+
+            starPath.reset()
+            for (p in 0 until 10) {
+                val angle = Math.toRadians(-90.0 + p * 36.0)
+                val radiusValue = if (p % 2 == 0) size else size * 0.45f
+                val px = x + cos(angle).toFloat() * radiusValue
+                val py = centerY + sin(angle).toFloat() * radiusValue
+                if (p == 0) starPath.moveTo(px, py) else starPath.lineTo(px, py)
+            }
+            starPath.close()
+
+            // 3D bottom extrusion
+            canvas.save()
+            canvas.translate(0f, 3.5f)
+            canvas.drawPath(starPath, starShadowPaint)
+            canvas.restore()
+
+            canvas.drawPath(starPath, starFacePaint)
+            canvas.drawPath(starPath, starStrokePaint)
+
+            if (earned) {
+                val highlight = Path()
+                highlight.moveTo(x - size * 0.42f, centerY - size * 0.38f)
+                highlight.lineTo(x - size * 0.05f, centerY - size * 0.72f)
+                highlight.lineTo(x - size * 0.16f, centerY - size * 0.18f)
+                highlight.close()
+                canvas.drawPath(highlight, starHighlightPaint)
+            }
+        }
+        starFacePaint.shader = null
+    }
+
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_UP) {
