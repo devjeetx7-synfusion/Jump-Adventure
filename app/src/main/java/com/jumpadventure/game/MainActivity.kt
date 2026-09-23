@@ -375,14 +375,28 @@ class MainActivity : AppCompatActivity() {
             showPauseOverlay()
         }
 
-        incGameplay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPowerUpMagnet).setOnClickListener {
+        val magnetButton = incGameplay.findViewById<com.jumpadventure.game.graphics.GamePowerUpButton>(R.id.btnPowerUpMagnet)
+        val speedButton = incGameplay.findViewById<com.jumpadventure.game.graphics.GamePowerUpButton>(R.id.btnPowerUpSpeed)
+        val shieldButton = incGameplay.findViewById<com.jumpadventure.game.graphics.GamePowerUpButton>(R.id.btnPowerUpShield)
+
+        magnetButton.type = com.jumpadventure.game.graphics.GamePowerUpButton.Type.MAGNET
+        speedButton.type = com.jumpadventure.game.graphics.GamePowerUpButton.Type.SPEED
+        shieldButton.type = com.jumpadventure.game.graphics.GamePowerUpButton.Type.SHIELD
+
+        magnetButton.setOnClickListener {
+            soundManager.playButtonClick()
             currentGameView?.activateMagnetPowerUp()
+            magnetButton.active = true
         }
-        incGameplay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPowerUpShield).setOnClickListener {
-            currentGameView?.activateShieldPowerUp()
-        }
-        incGameplay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPowerUpSpeed).setOnClickListener {
+        speedButton.setOnClickListener {
+            soundManager.playButtonClick()
             currentGameView?.activateSpeedPowerUp()
+            speedButton.active = true
+        }
+        shieldButton.setOnClickListener {
+            soundManager.playButtonClick()
+            currentGameView?.activateShieldPowerUp()
+            shieldButton.active = true
         }
 
         showScreen("GAMEPLAY")
