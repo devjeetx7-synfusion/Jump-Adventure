@@ -400,6 +400,9 @@ class MainActivity : AppCompatActivity() {
         primary.visibility = View.VISIBLE
         secondary.visibility = View.VISIBLE
         home.visibility = View.VISIBLE
+        primary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+        secondary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+        home.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
         primary.mainText = "NEXT LEVEL"; primary.subText = ""
         secondary.mainText = "RESTART"; secondary.subText = ""
         home.mainText = "HOME"; home.subText = ""
@@ -433,6 +436,7 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
         val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
+        btnPrimary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
         btnPrimary.mainText = "RETRY"
         btnPrimary.subText = ""
         incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
@@ -445,6 +449,7 @@ class MainActivity : AppCompatActivity() {
 
         incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).visibility = View.GONE
 
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
         incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
@@ -469,6 +474,7 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
         val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
+        btnPrimary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
         btnPrimary.mainText = "RESUME"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
@@ -477,6 +483,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
+        btnSec.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
         btnSec.mainText = "RESTART"
         btnSec.subText = ""
         btnSec.setOnClickListener {
