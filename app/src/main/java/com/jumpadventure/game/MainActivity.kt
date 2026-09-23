@@ -103,6 +103,12 @@ class MainActivity : AppCompatActivity() {
             incMainMenu.findViewById<View>(R.id.bottomNavContainer)
         )
 
+        val bottomPadViews = listOfNotNull(
+            incSecondary.findViewById<View>(R.id.secondaryScrollView),
+            incLevelMap.findViewById<View>(R.id.mapScrollView),
+            incMainMenu.findViewById<View>(R.id.homeScrollView)
+        )
+
         val overlayViews = listOfNotNull(
             incOverlay
         )
@@ -111,6 +117,7 @@ class MainActivity : AppCompatActivity() {
             rootView = root,
             topViewsToPad = topViews,
             bottomViewsToMargin = bottomMarginViews,
+            bottomViewsToPad = bottomPadViews,
             overlayViewsToPad = overlayViews
         )
     }
