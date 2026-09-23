@@ -239,7 +239,7 @@ class LevelMapView @JvmOverloads constructor(
                     val starY = node.y + radius + 22f
                     for (s in 0 until node.stars) {
                         val starX = node.x + (s - (node.stars - 1) / 2f) * 24f
-                        canvas.drawCircle(starX, starY, 8f, starPaint)
+                        canvas.drawCircle(starX, starY, 8f, starFacePaint)
                         canvas.drawCircle(starX, starY, 8f, outlinePaint)
                     }
                 }
