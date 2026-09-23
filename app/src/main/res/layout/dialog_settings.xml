@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card_rounded"
+    android:padding="20dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SETTINGS"
+        android:textColor="@color/text_white"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <Switch
+        android:id="@+id/switchSound"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Sound Effects"
+        android:textColor="@color/text_white"
+        android:textSize="16sp"/>
+
+    <Switch
+        android:id="@+id/switchMusic"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Music"
+        android:textColor="@color/text_white"
+        android:textSize="16sp"/>
+
+    <Switch
+        android:id="@+id/switchVibration"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Vibration"
+        android:textColor="@color/text_white"
+        android:textSize="16sp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Language"
+            android:textColor="@color/text_white"
+            android:textSize="16sp"/>
+
+        <Button
+            android:id="@+id/btnLanguageToggle"
+            android:layout_width="100dp"
+            android:layout_height="36dp"
+            android:text="English"
+            android:textSize="12sp"
+            android:background="@drawable/bg_btn_primary"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnResetProgress"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="16dp"
+        android:text="Reset Progress"
+        android:textColor="@color/text_white"
+        android:backgroundTint="#D32F2F"/>
+
+    <Button
+        android:id="@+id/btnCloseSettings"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="8dp"
+        android:text="Close"
+        android:textColor="#111111"
+        android:background="@drawable/bg_btn_primary"/>
+
+</LinearLayout>

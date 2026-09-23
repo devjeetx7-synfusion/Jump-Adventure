@@ -1,0 +1,12 @@
+<resources>
+    <style name="Theme.JumpAdventure" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_orange</item>
+        <item name="colorPrimaryVariant">@color/primary_dark_orange</item>
+        <item name="colorOnPrimary">@color/text_white</item>
+        <item name="colorSecondary">@color/primary_yellow</item>
+        <item name="colorSecondaryVariant">@color/coin_yellow</item>
+        <item name="colorOnSecondary">@color/text_dark</item>
+        <item name="android:statusBarColor">@color/bg_sky</item>
+        <item name="android:windowBackground">@color/bg_sky</item>
+    </style>
+</resources>

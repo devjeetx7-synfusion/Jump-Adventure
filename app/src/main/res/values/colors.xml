@@ -1,0 +1,24 @@
+<resources>
+    <color name="primary_yellow">#FFC107</color>
+    <color name="primary_orange">#FF9800</color>
+    <color name="primary_dark_orange">#E65100</color>
+
+    <color name="bg_sky">#29B6F6</color>
+    <color name="bg_green_forest">#4CAF50</color>
+    <color name="card_bg">#3F51B5</color>
+    <color name="card_bg_dark">#283593</color>
+    <color name="card_border">#1A237E</color>
+
+    <color name="accent_green">#66BB6A</color>
+    <color name="accent_blue">#29B6F6</color>
+
+    <color name="coin_yellow">#FFD54F</color>
+    <color name="gem_purple">#E040FB</color>
+    <color name="star_gold">#FFD700</color>
+
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_dark">#1A1A1A</color>
+    <color name="text_gold">#FFE082</color>
+
+    <color name="shadow_dark">#40000000</color>
+</resources>

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_sky_gradient">
+
+    <!-- Top Bar -->
+    <RelativeLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_card_rounded"
+            android:src="@drawable/ic_settings"
+            android:layout_alignParentLeft="true"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_alignParentRight="true">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_card_rounded"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:layout_marginRight="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_coin"/>
+
+                <TextView
+                    android:id="@+id/tvCoins"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1250"
+                    android:textColor="@color/text_white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginLeft="6dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_card_rounded"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_gem"/>
+
+                <TextView
+                    android:id="@+id/tvGems"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="35"
+                    android:textColor="@color/text_white"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:layout_marginLeft="6dp"/>
+            </LinearLayout>
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Center Section: Title Logo & Character Display -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_below="@id/topBar"
+        android:layout_above="@+id/btnPlay">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="JUMP\nADVENTURE"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:textColor="#FFD54F"
+            android:shadowColor="#111111"
+            android:shadowDx="4"
+            android:shadowDy="4"
+            android:shadowRadius="8"
+            android:gravity="center"
+            android:lineSpacingMultiplier="0.9"/>
+
+        <!-- Mascot Character Preview Box -->
+        <FrameLayout
+            android:layout_width="200dp"
+            android:layout_height="220dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_card_rounded"
+            android:padding="12dp">
+
+            <com.jumpadventure.game.view.GameplayView
+                android:id="@+id/characterPreviewView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"/>
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Large Primary PLAY Button -->
+    <Button
+        android:id="@+id/btnPlay"
+        android:layout_width="260dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_btn_primary"
+        android:text="▶ PLAY\nLevel 1"
+        android:textColor="#111111"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/bottomNav"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Bottom Secondary Navigation -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="68dp"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:background="#1A237E"
+        android:weightSum="4">
+
+        <Button
+            android:id="@+id/btnNavShop"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="🏪 Shop"
+            android:textColor="@color/text_white"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <Button
+            android:id="@+id/btnNavCharacters"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="👤 Heroes"
+            android:textColor="@color/text_white"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <Button
+            android:id="@+id/btnNavWorlds"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="🌍 Worlds"
+            android:textColor="@color/text_white"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <Button
+            android:id="@+id/btnNavAchievements"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="🏆 Badges"
+            android:textColor="@color/text_white"
+            android:textSize="12sp"
+            android:background="?android:attr/selectableItemBackground"/>
+    </LinearLayout>
+
+</RelativeLayout>
