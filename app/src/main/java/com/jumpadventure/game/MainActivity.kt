@@ -400,6 +400,9 @@ class MainActivity : AppCompatActivity() {
 
         val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
         btnPrimary.mainText = "NEXT LEVEL"
+        btnPrimary.subText = ""
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).subText = ""
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -475,6 +478,8 @@ class MainActivity : AppCompatActivity() {
 
         val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
         btnPrimary.mainText = "RETRY"
+        btnPrimary.subText = ""
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -498,6 +503,12 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "PAUSED"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
         incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "PAUSED"
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary).mainText = "RESUME"
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary).subText = ""
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).mainText = "RESTART"
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).subText = ""
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).mainText = "HOME"
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
