@@ -112,33 +112,34 @@ class MainActivity : AppCompatActivity() {
                 topMargin = dp(4f)
             }
 
-            val playH = dp(72f).coerceIn(dp(62f), (h * 0.11f).toInt())
-            val playW = minOf(dp(300f), w - dp(36f))
+            val playH = dp(78f).coerceIn(dp(68f), (h * 0.12f).toInt())
+            val playW = minOf(dp(320f), w - dp(28f))
 
             play.layoutParams = FrameLayout.LayoutParams(playW, playH).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(8f)
+                bottomMargin = dp(4f)
             }
 
-            // Position mountain low on the screen, anchoring behind the Play button.
-            val mountainW = minOf(dp(260f), (w * 0.72f).toInt())
+            // Move mountain slightly lower (~25-35dp lower than original)
+            val mountainW = minOf(dp(250f), (w * 0.70f).toInt())
             val mountainRatio = 3264f / 2857f
-            val mountainH = (mountainW * mountainRatio).toInt().coerceAtMost((h * 0.42f).toInt())
+            val mountainH = (mountainW * mountainRatio).toInt().coerceAtMost((h * 0.40f).toInt())
 
-            val mountainBottom = h - dp(18f)
-            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(120f))
+            // Shift mountain downward slightly
+            val mountainBottom = h + dp(18f)
+            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(100f))
 
             mountain.layoutParams = FrameLayout.LayoutParams(mountainW, mountainH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 topMargin = mountainTop
             }
 
-            // Character feet sit directly on the top surface of the mountain.
-            val characterW = minOf(dp(170f), (w * 0.48f).toInt())
-            val characterH = minOf(dp(190f), (h * 0.24f).toInt())
-            // Visible top of mountain is ~16% down from top edge of mountain asset.
+            // Character feet sit directly on the top grass surface of the mountain (no gap)
+            val characterW = minOf(dp(160f), (w * 0.45f).toInt())
+            val characterH = minOf(dp(180f), (h * 0.23f).toInt())
+            // Top grass surface is ~16% down from asset top
             val mountainSurfaceY = mountainTop + (mountainH * 0.16f).toInt()
-            val charTopMargin = (mountainSurfaceY - characterH + dp(12f)).toInt().coerceAtLeast(logoH + dp(6f))
+            val charTopMargin = (mountainSurfaceY - characterH + dp(10f)).toInt().coerceAtLeast(logoH + dp(4f))
 
             character.layoutParams = FrameLayout.LayoutParams(characterW, characterH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -314,6 +315,7 @@ class MainActivity : AppCompatActivity() {
      * GAMEPLAY ENGINE STARTER
      * ------------------------------------------------------------------------ */
     private fun startLevelGameplay(levelNum: Int) {
+        android.util.Log.d("JUMP_DEBUG", "GAMEPLAY_START: levelNum=$levelNum")
         saveData.currentLevel = levelNum
         saveManager.saveData(saveData)
 
@@ -328,6 +330,12 @@ class MainActivity : AppCompatActivity() {
         val pbLevelProgress = incGameplay.findViewById<ProgressBar>(R.id.pbLevelProgress)
 
         tvHudLevel.text = "LEVEL $levelNum"
+        tvHudCoins.text = "0"
+        tvHudStars.text = "0"
+        pbLevelProgress.progress = 0
+
+        val currentWorld = WorldRepository.getWorldForLevel(levelNum)
+        android.util.Log.d("JUMP_DEBUG", "LEVEL_ID=$levelNum, WORLD_ID=${currentWorld.id}, BACKGROUND=${WorldRepository.getWorldBackgroundRes(currentWorld.id)}, CHARACTER=${saveData.selectedCharacter}")
 
         val newGameView = GameView(
             context = this,
@@ -351,21 +359,29 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
+        android.util.Log.d("JUMP_DEBUG", "GAMEVIEW_CREATED")
         currentGameView = newGameView
-        gameContainer.addView(newGameView)
+        gameContainer.addView(
+            newGameView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        android.util.Log.d("JUMP_DEBUG", "GAMEVIEW_ATTACHED")
 
         incGameplay.findViewById<ImageButton>(R.id.btnPause).setOnClickListener {
             soundManager.playButtonClick()
             showPauseOverlay()
         }
 
-        incGameplay.findViewById<Button>(R.id.btnPowerUpMagnet).setOnClickListener {
+        incGameplay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPowerUpMagnet).setOnClickListener {
             currentGameView?.activateMagnetPowerUp()
         }
-        incGameplay.findViewById<Button>(R.id.btnPowerUpShield).setOnClickListener {
+        incGameplay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPowerUpShield).setOnClickListener {
             currentGameView?.activateShieldPowerUp()
         }
-        incGameplay.findViewById<Button>(R.id.btnPowerUpSpeed).setOnClickListener {
+        incGameplay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPowerUpSpeed).setOnClickListener {
             currentGameView?.activateSpeedPowerUp()
         }
 
@@ -850,51 +866,78 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
 
         WorldRepository.worlds.forEach { world ->
-            val card = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                val pad = (16 * density).toInt()
-                setPadding(pad, pad, pad, pad)
-                setBackgroundResource(R.drawable.bg_card_glossy)
-                gravity = Gravity.CENTER
+            // World card container where artwork fills full background edge-to-edge
+            val cardFrame = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt()) }
+                    (200 * density).toInt()
+                ).apply { setMargins(0, (10 * density).toInt(), 0, (10 * density).toInt()) }
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 20f * density
+                }
+                clipToOutline = true
             }
 
+            // 1. Full artwork background filling card
             val bgResId = WorldRepository.getWorldBackgroundRes(world.id)
-            val bannerView = ImageView(this).apply {
+            val bgImageView = ImageView(this).apply {
                 setImageResource(bgResId)
                 scaleType = ImageView.ScaleType.CENTER_CROP
-                adjustViewBounds = true
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    (110 * density).toInt()
-                ).apply { setMargins(0, 0, 0, (10 * density).toInt()) }
-            }
-
-            val infoLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
                 )
             }
 
-            infoLayout.addView(TextView(this).apply {
-                text = "WORLD ${world.id}: ${world.name.uppercase()}"
-                textSize = 17f
-                typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1F3045"))
-            })
+            // 2. Dark translucent overlay for contrast & readability
+            val overlayView = View(this).apply {
+                background = android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(
+                        Color.parseColor("#400F172A"),
+                        Color.parseColor("#B00B1426")
+                    )
+                )
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            }
 
-            infoLayout.addView(TextView(this).apply {
+            // 3. Card Content: Title, Levels, and 3D Glass Explore button
+            val contentLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+                val pad = (16 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            }
+
+            val tvWorldTitle = TextView(this).apply {
+                text = "WORLD ${world.id}: ${world.name.uppercase()}"
+                textSize = 22f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.WHITE)
+                setShadowLayer(6f, 0f, 4f, Color.parseColor("#0F172A"))
+                gravity = Gravity.CENTER
+            }
+
+            val tvWorldLevels = TextView(this).apply {
                 val endLvlText = if (world.endLevel > 10000) "+" else " - ${world.endLevel}"
-                text = "Levels ${world.startLevel}$endLvlText"
-                textSize = 12f
-                setTextColor(Color.parseColor("#6B7C93"))
-            })
+                text = "LEVELS ${world.startLevel}$endLvlText"
+                textSize = 15f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#FFD43B"))
+                setShadowLayer(4f, 0f, 2f, Color.BLACK)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (4 * density).toInt(), 0, (14 * density).toInt()) }
+            }
 
             val totalStars = saveData.levelStars.values.sum()
             val isUnlocked = saveData.unlockedWorlds.contains(world.id) || totalStars >= world.requiredStarsToUnlock || saveData.highestLevel >= world.startLevel
@@ -903,7 +946,7 @@ class MainActivity : AppCompatActivity() {
                 if (isUnlocked) {
                     mainText = "EXPLORE"
                     subText = ""
-                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GLASS
                     setOnClickListener {
                         soundManager.playButtonClick()
                         saveData.currentLevel = world.startLevel
@@ -912,7 +955,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 } else {
                     mainText = "LOCKED"
-                    subText = "${world.requiredStarsToUnlock} Stars Required"
+                    subText = "${world.requiredStarsToUnlock} STARS REQUIRED"
                     variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
                     setOnClickListener {
                         soundManager.playButtonClick()
@@ -923,14 +966,20 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()
-                ).apply { setMargins(0, (10 * density).toInt(), 0, 0) }
+                    minOf((220 * density).toInt(), (resources.displayMetrics.widthPixels * 0.7f).toInt()),
+                    (54 * density).toInt()
+                )
             }
 
-            card.addView(bannerView)
-            card.addView(infoLayout)
-            card.addView(statusBtn)
-            container.addView(card)
+            contentLayout.addView(tvWorldTitle)
+            contentLayout.addView(tvWorldLevels)
+            contentLayout.addView(statusBtn)
+
+            cardFrame.addView(bgImageView)
+            cardFrame.addView(overlayView)
+            cardFrame.addView(contentLayout)
+
+            container.addView(cardFrame)
         }
 
         showScreen("SECONDARY")

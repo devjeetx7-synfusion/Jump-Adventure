@@ -71,6 +71,11 @@ class LevelMapView @JvmOverloads constructor(
     }
 
     private var animTime = 0f
+    private var cachedBgBitmap: Bitmap? = null
+    private val bgSrcRect = Rect()
+    private val bgDstRect = RectF()
+    private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val bgOverlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     fun setupMap(
         worldInfo: WorldInfo,
@@ -82,6 +87,9 @@ class LevelMapView @JvmOverloads constructor(
         currentHighestLevel = highestLevel
         currentLevelNum = currentLevel
         currentLevelStars = levelStars
+
+        val bgResId = com.jumpadventure.game.level.WorldRepository.getWorldBackgroundRes(worldInfo.id)
+        cachedBgBitmap = BitmapFactory.decodeResource(resources, bgResId)
 
         rebuildNodes()
         requestLayout()
@@ -134,17 +142,32 @@ class LevelMapView @JvmOverloads constructor(
         super.onDraw(canvas)
         animTime += 0.05f
 
+        val w = width.toFloat().coerceAtLeast(1f)
+        val h = mapTotalHeight.coerceAtLeast(1f)
+
+        // 1. Full-viewport continuous world background artwork
+        val bg = cachedBgBitmap
+        if (bg != null && !bg.isRecycled) {
+            val scale = maxOf(w / bg.width.toFloat(), h / bg.height.toFloat())
+            val scaledW = bg.width.toFloat() * scale
+            val scaledH = bg.height.toFloat() * scale
+            val left = (w - scaledW) / 2f
+            val top = (h - scaledH) / 2f
+
+            bgSrcRect.set(0, 0, bg.width, bg.height)
+            bgDstRect.set(left, top, left + scaledW, top + scaledH)
+            canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
+
+            // Dark overlay for level chart readability
+            bgOverlayPaint.color = Color.parseColor("#600B1426")
+            canvas.drawRect(0f, 0f, w, h, bgOverlayPaint)
+        } else {
+            canvas.drawColor(Color.parseColor(currentWorldInfo?.skyColorHex ?: "#4CAF50"))
+        }
+
         if (nodes.isEmpty()) return
 
-        // 1. Draw Environment and Path connecting nodes
-        val envPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(currentWorldInfo?.skyColorHex ?: "#4CAF50") }
-        nodes.forEachIndexed { index, node ->
-            if (index % 2 == 0) {
-                canvas.drawCircle(node.x - 120f, node.y + 40f, 30f, envPaint)
-            } else {
-                canvas.drawCircle(node.x + 120f, node.y + 40f, 25f, envPaint)
-            }
-        }
+        // 2. Path connecting nodes
         val path = Path()
         path.moveTo(nodes.first().x, nodes.first().y)
         for (i in 1 until nodes.size) {

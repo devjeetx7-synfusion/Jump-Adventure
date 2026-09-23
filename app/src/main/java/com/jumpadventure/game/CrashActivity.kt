@@ -63,6 +63,9 @@ class CrashActivity : AppCompatActivity() {
         val scroll = ScrollView(this).apply { addView(details) }
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { setMargins(0, 8, 0, 12) })
 
+        val density = resources.displayMetrics.density
+        val btnHeight = (56 * density).toInt()
+
         val copyButton = GamePrimaryButton(this).apply {
             mainText = "COPY ERROR"
             subText = ""
@@ -74,7 +77,7 @@ class CrashActivity : AppCompatActivity() {
             copyButton.mainText = "COPIED"
             copyButton.postDelayed({ copyButton.mainText = "COPY ERROR" }, 1200L)
         }
-        root.addView(copyButton, LinearLayout.LayoutParams(-1, 68).apply { setMargins(0, 6, 0, 8) })
+        root.addView(copyButton, LinearLayout.LayoutParams(-1, btnHeight).apply { setMargins(0, 6, 0, 8) })
 
         val restart = GamePrimaryButton(this).apply {
             mainText = "RESTART"
@@ -88,7 +91,7 @@ class CrashActivity : AppCompatActivity() {
             }
             finish()
         }
-        root.addView(restart, LinearLayout.LayoutParams(-1, 68).apply { setMargins(0, 4, 0, 8) })
+        root.addView(restart, LinearLayout.LayoutParams(-1, btnHeight).apply { setMargins(0, 4, 0, 8) })
 
         setContentView(root)
     }
