@@ -2,74 +2,86 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main_gradient"
-    android:padding="16dp">
+    android:background="@drawable/bg_home_sky"
+    android:fitsSystemWindows="true"
+    android:padding="12dp">
 
-    <!-- Top Bar -->
+    <!-- TOP HUD BAR -->
     <RelativeLayout
         android:id="@+id/secondaryTopBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true">
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="4dp">
 
-        <Button
+        <ImageButton
             android:id="@+id/btnSecondaryBack"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
             android:background="@drawable/bg_button_game_secondary"
-            android:text="←"
-            android:textSize="22sp"
-            android:textColor="#1B1B2F"
-            android:textStyle="bold" />
+            android:contentDescription="Back"
+            android:padding="10dp"
+            android:src="@drawable/ic_back" />
 
         <TextView
             android:id="@+id/tvSecondaryTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="Characters"
-            android:textColor="#FF9800"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:shadowColor="#1B1B2F"
-            android:shadowDx="2"
-            android:shadowDy="3"
-            android:shadowRadius="1" />
+            android:shadowColor="#8B4500"
+            android:shadowDx="0"
+            android:shadowDy="4"
+            android:shadowRadius="2"
+            android:text="HEROES"
+            android:textColor="#FFCA28"
+            android:textSize="26sp"
+            android:textStyle="bold" />
 
+        <!-- Coins Pill -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="42dp"
             android:layout_alignParentEnd="true"
-            android:background="@drawable/bg_card_glossy"
-            android:paddingHorizontal="14dp"
-            android:paddingVertical="8dp"
-            android:gravity="center_vertical">
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_pill_badge"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_coin" />
 
             <TextView
                 android:id="@+id/tvSecondaryCoins"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🪙 1250"
-                android:textColor="#1B1B2F"
-                android:textStyle="bold"
-                android:textSize="15sp" />
+                android:layout_marginStart="6dp"
+                android:text="1,250"
+                android:textColor="@color/game_text_dark"
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- Scrollable Items Area -->
+    <!-- SCROLLABLE CONTENT CONTAINER -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/secondaryTopBar"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:fillViewport="true">
 
         <LinearLayout
             android:id="@+id/secondaryContentContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:paddingBottom="16dp" />
     </ScrollView>
 
 </RelativeLayout>

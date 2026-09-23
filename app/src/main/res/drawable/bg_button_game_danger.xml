@@ -1,28 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Bottom Shadow Layer -->
     <item android:top="6dp">
         <shape android:shape="rectangle">
             <corners android:radius="18dp" />
-            <solid android:color="@color/game_primary_shadow" />
+            <solid android:color="@color/game_danger_shadow" />
         </shape>
     </item>
-
-    <!-- Main Button Body Layer -->
     <item android:bottom="6dp">
         <shape android:shape="rectangle">
             <corners android:radius="18dp" />
             <gradient
                 android:angle="270"
-                android:startColor="@color/game_primary_start"
-                android:endColor="@color/game_primary_end" />
+                android:startColor="@color/game_danger_start"
+                android:endColor="@color/game_danger_end" />
             <stroke
                 android:width="2.5dp"
-                android:color="#FFE8A3" />
+                android:color="#FCA5A5" />
         </shape>
     </item>
-
-    <!-- Top Glossy Inner Highlight Layer -->
     <item
         android:top="2dp"
         android:left="4dp"
