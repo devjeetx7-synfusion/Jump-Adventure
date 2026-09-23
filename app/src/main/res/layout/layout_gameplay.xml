@@ -125,35 +125,38 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- POWER-UP ACTION BAR -->
+    <!-- POWER-UP ACTION BAR: fixed above the bottom JUMP control, never under the top HUD -->
     <LinearLayout
         android:id="@+id/powerUpBar"
-        android:layout_width="56dp"
+        android:layout_width="72dp"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
-        android:layout_alignParentTop="true"
-        android:layout_below="@id/hudTopBar"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="10dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="158dp"
         android:gravity="center_horizontal"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:elevation="12dp">
 
-        <com.jumpadventure.game.graphics.GamePrimaryButton
+        <com.jumpadventure.game.graphics.GamePowerUpButton
             android:id="@+id/btnPowerUpMagnet"
-            android:layout_width="54dp"
-            android:layout_height="54dp"
-            android:layout_marginBottom="10dp" />
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_marginBottom="9dp"
+            android:contentDescription="Magnet power-up" />
 
-        <com.jumpadventure.game.graphics.GamePrimaryButton
-            android:id="@+id/btnPowerUpShield"
-            android:layout_width="54dp"
-            android:layout_height="54dp"
-            android:layout_marginBottom="10dp" />
-
-        <com.jumpadventure.game.graphics.GamePrimaryButton
+        <com.jumpadventure.game.graphics.GamePowerUpButton
             android:id="@+id/btnPowerUpSpeed"
-            android:layout_width="54dp"
-            android:layout_height="54dp" />
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:layout_marginBottom="9dp"
+            android:contentDescription="Speed power-up" />
+
+        <com.jumpadventure.game.graphics.GamePowerUpButton
+            android:id="@+id/btnPowerUpShield"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:contentDescription="Shield power-up" />
     </LinearLayout>
 
 </RelativeLayout>
