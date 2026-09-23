@@ -323,10 +323,8 @@ class MainActivity : AppCompatActivity() {
         saveManager.saveData(saveData)
 
         incOverlay.visibility = View.VISIBLE
-        val btnSecondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
-        val btnHome = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
-        btnSecondary.visibility = View.VISIBLE
-        btnHome.visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.VISIBLE
 
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "LEVEL COMPLETE"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
@@ -337,9 +335,8 @@ class MainActivity : AppCompatActivity() {
         tvOverlayCoins.text = ""
         tvOverlayTime.text = ""
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "NEXT LEVEL"
-        btnPrimary.subText = ""
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "NEXT LEVEL"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -347,18 +344,14 @@ class MainActivity : AppCompatActivity() {
             startLevelGameplay(saveData.currentLevel + 1)
         }
 
-        btnSecondary.mainText = "REPLAY"
-        btnSecondary.subText = ""
-        btnSecondary.setOnClickListener {
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel)
         }
 
-        btnHome.mainText = "HOME"
-        btnHome.subText = ""
-        btnHome.setOnClickListener {
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -409,10 +402,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleGameOver() {
         incOverlay.visibility = View.VISIBLE
-        val btnHome = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
-        val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
-        btnHome.visibility = View.VISIBLE
-        btnSec.visibility = View.GONE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.VISIBLE
 
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "GAME OVER"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
@@ -420,9 +410,8 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "RETRY"
-        btnPrimary.subText = ""
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "RETRY"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -430,9 +419,9 @@ class MainActivity : AppCompatActivity() {
             startLevelGameplay(saveData.currentLevel)
         }
 
-        btnHome.mainText = "HOME"
-        btnHome.subText = ""
-        btnHome.setOnClickListener {
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.GONE
+
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -440,10 +429,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPauseOverlay() {
         incOverlay.visibility = View.VISIBLE
-        val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
-        val btnHome = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
-        btnSec.visibility = View.VISIBLE
-        btnHome.visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.VISIBLE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.VISIBLE
 
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "PAUSED"
         incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
@@ -451,17 +438,16 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "RESUME"
-        btnPrimary.subText = ""
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "RESUME"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             overlayHandler.removeCallbacksAndMessages(null)
         }
 
-        btnSec.mainText = "RESTART"
-        btnSec.subText = ""
+        val btnSec = incOverlay.findViewById<Button>(R.id.btnOverlaySecondary)
+        btnSec.text = "RESTART"
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
@@ -469,9 +455,7 @@ class MainActivity : AppCompatActivity() {
             startLevelGameplay(saveData.currentLevel)
         }
 
-        btnHome.mainText = "HOME"
-        btnHome.subText = ""
-        btnHome.setOnClickListener {
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).setOnClickListener {
             soundManager.playButtonClick()
             showScreen("MAIN_MENU")
         }
@@ -614,9 +598,8 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = "Price: ${item.priceCoins} Coins"
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "UNLOCK (${item.priceCoins} COINS)"
-        btnPrimary.subText = ""
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "UNLOCK FOR ${item.priceCoins} COINS"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             if (saveData.coins >= item.priceCoins) {
@@ -631,16 +614,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
+        val btnSec = incOverlay.findViewById<Button>(R.id.btnOverlaySecondary)
         btnSec.visibility = View.VISIBLE
-        btnSec.mainText = "CLOSE"
-        btnSec.subText = ""
+        btnSec.text = "CLOSE"
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
         }
 
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.GONE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.GONE
     }
 
     private fun showCustomGameDialog(title: String, message: String, onConfirm: (() -> Unit)? = null) {
@@ -651,17 +633,16 @@ class MainActivity : AppCompatActivity() {
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "OK"
-        btnPrimary.subText = ""
+        val btnPrimary = incOverlay.findViewById<Button>(R.id.btnOverlayPrimary)
+        btnPrimary.text = "OK"
         btnPrimary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             onConfirm?.invoke()
         }
 
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).visibility = View.GONE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.GONE
+        incOverlay.findViewById<Button>(R.id.btnOverlaySecondary).visibility = View.GONE
+        incOverlay.findViewById<Button>(R.id.btnOverlayHome).visibility = View.GONE
     }
 
     /* ------------------------------------------------------------------------

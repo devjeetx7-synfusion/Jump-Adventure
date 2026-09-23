@@ -100,26 +100,41 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <!-- Primary Action Button (3D Custom Game Button) -->
-                <com.jumpadventure.game.graphics.GamePrimaryButton
+                <!-- Primary Action Button (3D Styled) -->
+                <Button
                     android:id="@+id/btnOverlayPrimary"
                     android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:layout_marginBottom="10dp" />
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_game_primary"
+                    android:text="RESUME"
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-                <!-- Secondary Action Button (3D Custom Game Button) -->
-                <com.jumpadventure.game.graphics.GamePrimaryButton
+                <!-- Secondary Action Button (3D Styled) -->
+                <Button
                     android:id="@+id/btnOverlaySecondary"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginBottom="10dp" />
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_game_secondary"
+                    android:text="RESTART"
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-                <!-- Home Action Button (3D Custom Game Button) -->
-                <com.jumpadventure.game.graphics.GamePrimaryButton
+                <!-- Home Action Button (3D Styled) -->
+                <Button
                     android:id="@+id/btnOverlayHome"
                     android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginBottom="10dp" />
+                    android:layout_height="50dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_button_game_secondary"
+                    android:text="HOME"
+                    android:textColor="@color/game_text_dark"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
             </LinearLayout>
 

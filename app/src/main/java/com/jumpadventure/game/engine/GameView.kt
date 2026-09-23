@@ -388,7 +388,7 @@ class GameView(
             val w = width.toFloat()
             val h = height.toFloat()
 
-            // 1. Environmental Background Asset Rendering with Continuous Parallax Tiling
+            // 1. Environmental Background Asset Rendering with Parallax
             val bg = cachedBgBitmap
             if (bg != null && !bg.isRecycled) {
                 val bgW = bg.width.toFloat()
@@ -396,18 +396,18 @@ class GameView(
 
                 val scale = Math.max(w / bgW, h / bgH)
                 val scaledW = bgW * scale
+                val scaledH = bgH * scale
 
-                var currX = -(cameraX * 0.15f) % scaledW
-                if (currX > 0) {
-                    currX -= scaledW
-                }
+                val parallaxX = -(cameraX * 0.15f) % scaledW
 
                 bgSrcRect.set(0, 0, bg.width, bg.height)
 
-                while (currX < w) {
-                    bgDstRect.set(currX, 0f, currX + scaledW, h)
+                bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
+                canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
+
+                if (parallaxX + scaledW < w) {
+                    bgDstRect.set(parallaxX + scaledW, 0f, parallaxX + scaledW * 2f, h)
                     canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
-                    currX += scaledW
                 }
             } else {
                 skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)

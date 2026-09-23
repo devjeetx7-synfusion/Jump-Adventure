@@ -161,31 +161,41 @@ class GamePrimaryButton @JvmOverloads constructor(
         // 4. Bevel Outer Border
         canvas.drawRoundRect(buttonRect, cornerRadius, cornerRadius, borderPaint)
 
-        // 5. Always Draw Play Triangle Vector Icon
-        val iconSize = buttonRect.height() * 0.40f
-        val iconX = buttonRect.left + buttonRect.height() * 0.55f
-        val iconY = buttonRect.centerY()
-
-        playIconPath.reset()
-        playIconPath.moveTo(iconX - iconSize * 0.35f, iconY - iconSize * 0.5f)
-        playIconPath.lineTo(iconX + iconSize * 0.5f, iconY)
-        playIconPath.lineTo(iconX - iconSize * 0.35f, iconY + iconSize * 0.5f)
-        playIconPath.close()
-
-        canvas.drawPath(playIconPath, iconPaint)
-
-        // 6. Draw Main Title & Subtitle with Bold Typography
         val titleSize = buttonRect.height() * 0.36f
         titlePaint.textSize = titleSize
         titleShadowPaint.textSize = titleSize
 
-        val textStartX = iconX + iconSize * 0.75f
-
         if (subText.isEmpty()) {
+            // Center single main text horizontally and vertically
+            val oldAlign = titlePaint.textAlign
+            titlePaint.textAlign = Paint.Align.CENTER
+            titleShadowPaint.textAlign = Paint.Align.CENTER
+
+            val centerX = buttonRect.centerX()
             val titleY = buttonRect.centerY() + titleSize * 0.35f
-            canvas.drawText(mainText, textStartX, titleY + 2f, titleShadowPaint)
-            canvas.drawText(mainText, textStartX, titleY, titlePaint)
+
+            canvas.drawText(mainText, centerX, titleY + 2f, titleShadowPaint)
+            canvas.drawText(mainText, centerX, titleY, titlePaint)
+
+            titlePaint.textAlign = oldAlign
+            titleShadowPaint.textAlign = oldAlign
         } else {
+            // 5. Draw Play Triangle Icon
+            val iconSize = buttonRect.height() * 0.42f
+            val iconX = buttonRect.left + buttonRect.height() * 0.55f
+            val iconY = buttonRect.centerY()
+
+            playIconPath.reset()
+            playIconPath.moveTo(iconX - iconSize * 0.35f, iconY - iconSize * 0.5f)
+            playIconPath.lineTo(iconX + iconSize * 0.5f, iconY)
+            playIconPath.lineTo(iconX - iconSize * 0.35f, iconY + iconSize * 0.5f)
+            playIconPath.close()
+
+            canvas.drawPath(playIconPath, iconPaint)
+
+            // 6. Draw Main Title "PLAY NOW" & Subtitle "LEVEL X"
+            val textStartX = iconX + iconSize * 0.75f
+
             val subSize = buttonRect.height() * 0.22f
             subTitlePaint.textSize = subSize
 
