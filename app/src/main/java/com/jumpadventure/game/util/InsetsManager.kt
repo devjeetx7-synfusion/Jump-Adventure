@@ -1,6 +1,7 @@
 package com.jumpadventure.game.util
 
 import android.app.Activity
+import android.graphics.Color
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
@@ -10,19 +11,16 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 object InsetsManager {
-
-    private class OriginalPadding(val left: Int, val top: Int, val right: Int, val bottom: Int)
-    private class OriginalMargin(val left: Int, val top: Int, val right: Int, val bottom: Int)
+    private data class OriginalMargin(val left: Int, val top: Int, val right: Int, val bottom: Int)
+    private data class OriginalPadding(val left: Int, val top: Int, val right: Int, val bottom: Int)
 
     fun setupEdgeToEdge(activity: Activity) {
         WindowCompat.setDecorFitsSystemWindows(activity.window, false)
-        activity.window.statusBarColor = android.graphics.Color.TRANSPARENT
-        activity.window.navigationBarColor = android.graphics.Color.TRANSPARENT
-
+        activity.window.statusBarColor = Color.TRANSPARENT
+        activity.window.navigationBarColor = Color.TRANSPARENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             activity.window.isNavigationBarContrastEnforced = false
         }
-
         WindowInsetsControllerCompat(activity.window, activity.window.decorView).apply {
             isAppearanceLightStatusBars = true
             isAppearanceLightNavigationBars = true
@@ -36,52 +34,62 @@ object InsetsManager {
         bottomViewsToPad: List<View> = emptyList(),
         overlayViewsToPad: List<View> = emptyList()
     ) {
-        // Store original paddings and margins before applying insets to prevent accumulating padding
-        val topOriginalPaddings = topViewsToPad.associateWith {
+        val originalTopMargins = topViewsToPad.associateWith { view ->
+            val lp = view.layoutParams as? ViewGroup.MarginLayoutParams
+            OriginalMargin(lp?.leftMargin ?: 0, lp?.topMargin ?: 0, lp?.rightMargin ?: 0, lp?.bottomMargin ?: 0)
+        }
+        val originalBottomMargins = bottomViewsToMargin.associateWith { view ->
+            val lp = view.layoutParams as? ViewGroup.MarginLayoutParams
+            OriginalMargin(lp?.leftMargin ?: 0, lp?.topMargin ?: 0, lp?.rightMargin ?: 0, lp?.bottomMargin ?: 0)
+        }
+        val originalBottomPaddings = bottomViewsToPad.associateWith {
             OriginalPadding(it.paddingLeft, it.paddingTop, it.paddingRight, it.paddingBottom)
         }
-        val bottomOriginalMargins = bottomViewsToMargin.associateWith { v ->
-            val params = v.layoutParams as? ViewGroup.MarginLayoutParams
-            OriginalMargin(
-                params?.leftMargin ?: 0,
-                params?.topMargin ?: 0,
-                params?.rightMargin ?: 0,
-                params?.bottomMargin ?: 0
-            )
-        }
-        val bottomOriginalPaddings = bottomViewsToPad.associateWith {
-            OriginalPadding(it.paddingLeft, it.paddingTop, it.paddingRight, it.paddingBottom)
-        }
-        val overlayOriginalPaddings = overlayViewsToPad.associateWith {
+        val originalOverlayPaddings = overlayViewsToPad.associateWith {
             OriginalPadding(it.paddingLeft, it.paddingTop, it.paddingRight, it.paddingBottom)
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val topInset = maxOf(bars.top, cutout.top)
+            val bottomInset = maxOf(bars.bottom, cutout.bottom)
 
-            topViewsToPad.forEach { v ->
-                val orig = topOriginalPaddings[v] ?: return@forEach
-                v.setPadding(orig.left, orig.top + systemBars.top, orig.right, orig.bottom)
+            // Move top bars below the status/cutout area instead of injecting
+            // the inset into their internal padding. This keeps the whole HUD visible.
+            topViewsToPad.forEach { view ->
+                val original = originalTopMargins[view] ?: return@forEach
+                val lp = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return@forEach
+                lp.leftMargin = original.left
+                lp.topMargin = original.top + topInset
+                lp.rightMargin = original.right
+                lp.bottomMargin = original.bottom
+                view.layoutParams = lp
             }
 
-            bottomViewsToMargin.forEach { v ->
-                val orig = bottomOriginalMargins[v] ?: return@forEach
-                val params = v.layoutParams as? ViewGroup.MarginLayoutParams ?: return@forEach
-                params.bottomMargin = orig.bottom + systemBars.bottom
-                v.layoutParams = params
+            bottomViewsToMargin.forEach { view ->
+                val original = originalBottomMargins[view] ?: return@forEach
+                val lp = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return@forEach
+                lp.leftMargin = original.left
+                lp.topMargin = original.top
+                lp.rightMargin = original.right
+                lp.bottomMargin = original.bottom + bottomInset
+                view.layoutParams = lp
             }
 
-            bottomViewsToPad.forEach { v ->
-                val orig = bottomOriginalPaddings[v] ?: return@forEach
-                v.setPadding(orig.left, orig.top, orig.right, orig.bottom + systemBars.bottom)
+            bottomViewsToPad.forEach { view ->
+                val original = originalBottomPaddings[view] ?: return@forEach
+                view.setPadding(original.left, original.top, original.right, original.bottom + bottomInset)
             }
 
-            overlayViewsToPad.forEach { v ->
-                val orig = overlayOriginalPaddings[v] ?: return@forEach
-                v.setPadding(orig.left, orig.top + systemBars.top, orig.right, orig.bottom + systemBars.bottom)
+            overlayViewsToPad.forEach { view ->
+                val original = originalOverlayPaddings[view] ?: return@forEach
+                view.setPadding(original.left, original.top + topInset, original.right, original.bottom + bottomInset)
             }
 
             insets
         }
+
+        ViewCompat.requestApplyInsets(rootView)
     }
 }
