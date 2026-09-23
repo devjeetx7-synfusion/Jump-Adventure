@@ -158,11 +158,31 @@ class GameView(
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        val btnSize = width * 0.18f
-        val padding = 40f
-        leftButtonRect.set(padding, height - btnSize - padding, padding + btnSize, height - padding)
-        rightButtonRect.set(padding + btnSize + 30f, height - btnSize - padding, padding + btnSize * 2 + 30f, height - padding)
-        jumpButtonRect.set(width - btnSize - padding, height - btnSize - padding, width - padding, height - padding)
+        // Responsive circular controls. Jump is intentionally larger.
+        val sideSize = (width * 0.15f).coerceIn(76f, 98f)
+        val gap = (width * 0.04f).coerceIn(18f, 30f)
+        val jumpSize = (width * 0.19f).coerceIn(94f, 118f)
+        val horizontal = (width * 0.045f).coerceIn(18f, 30f)
+        val bottom = (height * 0.055f).coerceIn(28f, 52f)
+
+        leftButtonRect.set(
+            horizontal,
+            height - sideSize - bottom,
+            horizontal + sideSize,
+            height - bottom
+        )
+        rightButtonRect.set(
+            horizontal + sideSize + gap,
+            height - sideSize - bottom,
+            horizontal + sideSize + gap + sideSize,
+            height - bottom
+        )
+        jumpButtonRect.set(
+            width - horizontal - jumpSize,
+            height - jumpSize - bottom,
+            width - horizontal,
+            height - bottom
+        )
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
