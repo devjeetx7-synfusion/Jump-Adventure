@@ -87,6 +87,65 @@ class MainActivity : AppCompatActivity() {
         tvGems = incMainMenu.findViewById(R.id.tvGems)
         btnPlay = incMainMenu.findViewById(R.id.btnPlay)
         charPreviewView = incMainMenu.findViewById(R.id.charPreviewView)
+        setupResponsiveHomeLayout()
+    }
+
+    private fun setupResponsiveHomeLayout() {
+        val container = incMainMenu.findViewById<FrameLayout>(R.id.homeContentContainer)
+        val logo = incMainMenu.findViewById<ImageView>(R.id.ivHomeLogo)
+        val mountain = incMainMenu.findViewById<ImageView>(R.id.ivMountainPlatform)
+        val character = incMainMenu.findViewById<com.jumpadventure.game.graphics.CharacterPreviewView>(R.id.charPreviewView)
+        val play = incMainMenu.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnPlay)
+        val density = resources.displayMetrics.density
+        val dp = { value: Float -> (value * density).toInt() }
+
+        container.post {
+            val w = container.width
+            val h = container.height
+            if (w <= 0 || h <= 0) return@post
+
+            val playH = dp(76f).coerceAtMost((h * 0.105f).toInt()).coerceAtLeast(dp(64f))
+            val playW = minOf(dp(320f), w - dp(32f))
+            play.layoutParams = FrameLayout.LayoutParams(playW, playH).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(4f)
+            }
+
+            val playTop = h - playH - dp(4f)
+
+            val logoW = minOf(dp(330f), (w * 0.82f).toInt())
+            val logoH = minOf(dp(175f), (h * 0.205f).toInt())
+            logo.layoutParams = FrameLayout.LayoutParams(logoW, logoH).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = 0
+            }
+
+            val characterH = minOf(dp(220f), (h * 0.235f).toInt())
+            val desiredMountainW = minOf(dp(310f), (w * 0.76f).toInt())
+            val mountainRatio = 3264f / 2857f
+            val desiredMountainH = (desiredMountainW * mountainRatio).toInt()
+            val maxMountainH = (playTop - logoH - characterH - dp(16f)).coerceAtLeast(dp(140f))
+            val mountainH = minOf(desiredMountainH, maxMountainH)
+            val mountainW = (mountainH / mountainRatio).toInt()
+            val mountainTop = playTop + (playH * 0.22f).toInt() - mountainH
+
+            mountain.layoutParams = FrameLayout.LayoutParams(mountainW, mountainH).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = mountainTop.coerceAtLeast(logoH + dp(8f))
+            }
+
+            var finalCharacterH = characterH
+            val characterBottom = mountainTop + (mountainH * 0.025f).toInt()
+            val minimumCharacterTop = logoH + dp(8f)
+            if (characterBottom - finalCharacterH < minimumCharacterTop) {
+                finalCharacterH = (characterBottom - minimumCharacterTop).coerceAtLeast(dp(135f))
+            }
+            val characterW = minOf(dp(220f), (w * 0.54f).toInt())
+            character.layoutParams = FrameLayout.LayoutParams(characterW, finalCharacterH).apply {
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                topMargin = characterBottom - finalCharacterH
+            }
+        }
     }
 
     private fun setupWindowInsets() {
