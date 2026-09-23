@@ -18,8 +18,13 @@ class GamePrimaryButton @JvmOverloads constructor(
     var subText: String = "LEVEL 1"
         set(value) { field = value; invalidate() }
 
+    var variant: Variant = Variant.ORANGE
+        set(value) { field = value; invalidate() }
+
+    enum class Variant { ORANGE, GREEN, BLUE }
+
     private var isPressedState = false
-    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#A34A00") }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -121,9 +126,18 @@ class GamePrimaryButton @JvmOverloads constructor(
         canvas.drawRoundRect(shadowRect, cornerRadius, cornerRadius, shadowPaint)
 
         buttonRect.set(4f, 2f, w - 4f, h - shadowOffset)
+        val topColor: Int
+        val bottomColor: Int
+        val shadowColor: Int
+        when (variant) {
+            Variant.ORANGE -> { topColor = Color.parseColor("#FFC107"); bottomColor = Color.parseColor("#FF8F00"); shadowColor = Color.parseColor("#A34A00") }
+            Variant.GREEN -> { topColor = Color.parseColor("#8BEA3E"); bottomColor = Color.parseColor("#23A63A"); shadowColor = Color.parseColor("#0F6E21") }
+            Variant.BLUE -> { topColor = Color.parseColor("#57D5FF"); bottomColor = Color.parseColor("#0878D8"); shadowColor = Color.parseColor("#07509A") }
+        }
+        shadowPaint.color = shadowColor
         bodyPaint.shader = LinearGradient(
             buttonRect.left, buttonRect.top, buttonRect.left, buttonRect.bottom,
-            Color.parseColor("#FFC107"), Color.parseColor("#FF8F00"), Shader.TileMode.CLAMP
+            topColor, bottomColor, Shader.TileMode.CLAMP
         )
         canvas.drawRoundRect(buttonRect, cornerRadius, cornerRadius, bodyPaint)
 
