@@ -1,0 +1,130 @@
+name: Jump Adventure - Build APK
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Run Unit Tests
+        run: ./gradlew test
+
+      - name: Run Lint
+        run: ./gradlew lint
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Generate Test Keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore jump-adventure-test.jks \
+            -alias jump_adventure_test \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass JumpAdventureTest2026! \
+            -keypass JumpAdventureTest2026! \
+            -dname "CN=Jump Adventure Test, OU=Development, O=JumpAdventure, L=City, ST=State, C=US"
+
+      - name: Sign Release APK
+        run: |
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          RELEASE_UNSIGNED=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "Signing $RELEASE_UNSIGNED with $APKSIGNER"
+          "$APKSIGNER" sign \
+            --ks jump-adventure-test.jks \
+            --ks-key-alias jump_adventure_test \
+            --ks-pass pass:JumpAdventureTest2026! \
+            --key-pass pass:JumpAdventureTest2026! \
+            --out JumpAdventure-test-release.apk \
+            "$RELEASE_UNSIGNED"
+
+      - name: Prepare Artifacts
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk JumpAdventure-debug.apk
+          cat << 'EOF' > TEST_KEYSTORE_INFO.txt
+          Jump Adventure TEST Keystore
+
+          Purpose:
+          Development/testing only.
+
+          Keystore:
+          jump-adventure-test.jks
+
+          Alias:
+          jump_adventure_test
+
+          Store Password:
+          JumpAdventureTest2026!
+
+          Key Password:
+          JumpAdventureTest2026!
+
+          WARNING:
+          This keystore must NOT be used for a production Google Play release.
+          EOF
+
+      - name: Verify APK
+        run: |
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          AAPT2=$(find $ANDROID_HOME/build-tools -name aapt2 | sort -V | tail -n 1)
+
+          echo "=== Verifying Debug APK ==="
+          test -f JumpAdventure-debug.apk
+          test -s JumpAdventure-debug.apk
+          DEBUG_PKG=$("$AAPT2" dump badging JumpAdventure-debug.apk | grep "^package: name=" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")
+          echo "Debug package name: $DEBUG_PKG"
+          test "$DEBUG_PKG" = "com.jumpadventure.game"
+
+          echo "=== Verifying Test Release APK ==="
+          test -f JumpAdventure-test-release.apk
+          test -s JumpAdventure-test-release.apk
+          RELEASE_PKG=$("$AAPT2" dump badging JumpAdventure-test-release.apk | grep "^package: name=" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")
+          echo "Release package name: $RELEASE_PKG"
+          test "$RELEASE_PKG" = "com.jumpadventure.game"
+
+          echo "=== Verifying APK Signature ==="
+          "$APKSIGNER" verify --verbose JumpAdventure-test-release.apk
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JumpAdventure-debug-apk
+          path: JumpAdventure-debug.apk
+          retention-days: 7
+
+      - name: Upload Signed Test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JumpAdventure-test-release-apk
+          path: JumpAdventure-test-release.apk
+          retention-days: 7
+
+      - name: Upload Test Keystore
+        uses: actions/upload-artifact@v4
+        with:
+          name: JumpAdventure-test-keystore
+          path: |
+            jump-adventure-test.jks
+            TEST_KEYSTORE_INFO.txt
+          retention-days: 7
