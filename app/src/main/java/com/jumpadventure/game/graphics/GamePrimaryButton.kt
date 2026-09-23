@@ -162,9 +162,11 @@ class GamePrimaryButton @JvmOverloads constructor(
         canvas.drawText(mainText, titleX, titleY + 2f, titleShadowPaint)
         canvas.drawText(mainText, titleX, titleY, titlePaint)
 
-        val subSize = minOf(buttonRect.height() * 0.13f, 11f)
-        subTitlePaint.textSize = subSize
-        val subY = buttonRect.centerY() + subSize + 5f
-        canvas.drawText(subText, buttonRect.centerX(), subY, subTitlePaint)
+        if (subText.isNotBlank()) {
+            val subSize = minOf(buttonRect.height() * 0.13f, 11f)
+            subTitlePaint.textSize = subSize
+            val subY = buttonRect.centerY() + subSize + 5f
+            canvas.drawText(subText, buttonRect.centerX(), subY, subTitlePaint)
+        }
     }
 }
