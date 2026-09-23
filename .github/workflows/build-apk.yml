@@ -20,17 +20,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Release APK
+      - name: Restore Signing Keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/jump-adventure-test.jks
+
+      - name: Build Signed Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease -PversionCode=${{ github.run_number }}
 
-      - name: Prepare Artifact
-        run: |
-          mkdir -p output
-          cp app/build/outputs/apk/release/app-release.apk output/JumpAdventure.apk
-
-      - name: Upload APK Artifact
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JumpAdventure-APK
-          path: output/JumpAdventure.apk
-          retention-days: 7
+          name: Jump-Adventure-release
+          path: app/build/outputs/apk/release/app-release.apk

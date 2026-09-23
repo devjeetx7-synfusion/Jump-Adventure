@@ -17,10 +17,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("jump-adventure-test.jks")
-            storePassword = "JumpAdventureTest2026!"
-            keyAlias = "jump_adventure_test"
-            keyPassword = "JumpAdventureTest2026!"
+            storeFile = file(System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() } ?: "jump-adventure-test.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() } ?: "JumpAdventureTest2026!"
+            keyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() } ?: "jump_adventure_test"
+            keyPassword = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() } ?: "JumpAdventureTest2026!"
         }
     }
 
