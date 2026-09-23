@@ -94,13 +94,14 @@ class LevelMapView @JvmOverloads constructor(
         val totalLevels = worldInfo.endLevel - worldInfo.startLevel + 1
         val startLvl = worldInfo.startLevel
 
-        val nodeSpacingY = 160f
+        val nodeSpacingY = 170f
         mapTotalHeight = totalLevels * nodeSpacingY + 300f
 
         val viewWidth = if (width > 0) width.toFloat() else 1080f
         val centerX = viewWidth / 2f
         val amplitude = viewWidth * 0.32f
 
+        // Progression ascends upward: level 1 at bottom, higher levels toward top
         for (i in 0 until totalLevels) {
             val lvl = startLvl + i
             val isUnlocked = lvl <= currentHighestLevel
@@ -110,7 +111,7 @@ class LevelMapView @JvmOverloads constructor(
 
             val angle = i * 0.7f
             val nx = centerX + sin(angle.toDouble()).toFloat() * amplitude
-            val ny = 120f + i * nodeSpacingY
+            val ny = mapTotalHeight - 150f - (i * nodeSpacingY)
 
             nodes.add(NodeInfo(lvl, isUnlocked, isCurr, isBoss, stars, nx, ny))
         }
