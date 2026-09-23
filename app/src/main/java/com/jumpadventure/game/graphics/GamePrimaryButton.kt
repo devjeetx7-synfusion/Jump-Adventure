@@ -171,12 +171,17 @@ class GamePrimaryButton @JvmOverloads constructor(
         playIconPath.close()
         canvas.drawPath(playIconPath, iconPaint)
 
+        titlePaint.textAlign = Paint.Align.LEFT
+        titleShadowPaint.textAlign = Paint.Align.LEFT
+
+        val hasSubText = subText.isNotBlank()
         val titleX = groupLeft + iconSize + groupGap
-        val titleY = buttonRect.centerY() - 4f
+        val titleY = if (hasSubText) buttonRect.centerY() - 4f else buttonRect.centerY() + titleSize * 0.35f
+
         canvas.drawText(mainText, titleX, titleY + 2f, titleShadowPaint)
         canvas.drawText(mainText, titleX, titleY, titlePaint)
 
-        if (subText.isNotBlank()) {
+        if (hasSubText) {
             val subSize = minOf(buttonRect.height() * 0.13f, 11f)
             subTitlePaint.textSize = subSize
             val subY = buttonRect.centerY() + subSize + 5f

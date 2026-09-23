@@ -36,11 +36,18 @@ class GameView(
     private lateinit var worldInfo: WorldInfo
     private lateinit var levelLayout: com.jumpadventure.game.level.LevelLayout
 
-    // Player Physics State
+    // Player Physics State & Logical Collider vs Visual Drawing Sizes
     private var playerX = 50f
     private var playerY = 700f
-    private val playerWidth = 72f
-    private val playerHeight = 96f
+    // Visual hero artwork rendering dimensions
+    private val visualWidth = 72f
+    private val visualHeight = 96f
+    // Logical physics collider dimensions (slightly tighter to prevent clipping/getting stuck)
+    private val colliderWidth = 48f
+    private val colliderHeight = 84f
+    private val colliderOffsetX = (visualWidth - colliderWidth) / 2f
+    private val colliderOffsetY = visualHeight - colliderHeight
+
     private var velocityX = 0f
     private var velocityY = 0f
     private val moveSpeed = 9f
@@ -50,6 +57,9 @@ class GameView(
     private var lives = 3
     private var checkpointX = 50f
     private var checkpointY = 700f
+
+    @Volatile
+    private var levelCompletionHandled = false
 
     // Power-ups state
     var isMagnetActive = false
@@ -135,6 +145,7 @@ class GameView(
         checkpointX = 50f
         checkpointY = 700f
         lives = 3
+        levelCompletionHandled = false
 
         coinsCollectedInLevel = 0
         starsCollectedInLevel = 0
@@ -151,6 +162,33 @@ class GameView(
         // Cached environmental background bitmap loading
         val bgResId = WorldRepository.getWorldBackgroundRes(worldInfo.id)
         cachedBgBitmap = BitmapFactory.decodeResource(resources, bgResId)
+    }
+
+    fun stopGameLoop() {
+        isRunning = false
+        gameThread?.let {
+            var retry = true
+            while (retry) {
+                try {
+                    it.join(500)
+                    retry = false
+                } catch (e: InterruptedException) {
+                    retry = false
+                }
+            }
+        }
+        gameThread = null
+    }
+
+    fun pauseGame() {
+        isRunning = false
+    }
+
+    fun resumeGame() {
+        if (!isRunning && holder.surface.isValid) {
+            isRunning = true
+            gameThread = Thread(this).apply { start() }
+        }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -258,9 +296,11 @@ class GameView(
         cameraX = playerX - screenWidth * 0.35f
         if (cameraX < 0) cameraX = 0f
 
-        // Collision logic
+        // Collision logic using dedicated logical collider rectangle
         isGrounded = false
-        val playerRect = RectF(playerX, playerY, playerX + playerWidth, playerY + playerHeight)
+        val colliderLeft = playerX + colliderOffsetX
+        val colliderTop = playerY + colliderOffsetY
+        val playerRect = RectF(colliderLeft, colliderTop, colliderLeft + colliderWidth, colliderTop + colliderHeight)
 
         activeElements.forEach { active ->
             if (active.isCollected) return@forEach
@@ -294,8 +334,9 @@ class GameView(
                 when (elem.type) {
                     ElementType.PLATFORM, ElementType.MOVING_PLATFORM, ElementType.BOX -> {
                         // Top collision (landing on platform)
-                        if (velocityY > 0 && playerY + playerHeight - velocityY <= active.currentY + 15f) {
-                            playerY = active.currentY - playerHeight
+                        val prevFeetY = colliderTop + colliderHeight - velocityY
+                        if (velocityY > 0 && prevFeetY <= active.currentY + 18f) {
+                            playerY = active.currentY - visualHeight
                             velocityY = 0f
                             isGrounded = true
 
@@ -305,6 +346,22 @@ class GameView(
                             }
                         }
                     }
+                    else -> {}
+                }
+            }
+        }
+
+        // Second pass for triggers / items / damage
+        val updatedColliderTop = playerY + colliderOffsetY
+        val updatedPlayerRect = RectF(playerX + colliderOffsetX, updatedColliderTop, playerX + colliderOffsetX + colliderWidth, updatedColliderTop + colliderHeight)
+
+        activeElements.forEach { active ->
+            if (active.isCollected) return@forEach
+            val elem = active.original
+            val elemRect = RectF(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
+
+            if (RectF.intersects(updatedPlayerRect, elemRect)) {
+                when (elem.type) {
 
                     ElementType.COIN -> {
                         active.isCollected = true
@@ -322,7 +379,7 @@ class GameView(
                         if (!active.isActivated) {
                             active.isActivated = true
                             checkpointX = active.currentX
-                            checkpointY = active.currentY - playerHeight
+                            checkpointY = active.currentY - visualHeight
                         }
                     }
 
@@ -338,6 +395,8 @@ class GameView(
                     ElementType.FINISH_DOOR -> {
                         completeLevel()
                     }
+
+                    else -> {}
                 }
             }
         }
@@ -364,17 +423,13 @@ class GameView(
         }
     }
 
-    private enum class LevelState { RUNNING, COMPLETING, COMPLETED }
-    private var levelState = LevelState.RUNNING
-
     private fun completeLevel() {
-        if (levelState != LevelState.RUNNING) return
-        levelState = LevelState.COMPLETING
+        if (levelCompletionHandled) return
+        levelCompletionHandled = true
         isRunning = false
 
         soundManager.playLevelComplete()
         val timeSec = (System.currentTimeMillis() - levelStartTime) / 1000f
-        levelState = LevelState.COMPLETED
         onLevelCompleted(coinsCollectedInLevel, starsCollectedInLevel, timeSec)
     }
 
@@ -556,7 +611,7 @@ class GameView(
     }
 
     private fun drawPlayer(canvas: Canvas) {
-        val playerBounds = RectF(playerX, playerY, playerX + playerWidth, playerY + playerHeight)
+        val playerBounds = RectF(playerX, playerY, playerX + visualWidth, playerY + visualHeight)
 
         val animState = when {
             !isGrounded && velocityY < 0 -> CharacterRenderer.AnimState.JUMP
@@ -566,7 +621,7 @@ class GameView(
         }
 
         canvas.save()
-        canvas.scale(1.25f, 1.25f, playerBounds.centerX(), playerBounds.centerY())
+        canvas.scale(1.15f, 1.15f, playerBounds.centerX(), playerBounds.centerY())
         CharacterRenderer.drawCharacter(
             canvas = canvas,
             bounds = playerBounds,
@@ -583,7 +638,7 @@ class GameView(
                 color = Color.parseColor("#4000E6FF")
                 style = Paint.Style.FILL
             }
-            canvas.drawCircle(playerBounds.centerX(), playerBounds.centerY(), playerHeight * 0.75f, shieldPaint)
+            canvas.drawCircle(playerBounds.centerX(), playerBounds.centerY(), visualHeight * 0.75f, shieldPaint)
         }
     }
 

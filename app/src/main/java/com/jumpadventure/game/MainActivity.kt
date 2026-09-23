@@ -104,45 +104,45 @@ class MainActivity : AppCompatActivity() {
             val h = container.height
             if (w <= 0 || h <= 0) return
 
-            val playH = dp(76f).coerceIn(dp(68f), (h * 0.11f).toInt())
-            val playW = minOf(dp(320f), w - dp(32f))
-            val navHeight = dp(72f)
-            val logoH = (h * 0.18f).toInt().coerceIn(dp(125f), dp(150f))
-            val logoW = minOf(dp(320f), (w * 0.84f).toInt())
+            val logoH = (h * 0.18f).toInt().coerceIn(dp(100f), dp(135f))
+            val logoW = minOf(dp(290f), (w * 0.82f).toInt())
 
             logo.layoutParams = FrameLayout.LayoutParams(logoW, logoH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = dp(2f)
+                topMargin = dp(4f)
             }
+
+            val playH = dp(72f).coerceIn(dp(62f), (h * 0.11f).toInt())
+            val playW = minOf(dp(300f), w - dp(36f))
 
             play.layoutParams = FrameLayout.LayoutParams(playW, playH).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(6f)
+                bottomMargin = dp(8f)
             }
 
-            // Keep the mountain lower, with its visible top surface close to the character feet.
-            val mountainW = minOf(dp(255f), (w * 0.66f).toInt())
+            // Position mountain low on the screen, anchoring behind the Play button.
+            val mountainW = minOf(dp(260f), (w * 0.72f).toInt())
             val mountainRatio = 3264f / 2857f
-            val mountainH = minOf(
-                (mountainW * mountainRatio).toInt(),
-                (h * 0.44f).toInt()
-            )
-            val playTop = h - playH - dp(6f)
-            val mountainBottom = playTop + dp(34f)
-            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(10f))
+            val mountainH = (mountainW * mountainRatio).toInt().coerceAtMost((h * 0.42f).toInt())
+
+            val mountainBottom = h - dp(18f)
+            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(120f))
 
             mountain.layoutParams = FrameLayout.LayoutParams(mountainW, mountainH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
                 topMargin = mountainTop
             }
 
-            // Character sits on the mountain surface, not in the air.
-            val characterW = minOf(dp(185f), (w * 0.46f).toInt())
-            val characterH = minOf(dp(205f), (h * 0.225f).toInt())
-            val feetY = mountainTop + dp(30f)
+            // Character feet sit directly on the top surface of the mountain.
+            val characterW = minOf(dp(170f), (w * 0.48f).toInt())
+            val characterH = minOf(dp(190f), (h * 0.24f).toInt())
+            // Visible top of mountain is ~16% down from top edge of mountain asset.
+            val mountainSurfaceY = mountainTop + (mountainH * 0.16f).toInt()
+            val charTopMargin = (mountainSurfaceY - characterH + dp(12f)).toInt().coerceAtLeast(logoH + dp(6f))
+
             character.layoutParams = FrameLayout.LayoutParams(characterW, characterH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = (feetY - characterH).coerceAtLeast(logoH + dp(8f))
+                topMargin = charTopMargin
             }
         }
 
@@ -318,6 +318,8 @@ class MainActivity : AppCompatActivity() {
         saveManager.saveData(saveData)
 
         val gameContainer = incGameplay.findViewById<FrameLayout>(R.id.gameViewContainer)
+        currentGameView?.stopGameLoop()
+        currentGameView = null
         gameContainer.removeAllViews()
 
         val tvHudCoins = incGameplay.findViewById<TextView>(R.id.tvHudCoins)
@@ -327,7 +329,7 @@ class MainActivity : AppCompatActivity() {
 
         tvHudLevel.text = "LEVEL $levelNum"
 
-        currentGameView = GameView(
+        val newGameView = GameView(
             context = this,
             saveData = saveData,
             soundManager = soundManager,
@@ -349,7 +351,8 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        gameContainer.addView(currentGameView)
+        currentGameView = newGameView
+        gameContainer.addView(newGameView)
 
         incGameplay.findViewById<ImageButton>(R.id.btnPause).setOnClickListener {
             soundManager.playButtonClick()
@@ -379,6 +382,12 @@ class MainActivity : AppCompatActivity() {
         saveManager.saveData(saveData)
 
         incOverlay.visibility = View.VISIBLE
+        val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
+        customDialog.visibility = View.GONE
+
+        val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
+        boardContainer.visibility = View.VISIBLE
+
         val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
         val header = incOverlay.findViewById<TextView>(R.id.tvOverlayHeader)
         val sub = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
@@ -410,91 +419,81 @@ class MainActivity : AppCompatActivity() {
         primary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
-            overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel + 1)
         }
         secondary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
-            overlayHandler.removeCallbacksAndMessages(null)
             startLevelGameplay(saveData.currentLevel)
         }
         home.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
+            currentGameView?.stopGameLoop()
             showScreen("MAIN_MENU")
         }
     }
+
     private fun handleGameOver() {
-        incOverlay.visibility = View.VISIBLE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.VISIBLE
-
-        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "GAME OVER"
-        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "FAILED"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
-        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
-
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
-        btnPrimary.mainText = "RETRY"
-        btnPrimary.subText = ""
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
-        btnPrimary.setOnClickListener {
-            soundManager.playButtonClick()
-            incOverlay.visibility = View.GONE
-            overlayHandler.removeCallbacksAndMessages(null)
-            startLevelGameplay(saveData.currentLevel)
-        }
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).visibility = View.GONE
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).setOnClickListener {
-            soundManager.playButtonClick()
-            showScreen("MAIN_MENU")
-        }
+        showCustomGameDialog(
+            title = "GAME OVER",
+            message = "You didn't make it on Level ${saveData.currentLevel}!",
+            primaryBtnText = "RETRY",
+            secondaryBtnText = "HOME",
+            onConfirm = {
+                startLevelGameplay(saveData.currentLevel)
+            },
+            onCancel = {
+                currentGameView?.stopGameLoop()
+                showScreen("MAIN_MENU")
+            }
+        )
     }
 
     private fun showPauseOverlay() {
+        currentGameView?.pauseGame()
         incOverlay.visibility = View.VISIBLE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).visibility = View.VISIBLE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.VISIBLE
+        val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
+        boardContainer.visibility = View.VISIBLE
+        val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
+        board.setImageResource(R.drawable.pause_board)
 
         incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "PAUSED"
-        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "Level ${saveData.currentLevel}"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = "PAUSED"
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary).mainText = "RESUME"
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary).subText = ""
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).mainText = "RESTART"
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).subText = ""
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).mainText = "HOME"
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).subText = ""
+        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "LEVEL ${saveData.currentLevel}"
+        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
         incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
-        btnPrimary.mainText = "RESUME"
-        btnPrimary.setOnClickListener {
-            soundManager.playButtonClick()
-            incOverlay.visibility = View.GONE
-            overlayHandler.removeCallbacksAndMessages(null)
-        }
+        val primary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
+        val secondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
+        val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
-        val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
-        btnSec.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
-        btnSec.mainText = "RESTART"
-        btnSec.subText = ""
-        btnSec.setOnClickListener {
+        primary.visibility = View.VISIBLE
+        secondary.visibility = View.VISIBLE
+        home.visibility = View.VISIBLE
+
+        primary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+        secondary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+        home.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+
+        primary.mainText = "RESUME"; primary.subText = ""
+        secondary.mainText = "RESTART"; secondary.subText = ""
+        home.mainText = "HOME"; home.subText = ""
+
+        primary.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
-            overlayHandler.removeCallbacksAndMessages(null)
+            currentGameView?.resumeGame()
+        }
+        secondary.setOnClickListener {
+            soundManager.playButtonClick()
+            incOverlay.visibility = View.GONE
             startLevelGameplay(saveData.currentLevel)
         }
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).setOnClickListener {
+        home.setOnClickListener {
             soundManager.playButtonClick()
+            incOverlay.visibility = View.GONE
+            currentGameView?.stopGameLoop()
             showScreen("MAIN_MENU")
         }
     }
@@ -527,6 +526,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         var currentRow: LinearLayout? = null
+        val density = resources.displayMetrics.density
 
         characterList.forEachIndexed { index, item ->
             if (index % 2 == 0) {
@@ -535,7 +535,7 @@ class MainActivity : AppCompatActivity() {
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { setMargins(0, 10, 0, 10) }
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
                 }
                 container.addView(currentRow)
             }
@@ -545,65 +545,70 @@ class MainActivity : AppCompatActivity() {
 
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(20, 20, 20, 20)
+                val pad = (14 * density).toInt()
+                setPadding(pad, pad, pad, pad)
                 setBackgroundResource(if (isSelected) R.drawable.bg_card_selected else R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    val marginStart = if (index % 2 == 0) 0 else 8
-                    val marginEnd = if (index % 2 == 0) 8 else 0
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
                     setMargins(marginStart, 0, marginEnd, 0)
                 }
             }
 
-            val density = resources.displayMetrics.density
             val charCardView = com.jumpadventure.game.graphics.CharacterCardView(this).apply {
                 characterId = item.id
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    (130 * density).toInt()
+                    (120 * density).toInt()
                 )
             }
 
             val tvName = TextView(this).apply {
                 text = item.name
-                textSize = 15f
+                textSize = 14f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.parseColor("#1F3045"))
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 8, 0, 4) }
+                ).apply { setMargins(0, (6 * density).toInt(), 0, (2 * density).toInt()) }
             }
 
             val tvDesc = TextView(this).apply {
                 text = item.description
-                textSize = 11f
+                textSize = 10f
                 setTextColor(Color.parseColor("#6B7C93"))
                 gravity = Gravity.CENTER
+                maxLines = 1
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 0, 0, 10) }
+                ).apply { setMargins(0, 0, 0, (8 * density).toInt()) }
             }
 
-            val actionBtn = Button(this).apply {
-                if (isSelected) {
-                    text = "✓ SELECTED"
-                    setBackgroundResource(R.drawable.bg_button_game_primary)
-                } else if (isUnlocked) {
-                    text = "SELECT"
-                    setBackgroundResource(R.drawable.bg_button_game_secondary)
-                } else {
-                    text = "${item.priceCoins} Coins"
-                    setBackgroundResource(R.drawable.bg_button_game_primary)
+            val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                when {
+                    isSelected -> {
+                        mainText = "SELECTED"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+                    }
+                    isUnlocked -> {
+                        mainText = "SELECT"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                    }
+                    else -> {
+                        mainText = "UNLOCK"
+                        subText = "${item.priceCoins} Coins"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                    }
                 }
 
-                setTextColor(Color.parseColor("#1F3045"))
-                textSize = 11f
-                typeface = Typeface.DEFAULT_BOLD
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()
+                    LinearLayout.LayoutParams.MATCH_PARENT, (44 * density).toInt()
                 )
 
                 setOnClickListener {
@@ -629,59 +634,84 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCustomCharacterPreviewDialog(item: CharacterItem) {
-        incOverlay.visibility = View.VISIBLE
-        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = item.name.uppercase()
-        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = item.description
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = ""
-        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = "Price: ${item.priceCoins} Coins"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
-
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "UNLOCK FOR ${item.priceCoins} COINS"
-        btnPrimary.setOnClickListener {
-            soundManager.playButtonClick()
-            if (saveData.coins >= item.priceCoins) {
-                saveData.coins -= item.priceCoins
-                saveData.unlockedCharacters.add(item.id)
-                saveData.selectedCharacter = item.id
-                saveManager.saveData(saveData)
-                incOverlay.visibility = View.GONE
-                openCharactersScreen()
-            } else {
-                showCustomGameDialog("INSUFFICIENT COINS", "You need ${item.priceCoins - saveData.coins} more coins to unlock ${item.name}.")
+        showCustomGameDialog(
+            title = item.name.uppercase(),
+            message = "${item.description}\n\nPrice: ${item.priceCoins} Coins",
+            primaryBtnText = "UNLOCK (${item.priceCoins} COINS)",
+            secondaryBtnText = "CANCEL",
+            onConfirm = {
+                if (saveData.coins >= item.priceCoins) {
+                    saveData.coins -= item.priceCoins
+                    saveData.unlockedCharacters.add(item.id)
+                    saveData.selectedCharacter = item.id
+                    saveManager.saveData(saveData)
+                    openCharactersScreen()
+                } else {
+                    showCustomGameDialog(
+                        title = "INSUFFICIENT COINS",
+                        message = "You need ${item.priceCoins - saveData.coins} more coins to unlock ${item.name}!",
+                        primaryBtnText = "GO TO SHOP",
+                        secondaryBtnText = "CANCEL",
+                        onConfirm = { openShopScreen() }
+                    )
+                }
             }
-        }
-
-        val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
-        btnSec.visibility = View.VISIBLE
-        btnSec.mainText = "CLOSE"
-        btnSec.subText = ""
-        btnSec.setOnClickListener {
-            soundManager.playButtonClick()
-            incOverlay.visibility = View.GONE
-        }
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.GONE
+        )
     }
 
-    private fun showCustomGameDialog(title: String, message: String, onConfirm: (() -> Unit)? = null) {
+    private fun showCustomGameDialog(
+        title: String,
+        message: String,
+        primaryBtnText: String = "OK",
+        secondaryBtnText: String? = null,
+        onConfirm: (() -> Unit)? = null,
+        onCancel: (() -> Unit)? = null
+    ) {
         incOverlay.visibility = View.VISIBLE
-        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = title
-        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = message
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = ""
-        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
-        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
+        val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
+        boardContainer.visibility = View.GONE
 
-        val btnPrimary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        btnPrimary.mainText = "OK"
-        btnPrimary.setOnClickListener {
-            soundManager.playButtonClick()
-            incOverlay.visibility = View.GONE
-            onConfirm?.invoke()
+        val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
+        customDialog.visibility = View.VISIBLE
+        customDialog.titleView.text = title
+        customDialog.messageView.text = message
+        customDialog.buttonContainer.removeAllViews()
+
+        val density = resources.displayMetrics.density
+
+        val btnPrimary = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+            mainText = primaryBtnText
+            subText = ""
+            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (50 * density).toInt()
+            ).apply { setMargins(0, 0, 0, (6 * density).toInt()) }
+            setOnClickListener {
+                soundManager.playButtonClick()
+                customDialog.visibility = View.GONE
+                incOverlay.visibility = View.GONE
+                onConfirm?.invoke()
+            }
         }
+        customDialog.buttonContainer.addView(btnPrimary)
 
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary).visibility = View.GONE
-        incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome).visibility = View.GONE
+        if (secondaryBtnText != null) {
+            val btnSec = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                mainText = secondaryBtnText
+                subText = ""
+                variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (50 * density).toInt()
+                )
+                setOnClickListener {
+                    soundManager.playButtonClick()
+                    customDialog.visibility = View.GONE
+                    incOverlay.visibility = View.GONE
+                    onCancel?.invoke()
+                }
+            }
+            customDialog.buttonContainer.addView(btnSec)
+        }
     }
 
     /* ------------------------------------------------------------------------
@@ -703,58 +733,97 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val packs = listOf(
-            Triple("Small Coin Pack", 500, "Free daily claim reward"),
-            Triple("Medium Coin Pack", 1500, "Bonus adventure pack"),
-            Triple("Large Coin Pack", 5000, "Master explorer chest")
+            Triple("Small Coin Pack", 500, "Daily Explorer Boost"),
+            Triple("Medium Coin Pack", 1500, "Adventurer Chest"),
+            Triple("Large Coin Pack", 5000, "Treasure Hoard"),
+            Triple("Mega Gem Pack", 50, "Shiny Gem Stash")
         )
 
-        packs.forEach { (name, amount, desc) ->
+        var currentRow: LinearLayout? = null
+        val density = resources.displayMetrics.density
+
+        packs.forEachIndexed { index, (name, amount, desc) ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
+                }
+                container.addView(currentRow)
+            }
+
+            val isGem = name.contains("Gem")
+
             val card = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card_glossy)
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 10, 0, 10) }
-            }
-
-            val infoLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-
-            infoLayout.addView(TextView(this).apply {
-                text = name
-                textSize = 17f
-                typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1F3045"))
-            })
-            infoLayout.addView(TextView(this).apply {
-                text = desc
-                textSize = 12f
-                setTextColor(Color.parseColor("#6B7C93"))
-            })
-
-            val claimBtn = Button(this).apply {
-                text = "+$amount COINS"
-                setBackgroundResource(R.drawable.bg_button_game_primary)
-                setTextColor(Color.parseColor("#1F3045"))
-                typeface = Typeface.DEFAULT_BOLD
-
-                setOnClickListener {
-                    soundManager.playCoin()
-                    saveData.coins += amount
-                    saveManager.saveData(saveData)
-                    tvCoinsSec.text = "${saveData.coins}"
-                    showCustomGameDialog("REWARD CLAIMED!", "You earned +$amount Coins!")
+                val pad = (14 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setBackgroundResource(R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
                 }
             }
 
-            card.addView(infoLayout)
+            val iconView = ImageView(this).apply {
+                setImageResource(if (isGem) R.drawable.ic_gem else R.drawable.ic_coin)
+                layoutParams = LinearLayout.LayoutParams((44 * density).toInt(), (44 * density).toInt()).apply {
+                    setMargins(0, 0, 0, (6 * density).toInt())
+                }
+            }
+
+            val tvName = TextView(this).apply {
+                text = name
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1F3045"))
+                gravity = Gravity.CENTER
+            }
+
+            val tvDesc = TextView(this).apply {
+                text = desc
+                textSize = 10f
+                setTextColor(Color.parseColor("#6B7C93"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (2 * density).toInt(), 0, (10 * density).toInt()) }
+            }
+
+            val claimBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                mainText = "CLAIM"
+                subText = if (isGem) "+$amount GEMS" else "+$amount COINS"
+                variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (46 * density).toInt()
+                )
+
+                setOnClickListener {
+                    soundManager.playCoin()
+                    if (isGem) {
+                        saveData.gems += amount
+                    } else {
+                        saveData.coins += amount
+                    }
+                    saveManager.saveData(saveData)
+                    tvCoinsSec.text = "${saveData.coins}"
+                    showCustomGameDialog(
+                        title = "REWARD CLAIMED!",
+                        message = "You received +$amount ${if (isGem) "Gems" else "Coins"}!"
+                    )
+                }
+            }
+
+            card.addView(iconView)
+            card.addView(tvName)
+            card.addView(tvDesc)
             card.addView(claimBtn)
-            container.addView(card)
+            currentRow?.addView(card)
         }
 
         showScreen("SECONDARY")
@@ -778,50 +847,63 @@ class MainActivity : AppCompatActivity() {
         val container = incSecondary.findViewById<LinearLayout>(R.id.secondaryContentContainer)
         container.removeAllViews()
 
+        val density = resources.displayMetrics.density
+
         WorldRepository.worlds.forEach { world ->
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(24, 24, 24, 24)
+                val pad = (16 * density).toInt()
+                setPadding(pad, pad, pad, pad)
                 setBackgroundResource(R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 12, 0, 12) }
+                ).apply { setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt()) }
             }
 
-            val density = resources.displayMetrics.density
-            val bannerView = View(this).apply {
-                setBackgroundColor(Color.parseColor(world.skyColorHex))
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (120 * density).toInt()).apply { setMargins(0, 0, 0, 12) }
+            val bgResId = WorldRepository.getWorldBackgroundRes(world.id)
+            val bannerView = ImageView(this).apply {
+                setImageResource(bgResId)
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                adjustViewBounds = true
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (110 * density).toInt()
+                ).apply { setMargins(0, 0, 0, (10 * density).toInt()) }
             }
 
             val infoLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
             }
 
             infoLayout.addView(TextView(this).apply {
                 text = "WORLD ${world.id}: ${world.name.uppercase()}"
-                textSize = 18f
+                textSize = 17f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.parseColor("#1F3045"))
             })
+
             infoLayout.addView(TextView(this).apply {
                 val endLvlText = if (world.endLevel > 10000) "+" else " - ${world.endLevel}"
                 text = "Levels ${world.startLevel}$endLvlText"
-                textSize = 13f
+                textSize = 12f
                 setTextColor(Color.parseColor("#6B7C93"))
             })
 
             val totalStars = saveData.levelStars.values.sum()
             val isUnlocked = saveData.unlockedWorlds.contains(world.id) || totalStars >= world.requiredStarsToUnlock || saveData.highestLevel >= world.startLevel
 
-            val statusBtn = Button(this).apply {
+            val statusBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
                 if (isUnlocked) {
-                    text = "EXPLORE"
-                    setBackgroundResource(R.drawable.bg_button_game_primary)
+                    mainText = "EXPLORE"
+                    subText = ""
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
                     setOnClickListener {
                         soundManager.playButtonClick()
                         saveData.currentLevel = world.startLevel
@@ -829,13 +911,20 @@ class MainActivity : AppCompatActivity() {
                         openLevelMapScreen()
                     }
                 } else {
-                    text = "LOCKED: ${world.requiredStarsToUnlock} Stars Required"
-                    setBackgroundResource(R.drawable.bg_button_game_secondary)
-                    isEnabled = false
+                    mainText = "LOCKED"
+                    subText = "${world.requiredStarsToUnlock} Stars Required"
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                    setOnClickListener {
+                        soundManager.playButtonClick()
+                        showCustomGameDialog(
+                            title = "WORLD LOCKED",
+                            message = "Earn ${world.requiredStarsToUnlock} stars across levels to unlock ${world.name}!"
+                        )
+                    }
                 }
-                setTextColor(Color.parseColor("#1F3045"))
-                typeface = Typeface.DEFAULT_BOLD
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()).apply { setMargins(0, 14, 0, 0) }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (48 * density).toInt()
+                ).apply { setMargins(0, (10 * density).toInt(), 0, 0) }
             }
 
             card.addView(bannerView)
@@ -874,65 +963,100 @@ class MainActivity : AppCompatActivity() {
             AchievementItem("A6", "Master", "Complete 100 levels", "", 2000) { it.highestLevel > 100 }
         )
 
-        achievements.forEach { item ->
-            val card = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card_glossy)
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 10, 0, 10) }
-            }
+        var currentRow: LinearLayout? = null
+        val density = resources.displayMetrics.density
 
-            val infoLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        achievements.forEachIndexed { index, item ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
+                }
+                container.addView(currentRow)
             }
-
-            infoLayout.addView(TextView(this).apply {
-                text = item.title
-                textSize = 17f
-                typeface = Typeface.DEFAULT_BOLD
-                setTextColor(Color.parseColor("#1F3045"))
-            })
-            infoLayout.addView(TextView(this).apply {
-                text = item.description
-                textSize = 12f
-                setTextColor(Color.parseColor("#6B7C93"))
-            })
 
             val isUnlocked = item.isUnlocked(saveData)
             val isClaimed = saveData.unlockedAchievements.contains(item.id)
 
-            val actionBtn = Button(this).apply {
-                if (isClaimed) {
-                    text = "✓ CLAIMED"
-                    setBackgroundResource(R.drawable.bg_button_game_secondary)
-                    isEnabled = false
-                } else if (isUnlocked) {
-                    text = "+${item.rewardCoins} COINS"
-                    setBackgroundResource(R.drawable.bg_button_game_primary)
-                    setOnClickListener {
-                        soundManager.playCoin()
-                        saveData.coins += item.rewardCoins
-                        saveData.unlockedAchievements.add(item.id)
-                        saveManager.saveData(saveData)
-                        openAchievementsScreen()
-                    }
-                } else {
-                    text = "LOCKED"
-                    setBackgroundResource(R.drawable.bg_button_game_secondary)
-                    isEnabled = false
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = (14 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setBackgroundResource(R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
                 }
-                setTextColor(Color.parseColor("#1F3045"))
-                typeface = Typeface.DEFAULT_BOLD
             }
 
-            card.addView(infoLayout)
+            val iconView = ImageView(this).apply {
+                setImageResource(R.drawable.ic_trophy)
+                layoutParams = LinearLayout.LayoutParams((42 * density).toInt(), (42 * density).toInt()).apply {
+                    setMargins(0, 0, 0, (6 * density).toInt())
+                }
+            }
+
+            val tvTitle = TextView(this).apply {
+                text = item.title
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1F3045"))
+                gravity = Gravity.CENTER
+            }
+
+            val tvDesc = TextView(this).apply {
+                text = item.description
+                textSize = 10f
+                setTextColor(Color.parseColor("#6B7C93"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (2 * density).toInt(), 0, (10 * density).toInt()) }
+            }
+
+            val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                when {
+                    isClaimed -> {
+                        mainText = "CLAIMED"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                        isEnabled = false
+                    }
+                    isUnlocked -> {
+                        mainText = "CLAIM"
+                        subText = "+${item.rewardCoins} COINS"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                        setOnClickListener {
+                            soundManager.playCoin()
+                            saveData.coins += item.rewardCoins
+                            saveData.unlockedAchievements.add(item.id)
+                            saveManager.saveData(saveData)
+                            openAchievementsScreen()
+                        }
+                    }
+                    else -> {
+                        mainText = "LOCKED"
+                        subText = "+${item.rewardCoins} COINS"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                        isEnabled = false
+                    }
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (46 * density).toInt()
+                )
+            }
+
+            card.addView(iconView)
+            card.addView(tvTitle)
+            card.addView(tvDesc)
             card.addView(actionBtn)
-            container.addView(card)
+            currentRow?.addView(card)
         }
 
         showScreen("SECONDARY")
@@ -958,66 +1082,66 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
 
         // Sound Toggle
-        val soundBtn = Button(this).apply {
-            text = "🔊 Sound Effects: " + if (saveData.soundEnabled) "ON" else "OFF"
-            setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
-            setTextColor(Color.parseColor("#1F3045"))
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
+        val soundBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+            mainText = "SOUND EFFECTS"
+            subText = if (saveData.soundEnabled) "STATE: ON" else "STATE: OFF"
+            variant = if (saveData.soundEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (52 * density).toInt()
-            ).apply { setMargins(0, 10, 0, 10) }
+                LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
+            ).apply { setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt()) }
 
             setOnClickListener {
                 saveData.soundEnabled = !saveData.soundEnabled
                 soundManager.soundEnabled = saveData.soundEnabled
                 saveManager.saveData(saveData)
-                text = "🔊 Sound Effects: " + if (saveData.soundEnabled) "ON" else "OFF"
-                setBackgroundResource(if (saveData.soundEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
+                subText = if (saveData.soundEnabled) "STATE: ON" else "STATE: OFF"
+                variant = if (saveData.soundEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
             }
         }
         container.addView(soundBtn)
 
         // Music Toggle
-        val musicBtn = Button(this).apply {
-            text = "🎵 Background Music: " + if (saveData.musicEnabled) "ON" else "OFF"
-            setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
-            setTextColor(Color.parseColor("#1F3045"))
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
+        val musicBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+            mainText = "BACKGROUND MUSIC"
+            subText = if (saveData.musicEnabled) "STATE: ON" else "STATE: OFF"
+            variant = if (saveData.musicEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (52 * density).toInt()
-            ).apply { setMargins(0, 10, 0, 10) }
+                LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
+            ).apply { setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt()) }
 
             setOnClickListener {
                 saveData.musicEnabled = !saveData.musicEnabled
                 soundManager.musicEnabled = saveData.musicEnabled
                 saveManager.saveData(saveData)
-                text = "🎵 Background Music: " + if (saveData.musicEnabled) "ON" else "OFF"
-                setBackgroundResource(if (saveData.musicEnabled) R.drawable.bg_button_game_primary else R.drawable.bg_button_game_secondary)
+                subText = if (saveData.musicEnabled) "STATE: ON" else "STATE: OFF"
+                variant = if (saveData.musicEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
             }
         }
         container.addView(musicBtn)
 
         // Reset Progress
-        val resetBtn = Button(this).apply {
-            text = "♻ RESET ALL PROGRESS"
-            setBackgroundResource(R.drawable.bg_button_game_danger)
-            setTextColor(Color.WHITE)
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
+        val resetBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+            mainText = "RESET ALL PROGRESS"
+            subText = "ERASE ALL DATA"
+            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, (52 * density).toInt()
-            ).apply { setMargins(0, 20, 0, 10) }
+                LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
+            ).apply { setMargins(0, (20 * density).toInt(), 0, (8 * density).toInt()) }
 
             setOnClickListener {
                 soundManager.playButtonClick()
-                showCustomGameDialog("RESET PROGRESS?", "Are you sure you want to reset all game data? This cannot be undone.") {
-                    saveManager.resetProgress()
-                    saveData = saveManager.loadData()
-                    updateCurrencyHUD()
-                    showScreen("MAIN_MENU")
-                }
+                showCustomGameDialog(
+                    title = "RESET PROGRESS?",
+                    message = "Are you sure you want to reset all game progress, unlocked characters, and stars? This cannot be undone.",
+                    primaryBtnText = "RESET",
+                    secondaryBtnText = "CANCEL",
+                    onConfirm = {
+                        saveManager.resetProgress()
+                        saveData = saveManager.loadData()
+                        updateCurrencyHUD()
+                        showScreen("MAIN_MENU")
+                    }
+                )
             }
         }
         container.addView(resetBtn)
