@@ -140,20 +140,20 @@
 
         <com.jumpadventure.game.graphics.GamePrimaryButton
             android:id="@+id/btnPowerUpMagnet"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
             android:layout_marginBottom="10dp" />
 
         <com.jumpadventure.game.graphics.GamePrimaryButton
             android:id="@+id/btnPowerUpShield"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
             android:layout_marginBottom="10dp" />
 
         <com.jumpadventure.game.graphics.GamePrimaryButton
             android:id="@+id/btnPowerUpSpeed"
-            android:layout_width="52dp"
-            android:layout_height="52dp" />
+            android:layout_width="54dp"
+            android:layout_height="54dp" />
     </LinearLayout>
 
 </RelativeLayout>
