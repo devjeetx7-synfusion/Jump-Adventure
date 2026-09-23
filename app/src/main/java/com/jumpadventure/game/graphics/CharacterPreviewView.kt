@@ -65,7 +65,7 @@ class CharacterPreviewView @JvmOverloads constructor(
         if (width <= 0 || height <= 0) return
 
         val cx = width / 2f
-        val platformY = height * 0.78f
+        val platformY = height * 0.88f
 
         // 1. Draw Pedestal Platform
         val platformWidth = width * 0.7f
@@ -106,9 +106,9 @@ class CharacterPreviewView @JvmOverloads constructor(
 
         // 2. Floating Animated Particles/Coins around hero
         for (i in 0..2) {
-            val floatOffset = (sin((animTime * 3f + i * 2.0).toDouble()) * 12.0).toFloat()
-            val coinX = cx + if (i % 2 == 0) -width * 0.35f else width * 0.35f
-            val coinY = height * 0.35f + (i * 30f) + floatOffset
+            val floatOffset = (sin((animTime * 3f + i * 2.0).toDouble()) * 8.0).toFloat()
+            val coinX = cx + if (i % 2 == 0) -width * 0.28f else width * 0.28f
+            val coinY = height * 0.25f + (i * 25f) + floatOffset
 
             canvas.drawCircle(coinX, coinY, 14f, coinPaint)
             canvas.drawCircle(coinX, coinY, 14f, outlinePaint)
@@ -116,7 +116,7 @@ class CharacterPreviewView @JvmOverloads constructor(
 
         // 3. Draw Character Hero
         val charWidth = width * 0.45f
-        val charHeight = height * 0.62f
+        val charHeight = height * 0.65f
         val charBounds = RectF(
             cx - charWidth / 2f,
             platformY - charHeight + 10f,

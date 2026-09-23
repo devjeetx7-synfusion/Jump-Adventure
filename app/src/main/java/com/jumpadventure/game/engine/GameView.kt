@@ -379,9 +379,11 @@ class GameView(
             val h = height.toFloat()
 
             // 1. Layered Sky & Gradient Background
+            skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
             canvas.drawRect(0f, 0f, w, h, skyPaint)
+            skyPaint.shader = null
 
-            // Parallax Clouds Layer (slow scroll rate: 0.1)
+            // Parallax Layer 2: Clouds (slow scroll rate: 0.1)
             val cloudPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 90 }
             for (i in 0..5) {
                 val cloudX = ((i * 450f) - (cameraX * 0.1f)) % (w + 400f) - 100f
@@ -390,7 +392,7 @@ class GameView(
                 canvas.drawCircle(cloudX + 110f, 160f + (i % 3) * 30f, 65f, cloudPaint)
             }
 
-            // Parallax Distant Mountains Layer (mid scroll rate: 0.25)
+            // Parallax Layer 3: Distant Mountains (mid scroll rate: 0.25)
             val mountainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.parseColor(worldInfo.platformColorHex)
                 alpha = 70
@@ -406,6 +408,17 @@ class GameView(
                 canvas.drawPath(path, mountainPaint)
             }
 
+            // Parallax Layer 4: Foreground Trees/Scenery (faster scroll rate: 0.5)
+            val treeTrunkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#5D4037") }
+            val treeLeafPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#2E7D32"); alpha = 140 }
+            for (i in 0..10) {
+                val tX = ((i * 300f) - (cameraX * 0.5f)) % (w + 400f) - 100f
+                canvas.drawRect(tX + 40f, h - 150f, tX + 60f, h, treeTrunkPaint)
+                canvas.drawCircle(tX + 50f, h - 150f, 50f, treeLeafPaint)
+                canvas.drawCircle(tX + 25f, h - 120f, 40f, treeLeafPaint)
+                canvas.drawCircle(tX + 75f, h - 120f, 40f, treeLeafPaint)
+            }
+
             canvas.save()
             canvas.translate(-cameraX, 0f)
 
@@ -417,13 +430,15 @@ class GameView(
 
                 when (elem.type) {
                     ElementType.PLATFORM, ElementType.MOVING_PLATFORM -> {
-                        // Polished 2D Platform with Top Grass/Cap & Shaded Body
-                        canvas.drawRoundRect(rect, 16f, 16f, platformPaint)
-                        canvas.drawRoundRect(rect, 16f, 16f, darkOutlinePaint)
+                        // Premium 2.5D styled Platform
+                        platformPaint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.bottom, platformPaint.color, Color.parseColor("#4E342E"), Shader.TileMode.CLAMP)
+                        canvas.drawRoundRect(rect, 12f, 12f, platformPaint)
+                        canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
+                        platformPaint.shader = null
                         val capHeight = (elem.height * 0.28f).coerceAtMost(16f)
                         val capRect = RectF(rect.left, rect.top, rect.right, rect.top + capHeight)
-                        val capPaint = Paint().apply { color = Color.parseColor("#81C784") }
-                        canvas.drawRoundRect(capRect, 12f, 12f, capPaint)
+                        val capPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = LinearGradient(capRect.left, capRect.top, capRect.left, capRect.bottom, Color.parseColor("#81C784"), Color.parseColor("#388E3C"), Shader.TileMode.CLAMP) }
+                        canvas.drawRoundRect(capRect, 8f, 8f, capPaint)
                     }
 
                     ElementType.BOX -> {
@@ -435,18 +450,33 @@ class GameView(
                     ElementType.COIN -> {
                         val cx = active.currentX + elem.width / 2f
                         val cy = active.currentY + elem.height / 2f + (sin(animTick * 6.0) * 6.0).toFloat()
+                        coinPaint.shader = RadialGradient(cx - elem.width * 0.1f, cy - elem.height * 0.1f, elem.width * 0.8f, Color.parseColor("#FFF59D"), Color.parseColor("#F57F17"), Shader.TileMode.CLAMP)
                         canvas.drawCircle(cx, cy, elem.width / 2f, coinPaint)
                         canvas.drawCircle(cx, cy, elem.width / 2f, darkOutlinePaint)
+                        coinPaint.shader = null
                         // Inner sheen line
-                        val shinePaint = Paint().apply { color = Color.WHITE }
+                        val shinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 180 }
                         canvas.drawCircle(cx - 4f, cy - 4f, elem.width / 6f, shinePaint)
                     }
 
                     ElementType.STAR -> {
                         val cx = active.currentX + elem.width / 2f
                         val cy = active.currentY + elem.height / 2f + (sin(animTick * 5.0) * 8.0).toFloat()
-                        canvas.drawCircle(cx, cy, elem.width / 2f, starPaint)
-                        canvas.drawCircle(cx, cy, elem.width / 2f, darkOutlinePaint)
+                        val starPath = Path().apply {
+                            val rOut = elem.width / 2f
+                            val rIn = elem.width / 4f
+                            for (s in 0..9) {
+                                val r = if (s % 2 == 0) rOut else rIn
+                                val angle = s * (Math.PI / 5) - Math.PI / 2
+                                if (s == 0) moveTo(cx + (Math.cos(angle) * r).toFloat(), cy + (Math.sin(angle) * r).toFloat())
+                                else lineTo(cx + (Math.cos(angle) * r).toFloat(), cy + (Math.sin(angle) * r).toFloat())
+                            }
+                            close()
+                        }
+                        starPaint.shader = RadialGradient(cx, cy, elem.width / 2f, Color.parseColor("#FFF59D"), Color.parseColor("#F57F17"), Shader.TileMode.CLAMP)
+                        canvas.drawPath(starPath, starPaint)
+                        canvas.drawPath(starPath, darkOutlinePaint)
+                        starPaint.shader = null
                     }
 
                     ElementType.SPIKE -> {
@@ -508,6 +538,8 @@ class GameView(
             else -> CharacterRenderer.AnimState.IDLE
         }
 
+        canvas.save()
+        canvas.scale(1.25f, 1.25f, playerBounds.centerX(), playerBounds.centerY())
         CharacterRenderer.drawCharacter(
             canvas = canvas,
             bounds = playerBounds,
@@ -516,6 +548,7 @@ class GameView(
             animState = animState,
             animTime = animTick
         )
+        canvas.restore()
 
         // Shield aura effect
         if (isShieldActive) {
@@ -535,24 +568,36 @@ class GameView(
             color = Color.parseColor("#E0FFB300")
         }
 
+        val controlOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#455A64")
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
+        }
+        val arrowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+
         // LEFT Button
-        canvas.drawRoundRect(leftButtonRect, 28f, 28f, if (moveLeftPressed) btnActivePaint else btnBgPaint)
-        canvas.drawRoundRect(leftButtonRect, 28f, 28f, darkOutlinePaint)
-        textPaint.textAlign = Paint.Align.CENTER
-        canvas.drawText("◀", leftButtonRect.centerX(), leftButtonRect.centerY() + 12f, textPaint)
+        btnBgPaint.shader = LinearGradient(leftButtonRect.left, leftButtonRect.top, leftButtonRect.left, leftButtonRect.bottom, if (moveLeftPressed) Color.parseColor("#FFCA28") else Color.parseColor("#29B6F6"), if (moveLeftPressed) Color.parseColor("#FF8F00") else Color.parseColor("#0277BD"), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(leftButtonRect, 32f, 32f, btnBgPaint)
+        canvas.drawRoundRect(leftButtonRect, 32f, 32f, controlOutlinePaint)
+        val leftArrow = Path().apply { moveTo(leftButtonRect.centerX() + 15f, leftButtonRect.centerY() - 20f); lineTo(leftButtonRect.centerX() - 15f, leftButtonRect.centerY()); lineTo(leftButtonRect.centerX() + 15f, leftButtonRect.centerY() + 20f); close() }
+        canvas.drawPath(leftArrow, arrowPaint)
 
         // RIGHT Button
-        canvas.drawRoundRect(rightButtonRect, 28f, 28f, if (moveRightPressed) btnActivePaint else btnBgPaint)
-        canvas.drawRoundRect(rightButtonRect, 28f, 28f, darkOutlinePaint)
-        canvas.drawText("▶", rightButtonRect.centerX(), rightButtonRect.centerY() + 12f, textPaint)
+        btnBgPaint.shader = LinearGradient(rightButtonRect.left, rightButtonRect.top, rightButtonRect.left, rightButtonRect.bottom, if (moveRightPressed) Color.parseColor("#FFCA28") else Color.parseColor("#29B6F6"), if (moveRightPressed) Color.parseColor("#FF8F00") else Color.parseColor("#0277BD"), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(rightButtonRect, 32f, 32f, btnBgPaint)
+        canvas.drawRoundRect(rightButtonRect, 32f, 32f, controlOutlinePaint)
+        val rightArrow = Path().apply { moveTo(rightButtonRect.centerX() - 15f, rightButtonRect.centerY() - 20f); lineTo(rightButtonRect.centerX() + 15f, rightButtonRect.centerY()); lineTo(rightButtonRect.centerX() - 15f, rightButtonRect.centerY() + 20f); close() }
+        canvas.drawPath(rightArrow, arrowPaint)
 
         // JUMP Button
         val jumpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#E04CAF50")
+            shader = LinearGradient(jumpButtonRect.left, jumpButtonRect.top, jumpButtonRect.left, jumpButtonRect.bottom, Color.parseColor("#81C784"), Color.parseColor("#388E3C"), Shader.TileMode.CLAMP)
         }
-        canvas.drawRoundRect(jumpButtonRect, 28f, 28f, jumpPaint)
-        canvas.drawRoundRect(jumpButtonRect, 28f, 28f, darkOutlinePaint)
-        canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + 12f, textPaint)
+        canvas.drawRoundRect(jumpButtonRect, 32f, 32f, jumpPaint)
+        canvas.drawRoundRect(jumpButtonRect, 32f, 32f, controlOutlinePaint)
+
+        val jumpTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 32f; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+        canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + 12f, jumpTextPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
