@@ -99,53 +99,57 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         val dp = { value: Float -> (value * density).toInt() }
 
-        container.post {
+        val applyLayout = {
             val w = container.width
             val h = container.height
-            if (w <= 0 || h <= 0) return@post
+            if (w <= 0 || h <= 0) return@let
 
-            val playH = dp(76f).coerceAtMost((h * 0.105f).toInt()).coerceAtLeast(dp(64f))
+            val playH = dp(76f).coerceIn(dp(68f), (h * 0.11f).toInt())
             val playW = minOf(dp(320f), w - dp(32f))
-            play.layoutParams = FrameLayout.LayoutParams(playW, playH).apply {
-                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(4f)
-            }
+            val navHeight = dp(72f)
+            val logoH = (h * 0.18f).toInt().coerceIn(dp(125f), dp(150f))
+            val logoW = minOf(dp(320f), (w * 0.84f).toInt())
 
-            val playTop = h - playH - dp(4f)
-
-            val logoW = minOf(dp(330f), (w * 0.82f).toInt())
-            val logoH = minOf(dp(175f), (h * 0.205f).toInt())
             logo.layoutParams = FrameLayout.LayoutParams(logoW, logoH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = 0
+                topMargin = dp(2f)
             }
 
-            val characterH = minOf(dp(220f), (h * 0.235f).toInt())
-            val desiredMountainW = minOf(dp(310f), (w * 0.76f).toInt())
+            play.layoutParams = FrameLayout.LayoutParams(playW, playH).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(6f)
+            }
+
+            // Keep the mountain lower, with its visible top surface close to the character feet.
+            val mountainW = minOf(dp(255f), (w * 0.66f).toInt())
             val mountainRatio = 3264f / 2857f
-            val desiredMountainH = (desiredMountainW * mountainRatio).toInt()
-            val maxMountainH = (playTop - logoH - characterH - dp(16f)).coerceAtLeast(dp(140f))
-            val mountainH = minOf(desiredMountainH, maxMountainH)
-            val mountainW = (mountainH / mountainRatio).toInt()
-            val mountainTop = playTop + (playH * 0.22f).toInt() - mountainH
+            val mountainH = minOf(
+                (mountainW * mountainRatio).toInt(),
+                (h * 0.44f).toInt()
+            )
+            val playTop = h - playH - dp(6f)
+            val mountainBottom = playTop + dp(34f)
+            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(10f))
 
             mountain.layoutParams = FrameLayout.LayoutParams(mountainW, mountainH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = mountainTop.coerceAtLeast(logoH + dp(8f))
+                topMargin = mountainTop
             }
 
-            var finalCharacterH = characterH
-            val characterBottom = mountainTop + (mountainH * 0.025f).toInt()
-            val minimumCharacterTop = logoH + dp(8f)
-            if (characterBottom - finalCharacterH < minimumCharacterTop) {
-                finalCharacterH = (characterBottom - minimumCharacterTop).coerceAtLeast(dp(135f))
-            }
-            val characterW = minOf(dp(220f), (w * 0.54f).toInt())
-            character.layoutParams = FrameLayout.LayoutParams(characterW, finalCharacterH).apply {
+            // Character sits on the mountain surface, not in the air.
+            val characterW = minOf(dp(185f), (w * 0.46f).toInt())
+            val characterH = minOf(dp(205f), (h * 0.225f).toInt())
+            val feetY = mountainTop + dp(30f)
+            character.layoutParams = FrameLayout.LayoutParams(characterW, characterH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = characterBottom - finalCharacterH
+                topMargin = (feetY - characterH).coerceAtLeast(logoH + dp(8f))
             }
         }
+
+        container.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            kotlin.runCatching { applyLayout(Unit) }
+        }
+        container.post { kotlin.runCatching { applyLayout(Unit) } }
     }
 
     private fun setupWindowInsets() {
