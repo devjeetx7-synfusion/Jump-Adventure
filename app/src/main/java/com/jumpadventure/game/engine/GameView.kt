@@ -84,6 +84,12 @@ class GameView(
 
     private val activeElements = mutableListOf<ActiveElement>()
 
+    // Cached Background Bitmap & Rects
+    private var cachedBgBitmap: Bitmap? = null
+    private val bgSrcRect = Rect()
+    private val bgDstRect = RectF()
+    private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+
     // Colors & Paints
     private val skyPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val platformPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -140,6 +146,10 @@ class GameView(
 
         skyPaint.color = Color.parseColor(worldInfo.skyColorHex)
         platformPaint.color = Color.parseColor(worldInfo.platformColorHex)
+
+        // Cached environmental background bitmap loading
+        val bgResId = WorldRepository.getWorldBackgroundRes(worldInfo.id)
+        cachedBgBitmap = BitmapFactory.decodeResource(resources, bgResId)
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -378,45 +388,31 @@ class GameView(
             val w = width.toFloat()
             val h = height.toFloat()
 
-            // 1. Layered Sky & Gradient Background
-            skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
-            canvas.drawRect(0f, 0f, w, h, skyPaint)
-            skyPaint.shader = null
+            // 1. Environmental Background Asset Rendering with Continuous Parallax Tiling
+            val bg = cachedBgBitmap
+            if (bg != null && !bg.isRecycled) {
+                val bgW = bg.width.toFloat()
+                val bgH = bg.height.toFloat()
 
-            // Parallax Layer 2: Clouds (slow scroll rate: 0.1)
-            val cloudPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 90 }
-            for (i in 0..5) {
-                val cloudX = ((i * 450f) - (cameraX * 0.1f)) % (w + 400f) - 100f
-                canvas.drawCircle(cloudX, 160f + (i % 3) * 30f, 70f, cloudPaint)
-                canvas.drawCircle(cloudX + 50f, 150f + (i % 3) * 30f, 85f, cloudPaint)
-                canvas.drawCircle(cloudX + 110f, 160f + (i % 3) * 30f, 65f, cloudPaint)
-            }
+                val scale = Math.max(w / bgW, h / bgH)
+                val scaledW = bgW * scale
 
-            // Parallax Layer 3: Distant Mountains (mid scroll rate: 0.25)
-            val mountainPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor(worldInfo.platformColorHex)
-                alpha = 70
-            }
-            for (i in 0..8) {
-                val mX = ((i * 350f) - (cameraX * 0.25f)) % (w + 500f) - 150f
-                val path = Path().apply {
-                    moveTo(mX, h)
-                    lineTo(mX + 180f, h - 300f)
-                    lineTo(mX + 360f, h)
-                    close()
+                var currX = -(cameraX * 0.15f) % scaledW
+                if (currX > 0) {
+                    currX -= scaledW
                 }
-                canvas.drawPath(path, mountainPaint)
-            }
 
-            // Parallax Layer 4: Foreground Trees/Scenery (faster scroll rate: 0.5)
-            val treeTrunkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#5D4037") }
-            val treeLeafPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#2E7D32"); alpha = 140 }
-            for (i in 0..10) {
-                val tX = ((i * 300f) - (cameraX * 0.5f)) % (w + 400f) - 100f
-                canvas.drawRect(tX + 40f, h - 150f, tX + 60f, h, treeTrunkPaint)
-                canvas.drawCircle(tX + 50f, h - 150f, 50f, treeLeafPaint)
-                canvas.drawCircle(tX + 25f, h - 120f, 40f, treeLeafPaint)
-                canvas.drawCircle(tX + 75f, h - 120f, 40f, treeLeafPaint)
+                bgSrcRect.set(0, 0, bg.width, bg.height)
+
+                while (currX < w) {
+                    bgDstRect.set(currX, 0f, currX + scaledW, h)
+                    canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
+                    currX += scaledW
+                }
+            } else {
+                skyPaint.shader = LinearGradient(0f, 0f, 0f, h, Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, w, h, skyPaint)
+                skyPaint.shader = null
             }
 
             canvas.save()

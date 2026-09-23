@@ -161,8 +161,8 @@ class GamePrimaryButton @JvmOverloads constructor(
         // 4. Bevel Outer Border
         canvas.drawRoundRect(buttonRect, cornerRadius, cornerRadius, borderPaint)
 
-        // 5. Draw Play Triangle Icon
-        val iconSize = buttonRect.height() * 0.42f
+        // 5. Always Draw Play Triangle Vector Icon
+        val iconSize = buttonRect.height() * 0.40f
         val iconX = buttonRect.left + buttonRect.height() * 0.55f
         val iconY = buttonRect.centerY()
 
@@ -174,23 +174,28 @@ class GamePrimaryButton @JvmOverloads constructor(
 
         canvas.drawPath(playIconPath, iconPaint)
 
-        // 6. Draw Main Title "PLAY NOW" & Subtitle "LEVEL X"
-        val textStartX = iconX + iconSize * 0.75f
-
+        // 6. Draw Main Title & Subtitle with Bold Typography
         val titleSize = buttonRect.height() * 0.36f
         titlePaint.textSize = titleSize
         titleShadowPaint.textSize = titleSize
 
-        val subSize = buttonRect.height() * 0.22f
-        subTitlePaint.textSize = subSize
+        val textStartX = iconX + iconSize * 0.75f
 
-        val titleY = buttonRect.centerY() - 2f
-        val subY = buttonRect.centerY() + subSize + 4f
+        if (subText.isEmpty()) {
+            val titleY = buttonRect.centerY() + titleSize * 0.35f
+            canvas.drawText(mainText, textStartX, titleY + 2f, titleShadowPaint)
+            canvas.drawText(mainText, textStartX, titleY, titlePaint)
+        } else {
+            val subSize = buttonRect.height() * 0.22f
+            subTitlePaint.textSize = subSize
 
-        // Text subtle glow/shadow
-        canvas.drawText(mainText, textStartX, titleY + 2f, titleShadowPaint)
-        canvas.drawText(mainText, textStartX, titleY, titlePaint)
+            val titleY = buttonRect.centerY() - 2f
+            val subY = buttonRect.centerY() + subSize + 4f
 
-        canvas.drawText(subText, textStartX, subY, subTitlePaint)
+            canvas.drawText(mainText, textStartX, titleY + 2f, titleShadowPaint)
+            canvas.drawText(mainText, textStartX, titleY, titlePaint)
+
+            canvas.drawText(subText, textStartX, subY, subTitlePaint)
+        }
     }
 }
