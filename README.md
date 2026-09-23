@@ -4,31 +4,26 @@
 
 Jump Adventure is an offline 2D portrait platformer Android game built with Kotlin and native Android Views.
 
-## GitHub Actions APK Build
+## Package
 
-1. Open GitHub repository in your browser.
-2. Open **Actions** tab.
-3. Select **Jump Adventure - Build APK** workflow from the left sidebar.
-4. Click **Run workflow** button.
-5. Wait for tests, build, keystore generation, release signing, and verification to finish.
-6. Open the successful workflow run.
-7. Scroll down to the **Artifacts** section.
-8. Download the generated artifacts:
-   - `JumpAdventure-debug-apk`
-   - `JumpAdventure-test-release-apk`
-   - `JumpAdventure-test-keystore`
+`com.synfusion.jump`
 
-## Test Keystore
+## GitHub APK Build
 
-This repository workflow generates a TEST-ONLY Android signing key during the build process.
+The APK is built manually using GitHub Actions.
 
-- **Keystore file:** `jump-adventure-test.jks`
-- **Alias:** `jump_adventure_test`
-- **Store Password:** `JumpAdventureTest2026!`
-- **Key Password:** `JumpAdventureTest2026!`
+Steps:
 
-> **IMPORTANT: TEST BUILD ONLY — NOT FOR PRODUCTION**
->
-> This key is intentionally public/reproducible and MUST NOT be used for a production release.
-> For Google Play production publishing, create and securely store a separate production signing key.
-> Never commit the production keystore or production passwords to GitHub.
+1. Open GitHub Actions
+2. Select "Jump Adventure - Build APK"
+3. Click "Run workflow"
+4. Wait for the build
+5. Open the successful workflow run
+6. Download `JumpAdventure-APK`
+
+## Installation & Update Behavior
+
+- **Package ID:** The package ID remains fixed as `com.synfusion.jump`.
+- **Signing Key:** The exact same existing TEST signing keystore (`app/jump-adventure-test.jks`) is reused across every GitHub Actions build.
+- **Version Code:** Each manual build automatically increments the `versionCode` using the GitHub Actions run number.
+- **In-Place Update:** Because the package ID, signing certificate, and data structure remain unchanged and the `versionCode` increases, new builds can be directly installed as an update over previous TEST builds without requiring the user to uninstall the application.

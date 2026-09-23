@@ -8,16 +8,26 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.jumpadventure.game"
+        applicationId = "com.synfusion.jump"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
+        versionCode = providers.gradleProperty("versionCode").map { it.toInt() }.orElse(1).get()
         versionName = "1.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("jump-adventure-test.jks")
+            storePassword = "JumpAdventureTest2026!"
+            keyAlias = "jump_adventure_test"
+            keyPassword = "JumpAdventureTest2026!"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
