@@ -521,7 +521,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         val btnSec = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
-        btnSec.text = "RESTART"
+        btnSec.mainText = "RESTART"
+        btnSec.subText = ""
         btnSec.setOnClickListener {
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
