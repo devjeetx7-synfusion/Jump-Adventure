@@ -465,6 +465,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleGameOver() {
+        // Freeze the failed run before opening the dialog so the game surface
+        // cannot keep updating underneath and repeatedly recreate the dialog.
+        currentGameView?.stopGameLoop()
         showCustomGameDialog(
             title = "GAME OVER",
             message = "You didn't make it on Level ${saveData.currentLevel}!",
@@ -703,6 +706,10 @@ class MainActivity : AppCompatActivity() {
 
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
         customDialog.visibility = View.VISIBLE
+        customDialog.isClickable = true
+        customDialog.isFocusable = true
+        customDialog.bringToFront()
+        incOverlay.bringToFront()
         customDialog.titleView.text = title
         customDialog.messageView.text = message
         customDialog.buttonContainer.removeAllViews()
@@ -742,6 +749,15 @@ class MainActivity : AppCompatActivity() {
             }
             customDialog.buttonContainer.addView(btnSec)
         }
+
+        // Ensure the dynamically-created game buttons are above the overlay
+        // hit target and receive normal Android click dispatch.
+        btnPrimary.bringToFront()
+        if (secondaryBtnText != null) {
+            customDialog.buttonContainer.getChildAt(1)?.bringToFront()
+        }
+        customDialog.requestLayout()
+        customDialog.invalidate()
     }
 
     /* ------------------------------------------------------------------------
