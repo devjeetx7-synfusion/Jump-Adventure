@@ -174,6 +174,12 @@ class MainActivity : AppCompatActivity() {
         container.addView(mapView)
 
         showScreen("LEVEL_MAP")
+
+        // Auto scroll to current level node at bottom/middle of map
+        val scrollView = incLevelMap.findViewById<ScrollView>(R.id.mapScrollView)
+        scrollView.post {
+            scrollView.fullScroll(View.FOCUS_DOWN)
+        }
     }
 
     /* ------------------------------------------------------------------------
@@ -359,46 +365,60 @@ class MainActivity : AppCompatActivity() {
             CharacterItem("COWBOY", "Wild Ranger", 4000, 0, "Outlaw quick jumper", "#8D6E63")
         )
 
-        characterList.forEach { item ->
-            val card = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(20, 20, 20, 20)
-                setBackgroundResource(R.drawable.bg_card_glossy)
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 12, 0, 12) }
+        // 2-Column Grid Layout for Characters
+        var currentRow: LinearLayout? = null
+
+        characterList.forEachIndexed { index, item ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, 10, 0, 10) }
+                }
+                container.addView(currentRow)
             }
 
-            // Character Illustration Card Icon
-            val charCardView = com.jumpadventure.game.graphics.CharacterCardView(this).apply {
-                characterId = item.id
-                layoutParams = LinearLayout.LayoutParams(140, 160).apply {
-                    setMargins(0, 0, 20, 0)
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(20, 20, 20, 20)
+                setBackgroundResource(R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else 8
+                    val marginEnd = if (index % 2 == 0) 8 else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
                 }
             }
 
-            val infoLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            val charCardView = com.jumpadventure.game.graphics.CharacterCardView(this).apply {
+                characterId = item.id
+                layoutParams = LinearLayout.LayoutParams(160, 180)
             }
 
             val tvName = TextView(this).apply {
                 text = item.name
-                textSize = 18f
+                textSize = 15f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.parseColor("#1B1B2F"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 8, 0, 4) }
             }
 
             val tvDesc = TextView(this).apply {
                 text = item.description
-                textSize = 12f
+                textSize = 11f
                 setTextColor(Color.parseColor("#546E7A"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, 10) }
             }
-
-            infoLayout.addView(tvName)
-            infoLayout.addView(tvDesc)
 
             val actionBtn = Button(this).apply {
                 val isUnlocked = saveData.unlockedCharacters.contains(item.id)
@@ -416,8 +436,11 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 setTextColor(Color.parseColor("#1B1B2F"))
-                textSize = 12f
+                textSize = 11f
                 typeface = Typeface.DEFAULT_BOLD
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, 110
+                )
 
                 setOnClickListener {
                     soundManager.playButtonClick()
@@ -438,9 +461,10 @@ class MainActivity : AppCompatActivity() {
             }
 
             card.addView(charCardView)
-            card.addView(infoLayout)
+            card.addView(tvName)
+            card.addView(tvDesc)
             card.addView(actionBtn)
-            container.addView(card)
+            currentRow?.addView(card)
         }
 
         showScreen("SECONDARY")
@@ -473,7 +497,7 @@ class MainActivity : AppCompatActivity() {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card_white_rounded)
+                setBackgroundResource(R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -495,12 +519,12 @@ class MainActivity : AppCompatActivity() {
             infoLayout.addView(TextView(this).apply {
                 text = desc
                 textSize = 12f
-                setTextColor(Color.GRAY)
+                setTextColor(Color.parseColor("#546E7A"))
             })
 
             val claimBtn = Button(this).apply {
                 text = "+$amount 🪙"
-                setBackgroundResource(R.drawable.bg_button_yellow_primary)
+                setBackgroundResource(R.drawable.bg_button_game_primary)
                 setTextColor(Color.parseColor("#1B1B2F"))
                 typeface = Typeface.DEFAULT_BOLD
 
@@ -635,7 +659,7 @@ class MainActivity : AppCompatActivity() {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(24, 24, 24, 24)
-                setBackgroundResource(R.drawable.bg_card_white_rounded)
+                setBackgroundResource(R.drawable.bg_card_glossy)
                 gravity = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -657,7 +681,7 @@ class MainActivity : AppCompatActivity() {
             infoLayout.addView(TextView(this).apply {
                 text = item.description
                 textSize = 12f
-                setTextColor(Color.GRAY)
+                setTextColor(Color.parseColor("#546E7A"))
             })
 
             val isUnlocked = item.isUnlocked(saveData)
@@ -666,11 +690,11 @@ class MainActivity : AppCompatActivity() {
             val actionBtn = Button(this).apply {
                 if (isClaimed) {
                     text = "✓ CLAIMED"
-                    setBackgroundResource(R.drawable.bg_button_outline)
+                    setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 } else if (isUnlocked) {
                     text = "+${item.rewardCoins} 🪙"
-                    setBackgroundResource(R.drawable.bg_button_yellow_primary)
+                    setBackgroundResource(R.drawable.bg_button_game_primary)
                     setOnClickListener {
                         soundManager.playCoin()
                         saveData.coins += item.rewardCoins
@@ -680,7 +704,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 } else {
                     text = "LOCKED"
-                    setBackgroundResource(R.drawable.bg_button_outline)
+                    setBackgroundResource(R.drawable.bg_button_game_secondary)
                     isEnabled = false
                 }
                 setTextColor(Color.parseColor("#1B1B2F"))

@@ -39,8 +39,8 @@ class GameView(
     // Player Physics State
     private var playerX = 50f
     private var playerY = 700f
-    private val playerWidth = 60f
-    private val playerHeight = 80f
+    private val playerWidth = 72f
+    private val playerHeight = 96f
     private var velocityX = 0f
     private var velocityY = 0f
     private val moveSpeed = 9f
@@ -333,9 +333,17 @@ class GameView(
         }
     }
 
+    private enum class LevelState { RUNNING, COMPLETING, COMPLETED }
+    private var levelState = LevelState.RUNNING
+
     private fun completeLevel() {
+        if (levelState != LevelState.RUNNING) return
+        levelState = LevelState.COMPLETING
+        isRunning = false
+
         soundManager.playLevelComplete()
         val timeSec = (System.currentTimeMillis() - levelStartTime) / 1000f
+        levelState = LevelState.COMPLETED
         onLevelCompleted(coinsCollectedInLevel, starsCollectedInLevel, timeSec)
     }
 
