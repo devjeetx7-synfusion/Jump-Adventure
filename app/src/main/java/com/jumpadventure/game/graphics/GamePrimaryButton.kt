@@ -136,10 +136,20 @@ class GamePrimaryButton @JvmOverloads constructor(
         canvas.drawRoundRect(highlightRect, cornerRadius * 0.8f, cornerRadius * 0.8f, highlightPaint)
         canvas.drawRoundRect(buttonRect, cornerRadius, cornerRadius, borderPaint)
 
-        // Centered play icon + title block.
-        val iconSize = minOf(h * 0.34f, 25f)
-        val iconCenterX = w * 0.28f
-        val iconCenterY = buttonRect.centerY() - 2f
+        // Keep the PLAY NOW label as one compact centered visual group:
+        // icon + text are centered together instead of anchoring text at a fixed X.
+        val titleSize = minOf(buttonRect.height() * 0.25f, 22f)
+        titlePaint.textSize = titleSize
+        titleShadowPaint.textSize = titleSize
+
+        val titleWidth = titlePaint.measureText(mainText)
+        val iconSize = minOf(h * 0.30f, 22f)
+        val groupGap = 10f
+        val groupWidth = iconSize + groupGap + titleWidth
+        val groupLeft = buttonRect.centerX() - groupWidth / 2f
+        val iconCenterX = groupLeft + iconSize / 2f
+        val iconCenterY = buttonRect.centerY() - 5f
+
         playIconPath.reset()
         playIconPath.moveTo(iconCenterX - iconSize * 0.35f, iconCenterY - iconSize * 0.5f)
         playIconPath.lineTo(iconCenterX + iconSize * 0.5f, iconCenterY)
@@ -147,17 +157,14 @@ class GamePrimaryButton @JvmOverloads constructor(
         playIconPath.close()
         canvas.drawPath(playIconPath, iconPaint)
 
-        val titleSize = minOf(buttonRect.height() * 0.27f, 24f)
-        titlePaint.textSize = titleSize
-        titleShadowPaint.textSize = titleSize
-        val titleX = w * 0.57f
-        val titleY = buttonRect.centerY() - 1f
+        val titleX = groupLeft + iconSize + groupGap
+        val titleY = buttonRect.centerY() - 4f
         canvas.drawText(mainText, titleX, titleY + 2f, titleShadowPaint)
         canvas.drawText(mainText, titleX, titleY, titlePaint)
 
-        val subSize = minOf(buttonRect.height() * 0.17f, 15f)
+        val subSize = minOf(buttonRect.height() * 0.15f, 13f)
         subTitlePaint.textSize = subSize
         val subY = buttonRect.centerY() + subSize + 5f
-        canvas.drawText(subText, titleX, subY, subTitlePaint)
+        canvas.drawText(subText, buttonRect.centerX(), subY, subTitlePaint)
     }
 }
