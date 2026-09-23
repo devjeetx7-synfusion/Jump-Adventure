@@ -2,9 +2,9 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/homeRootLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:clipChildren="false">
 
-    <!-- FULL SCREEN HOME BACKGROUND ASSET -->
     <ImageView
         android:id="@+id/ivHomeBg"
         android:layout_width="match_parent"
@@ -13,21 +13,22 @@
         android:scaleType="centerCrop"
         android:src="@drawable/home_bg" />
 
-    <!-- TOP HUD BAR (Settings + Currency Badges) -->
     <RelativeLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
+        android:minHeight="64dp"
+        android:clipChildren="false"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
         android:paddingBottom="8dp">
 
-        <!-- Custom Blue Settings Button -->
         <ImageButton
             android:id="@+id/btnSettings"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_button_game_secondary"
@@ -35,7 +36,6 @@
             android:padding="11dp"
             android:src="@drawable/ic_settings" />
 
-        <!-- Currency Badges (Coins & Gems) -->
         <LinearLayout
             android:id="@+id/currencyContainer"
             android:layout_width="wrap_content"
@@ -44,53 +44,53 @@
             android:layout_centerVertical="true"
             android:orientation="horizontal">
 
-            <!-- Coins Badge -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="7dp"
                 android:background="@drawable/bg_pill_badge"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="12dp">
+                android:paddingStart="5dp"
+                android:paddingEnd="10dp">
 
                 <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="27dp"
+                    android:layout_height="27dp"
                     android:src="@drawable/ic_coin" />
 
                 <TextView
                     android:id="@+id/tvCoins"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="5dp"
+                    android:maxLines="1"
                     android:text="1,250"
                     android:textColor="@color/game_text_dark"
                     android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Gems Badge -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:background="@drawable/bg_pill_badge"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="12dp">
+                android:paddingStart="5dp"
+                android:paddingEnd="10dp">
 
                 <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
+                    android:layout_width="27dp"
+                    android:layout_height="27dp"
                     android:src="@drawable/ic_gem" />
 
                 <TextView
                     android:id="@+id/tvGems"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="5dp"
+                    android:maxLines="1"
                     android:text="35"
                     android:textColor="@color/game_text_dark"
                     android:textSize="14sp"
@@ -99,22 +99,21 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- FLOATING WARM-WHITE BOTTOM NAVIGATION BAR -->
     <LinearLayout
         android:id="@+id/bottomNavContainer"
         android:layout_width="match_parent"
         android:layout_height="72dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/bg_bottom_nav_container"
-        android:elevation="8dp"
+        android:elevation="10dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="6dp"
         android:weightSum="4">
 
-        <!-- Shop Nav Item -->
         <LinearLayout
             android:id="@+id/navShop"
             android:layout_width="0dp"
@@ -125,13 +124,11 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingVertical="4dp">
-
             <ImageView
                 android:id="@+id/ivNavShop"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
                 android:src="@drawable/ic_shop" />
-
             <TextView
                 android:id="@+id/tvNavShop"
                 android:layout_width="wrap_content"
@@ -143,7 +140,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Heroes Nav Item -->
         <LinearLayout
             android:id="@+id/navCharacters"
             android:layout_width="0dp"
@@ -154,13 +150,11 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingVertical="4dp">
-
             <ImageView
                 android:id="@+id/ivNavCharacters"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
                 android:src="@drawable/ic_hero" />
-
             <TextView
                 android:id="@+id/tvNavCharacters"
                 android:layout_width="wrap_content"
@@ -172,7 +166,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Worlds Nav Item -->
         <LinearLayout
             android:id="@+id/navWorlds"
             android:layout_width="0dp"
@@ -183,13 +176,11 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingVertical="4dp">
-
             <ImageView
                 android:id="@+id/ivNavWorlds"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
                 android:src="@drawable/ic_world" />
-
             <TextView
                 android:id="@+id/tvNavWorlds"
                 android:layout_width="wrap_content"
@@ -201,7 +192,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Trophies Nav Item -->
         <LinearLayout
             android:id="@+id/navAchievements"
             android:layout_width="0dp"
@@ -212,13 +202,11 @@
             android:gravity="center"
             android:orientation="vertical"
             android:paddingVertical="4dp">
-
             <ImageView
                 android:id="@+id/ivNavAchievements"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
                 android:src="@drawable/ic_trophy" />
-
             <TextView
                 android:id="@+id/tvNavAchievements"
                 android:layout_width="wrap_content"
@@ -231,67 +219,50 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- FIXED NON-SCROLLABLE RESPONSIVE MIDDLE CONTENT CONTAINER -->
-    <RelativeLayout
+    <FrameLayout
         android:id="@+id/homeContentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/bottomNavContainer"
         android:layout_below="@id/topBar"
+        android:layout_above="@id/bottomNavContainer"
         android:clipChildren="false">
 
-        <!-- LOGO ASSET (JUMP ADVENTURE) -->
         <ImageView
             android:id="@+id/ivHomeLogo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="4dp"
+            android:layout_width="310dp"
+            android:layout_height="145dp"
+            android:layout_gravity="top|center_horizontal"
             android:adjustViewBounds="true"
             android:contentDescription="Jump Adventure Logo"
-            android:maxWidth="340dp"
             android:scaleType="fitCenter"
             android:src="@drawable/jumpadventurename" />
 
-        <!-- MOUNTAIN PLATFORM -->
         <ImageView
             android:id="@+id/ivMountainPlatform"
-            android:layout_width="280dp"
-            android:layout_height="wrap_content"
-            android:layout_above="@+id/btnPlayContainer"
-            android:layout_centerHorizontal="true"
-            android:layout_marginBottom="-45dp"
+            android:layout_width="220dp"
+            android:layout_height="250dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="48dp"
             android:adjustViewBounds="true"
             android:contentDescription="Mountain Platform"
             android:scaleType="fitCenter"
             android:src="@drawable/mountain" />
 
-        <!-- CHARACTER HERO MAIN DISPLAY -->
         <com.jumpadventure.game.graphics.CharacterPreviewView
             android:id="@+id/charPreviewView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_above="@id/ivMountainPlatform"
-            android:layout_below="@id/ivHomeLogo"
-            android:layout_centerHorizontal="true"
-            android:layout_marginBottom="-25dp" />
+            android:layout_width="210dp"
+            android:layout_height="225dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="280dp"
+            android:clipChildren="false" />
 
-        <!-- PRIMARY CTA: 3D PLAY NOW BUTTON OVERLAYING LOWER MOUNTAIN -->
-        <LinearLayout
-            android:id="@+id/btnPlayContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_marginBottom="4dp"
-            android:gravity="center">
+        <com.jumpadventure.game.graphics.GamePrimaryButton
+            android:id="@+id/btnPlay"
+            android:layout_width="320dp"
+            android:layout_height="78dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="4dp" />
 
-            <com.jumpadventure.game.graphics.GamePrimaryButton
-                android:id="@+id/btnPlay"
-                android:layout_width="320dp"
-                android:layout_height="78dp" />
-        </LinearLayout>
-
-    </RelativeLayout>
+    </FrameLayout>
 
 </RelativeLayout>
