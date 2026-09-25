@@ -413,8 +413,8 @@ class MainActivity : AppCompatActivity() {
         val usableHeight = windowHeight - topInset - bottomInset
 
         val density = displayMetrics.density
-        val targetWidth = (windowWidth * 0.90f).toInt().coerceIn((290 * density).toInt(), (520 * density).toInt())
-        val isCompact = usableHeight < (660 * density).toInt()
+        val targetWidth = (windowWidth * 0.88f).toInt().coerceIn((290 * density).toInt(), (520 * density).toInt())
+        val isCompact = usableHeight < (720 * density).toInt()
 
         val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
         boardContainer.layoutParams = (boardContainer.layoutParams as RelativeLayout.LayoutParams).apply {
@@ -425,26 +425,26 @@ class MainActivity : AppCompatActivity() {
 
         val contentLayout = incOverlay.findViewById<LinearLayout>(R.id.overlayContent)
         val padStartEnd = (20 * density).toInt()
-        val padTop = if (isCompact) (42 * density).toInt() else (54 * density).toInt()
-        val padBottom = if (isCompact) (14 * density).toInt() else (20 * density).toInt()
+        val padTop = if (isCompact) (28 * density).toInt() else (36 * density).toInt()
+        val padBottom = if (isCompact) (10 * density).toInt() else (14 * density).toInt()
         contentLayout.setPadding(padStartEnd, padTop, padStartEnd, padBottom)
 
         val crownView = incOverlay.findViewById<ImageView>(R.id.ivOverlayCrown)
-        val crownSize = if (isCompact) (52 * density).toInt() else (68 * density).toInt()
+        val crownSize = if (isCompact) (40 * density).toInt() else (52 * density).toInt()
         crownView.layoutParams = (crownView.layoutParams as LinearLayout.LayoutParams).apply {
             width = crownSize
             height = crownSize
         }
 
         val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
-        val titleH = if (isCompact) (38 * density).toInt() else (46 * density).toInt()
+        val titleH = if (isCompact) (34 * density).toInt() else (42 * density).toInt()
         curvedTitle.layoutParams = (curvedTitle.layoutParams as LinearLayout.LayoutParams).apply {
             width = (targetWidth * 0.85f).toInt()
             height = titleH
         }
 
         val stars3D = incOverlay.findViewById<com.jumpadventure.game.graphics.Stars3DView>(R.id.vOverlayStars3D)
-        val starsH = if (isCompact) (42 * density).toInt() else (50 * density).toInt()
+        val starsH = if (isCompact) (36 * density).toInt() else (44 * density).toInt()
         stars3D.layoutParams = (stars3D.layoutParams as LinearLayout.LayoutParams).apply {
             width = (targetWidth * 0.65f).toInt()
             height = starsH
@@ -452,7 +452,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val rewardSummary = incOverlay.findViewById<com.jumpadventure.game.graphics.RewardSummaryView>(R.id.vOverlayRewardSummary)
-        val rewardH = if (isCompact) (52 * density).toInt() else (62 * density).toInt()
+        val rewardH = if (isCompact) (48 * density).toInt() else (56 * density).toInt()
         rewardSummary.layoutParams = (rewardSummary.layoutParams as LinearLayout.LayoutParams).apply {
             width = LinearLayout.LayoutParams.MATCH_PARENT
             height = rewardH
@@ -460,7 +460,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val primaryBtn = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
-        val primaryH = if (isCompact) (44 * density).toInt() else (52 * density).toInt()
+        val primaryH = if (isCompact) (42 * density).toInt() else (48 * density).toInt()
         primaryBtn.layoutParams = (primaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
             width = LinearLayout.LayoutParams.MATCH_PARENT
             height = primaryH
@@ -469,7 +469,7 @@ class MainActivity : AppCompatActivity() {
 
         val secondaryBtn = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
         val homeBtn = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
-        val secH = if (isCompact) (42 * density).toInt() else (48 * density).toInt()
+        val secH = if (isCompact) (40 * density).toInt() else (44 * density).toInt()
 
         secondaryBtn.layoutParams = (secondaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
             width = 0
