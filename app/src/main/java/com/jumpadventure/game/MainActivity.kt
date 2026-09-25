@@ -430,6 +430,9 @@ class MainActivity : AppCompatActivity() {
         contentLayout.setPadding(padStartEnd, padTop, padStartEnd, padBottom)
 
         val crownView = incOverlay.findViewById<ImageView>(R.id.ivOverlayCrown)
+        // The board artwork already contains its own header decoration; keep the
+        // generic placeholder fully hidden on both reward and pause overlays.
+        crownView.visibility = View.GONE
         val crownSize = if (isCompact) (40 * density).toInt() else (52 * density).toInt()
         crownView.layoutParams = (crownView.layoutParams as LinearLayout.LayoutParams).apply {
             width = crownSize
