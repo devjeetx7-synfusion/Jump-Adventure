@@ -66,7 +66,9 @@
         android:clipToPadding="false"
         android:fillViewport="true"
         android:paddingHorizontal="16dp"
-        android:paddingBottom="16dp">
+        android:paddingBottom="16dp"
+        android:scrollbars="none"
+        android:fadingEdge="none">
 
         <LinearLayout
             android:id="@+id/secondaryContentContainer"
@@ -74,5 +76,4 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
     </ScrollView>
-
 </RelativeLayout>
