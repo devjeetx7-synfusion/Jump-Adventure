@@ -2,15 +2,24 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#A90B1A2A"
+    android:background="#B30B1426"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center">
 
+    <!-- Celebration Sparkles Background Layer (Touch Pass-through) -->
+    <com.jumpadventure.game.graphics.SparkleView
+        android:id="@+id/sparkleOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="false"
+        android:focusable="false" />
+
+    <!-- Responsive Board Container for Level Complete and Pause -->
     <FrameLayout
         android:id="@+id/overlayBoardContainer"
-        android:layout_width="292dp"
-        android:layout_height="438dp"
+        android:layout_width="340dp"
+        android:layout_height="wrap_content"
         android:layout_centerInParent="true">
 
         <ImageView
@@ -18,21 +27,38 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:adjustViewBounds="true"
-            android:contentDescription="Pause Board"
+            android:contentDescription="Dialog Board"
             android:scaleType="fitCenter"
-            android:src="@drawable/pause_board" />
+            android:src="@drawable/winner_bg" />
 
         <LinearLayout
             android:id="@+id/overlayContent"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_horizontal|bottom"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingStart="32dp"
-            android:paddingEnd="32dp"
-            android:paddingTop="74dp"
-            android:paddingBottom="22dp">
+            android:paddingStart="24dp"
+            android:paddingTop="54dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="20dp">
 
+            <!-- Crown / Hero Header Graphic -->
+            <ImageView
+                android:id="@+id/ivOverlayCrown"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:contentDescription="Crown"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_hero" />
+
+            <!-- Curved Game Title -->
+            <com.jumpadventure.game.graphics.CurvedTitleView
+                android:id="@+id/tvOverlayCurvedTitle"
+                android:layout_width="280dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="2dp" />
+
+            <!-- Text Header Fallback for Pause / Custom state -->
             <TextView
                 android:id="@+id/tvOverlayHeader"
                 android:layout_width="wrap_content"
@@ -42,39 +68,55 @@
                 android:shadowDx="0"
                 android:shadowDy="4"
                 android:shadowRadius="2"
-                android:text="PAUSED"
+                android:text="LEVEL COMPLETE!"
                 android:textColor="#FFD43B"
-                android:textSize="19sp"
-                android:textStyle="bold" />
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvOverlaySub"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
-                android:text="Level 1"
+                android:text="LEVEL 17"
                 android:textColor="@color/game_text_navy"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
+            <!-- 3D Star Reward Rating -->
+            <com.jumpadventure.game.graphics.Stars3DView
+                android:id="@+id/vOverlayStars3D"
+                android:layout_width="200dp"
+                android:layout_height="52dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="6dp" />
+
+            <!-- Text Stars Fallback -->
             <TextView
                 android:id="@+id/tvOverlayStars"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="1dp"
                 android:text=""
                 android:textColor="#FFD43B"
                 android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Compact Reward Summary Box (Coins / Stars / Time) -->
+            <com.jumpadventure.game.graphics.RewardSummaryView
+                android:id="@+id/vOverlayRewardSummary"
+                android:layout_width="match_parent"
+                android:layout_height="62dp"
+                android:layout_marginBottom="12dp" />
 
             <LinearLayout
                 android:id="@+id/rewardsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
                 android:gravity="center"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:visibility="gone">
 
                 <TextView
                     android:id="@+id/tvOverlayCoins"
@@ -94,23 +136,53 @@
                     android:textSize="10sp" />
             </LinearLayout>
 
-            <com.jumpadventure.game.graphics.GamePrimaryButton
-                android:id="@+id/btnOverlayPrimary"
-                android:layout_width="220dp"
-                android:layout_height="50dp"
-                android:layout_marginBottom="5dp" />
+            <!-- Action Buttons Container -->
+            <LinearLayout
+                android:id="@+id/dialogButtonLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
 
-            <com.jumpadventure.game.graphics.GamePrimaryButton
-                android:id="@+id/btnOverlaySecondary"
-                android:layout_width="220dp"
-                android:layout_height="50dp"
-                android:layout_marginBottom="5dp" />
+                <!-- Full Width Primary Action (NEXT LEVEL / RESUME) -->
+                <com.jumpadventure.game.graphics.GamePrimaryButton
+                    android:id="@+id/btnOverlayPrimary"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginBottom="8dp" />
 
-            <com.jumpadventure.game.graphics.GamePrimaryButton
-                android:id="@+id/btnOverlayHome"
-                android:layout_width="220dp"
-                android:layout_height="50dp"
-                android:layout_marginBottom="3dp" />
+                <!-- Row for Half Width Secondary Actions (RESTART & HOME) -->
+                <LinearLayout
+                    android:id="@+id/rowSecondaryButtons"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.jumpadventure.game.graphics.GamePrimaryButton
+                        android:id="@+id/btnOverlaySecondary"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1" />
+
+                    <com.jumpadventure.game.graphics.GamePrimaryButton
+                        android:id="@+id/btnOverlayHome"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1" />
+
+                </LinearLayout>
+
+                <!-- Vertical Extra Button for Pause (SETTINGS) -->
+                <com.jumpadventure.game.graphics.GamePrimaryButton
+                    android:id="@+id/btnOverlayExtra"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
         </LinearLayout>
     </FrameLayout>
