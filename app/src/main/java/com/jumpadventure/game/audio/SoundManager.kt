@@ -88,14 +88,18 @@ class SoundManager(context: Context) {
     }
 
     fun playLevelComplete() {
+        playVictory()
+    }
+
+    fun playVictory() {
         thread {
-            playTone(523.25, 120) // C5
-            Thread.sleep(130)
-            playTone(659.25, 120) // E5
-            Thread.sleep(130)
-            playTone(783.99, 120) // G5
-            Thread.sleep(130)
-            playTone(1046.50, 250) // C6
+            playTone(523.25, 110, 587.33) // C5 -> D5
+            Thread.sleep(115)
+            playTone(659.25, 110, 698.46) // E5 -> F5
+            Thread.sleep(115)
+            playTone(783.99, 130, 880.00) // G5 -> A5
+            Thread.sleep(135)
+            playTone(1046.50, 320, 1318.51) // C6 -> E6 triumphant fanfare
         }
     }
 }

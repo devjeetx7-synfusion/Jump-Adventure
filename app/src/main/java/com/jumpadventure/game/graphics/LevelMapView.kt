@@ -35,6 +35,7 @@ class LevelMapView @JvmOverloads constructor(
     private var currentWorldInfo: WorldInfo? = null
     private var currentHighestLevel: Int = 1
     private var currentLevelNum: Int = 1
+    private var effectiveCurrentLevel: Int = 1
     private var currentLevelStars: Map<Int, Int> = emptyMap()
 
     // Paints
@@ -124,7 +125,7 @@ class LevelMapView @JvmOverloads constructor(
         // The marker follows the latest playable/unlocked progression frontier.
         // currentLevel can temporarily point to a selected level, so highestLevel
         // is preferred as the persistent progression position on the map.
-        val effectiveCurrentLevel = when {
+        effectiveCurrentLevel = when {
             currentHighestLevel in startLvl..worldInfo.endLevel -> currentHighestLevel
             currentHighestLevel > worldInfo.endLevel -> worldInfo.endLevel
             currentLevelNum in startLvl..worldInfo.endLevel -> currentLevelNum
