@@ -214,4 +214,10 @@ class Stars3DView @JvmOverloads constructor(
         }
         starFacePaint.shader = null
     }
+
+    override fun onDetachedFromWindow() {
+        shimmerAnimators.forEach { it?.cancel() }
+        shimmerAnimators.fill(null)
+        super.onDetachedFromWindow()
+    }
 }
