@@ -149,78 +149,61 @@ class GameBottomNavView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
 
         val density = resources.displayMetrics.density
-        val cornerR = 24f * density
-
-        // 1. Panel Container Shadow & Body
-        shadowRect.set(0f, 6f * density, w, h)
-        canvas.drawRoundRect(shadowRect, cornerR, cornerR, shadowPaint)
-
-        containerRect.set(0f, 0f, w, h - 4f * density)
-        bgPaint.shader = LinearGradient(
-            0f, 0f, 0f, containerRect.bottom,
-            Color.parseColor("#1F3045"), Color.parseColor("#0F172A"),
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRoundRect(containerRect, cornerR, cornerR, bgPaint)
-        canvas.drawRoundRect(containerRect, cornerR, cornerR, borderPaint)
-
-        // Top glossy edge
-        val glossyRect = RectF(cornerR * 0.5f, 3f * density, w - cornerR * 0.5f, 10f * density)
-        canvas.drawRoundRect(glossyRect, 10f, 10f, highlightPaint)
-
-        // 2. Navigation Items
         val tabs = NavTab.values()
-        val itemW = w / tabs.size
+        val gap = 6f * density
+        val horizontalPad = 2f * density
+        val itemW = (w - horizontalPad * 2f - gap * (tabs.size - 1)) / tabs.size
+        val itemH = h - 6f * density
 
         tabs.forEachIndexed { i, tab ->
-            val itemLeft = i * itemW
-            val itemCenterX = itemLeft + itemW / 2f
-            val isSelected = (selectedTabId == tab.id) || (selectedTabId.isEmpty() && i == 2) // Default active indication if blank
-            val isPressed = (i == pressedTabIndex)
+            val left = horizontalPad + i * (itemW + gap)
+            val top = 2f * density
+            val isSelected = selectedTabId == tab.id || (selectedTabId.isEmpty() && i == 2)
+            val isPressed = i == pressedTabIndex
 
-            // Draw Active Pill Capsule background
-            if (isSelected) {
-                val pillW = itemW - 12f * density
-                val pillH = h - 16f * density
-                val pillLeft = itemCenterX - pillW / 2f
-                val pillTop = 6f * density
-                pillRect.set(pillLeft, pillTop, pillLeft + pillW, pillTop + pillH)
+            val scale = if (isPressed) 0.94f else if (isSelected) (1.0f * animSelectedScale) else 1f
+            val cx = left + itemW / 2f
+            val cy = top + itemH / 2f
 
-                val (topC, botC) = when (tab) {
-                    NavTab.SHOP -> Pair("#FF9F1C", "#D97706")
-                    NavTab.HEROES -> Pair("#38BDF8", "#0284C7")
-                    NavTab.WORLDS -> Pair("#36C96F", "#059669")
-                    NavTab.TROPHIES -> Pair("#AB47BC", "#7E22CE")
-                }
+            canvas.save()
+            canvas.scale(scale, scale, cx, cy)
 
-                activePillBgPaint.shader = LinearGradient(
-                    pillRect.left, pillRect.top, pillRect.left, pillRect.bottom,
-                    Color.parseColor(topC), Color.parseColor(botC),
-                    Shader.TileMode.CLAMP
-                )
-                val pillCorner = 16f * density
-                canvas.drawRoundRect(pillRect, pillCorner, pillCorner, activePillBgPaint)
-                canvas.drawRoundRect(pillRect, pillCorner, pillCorner, activePillBorderPaint)
+            shadowRect.set(left, top + 5f * density, left + itemW, top + itemH)
+            shadowPaint.color = Color.parseColor(if (isSelected) "#45000000" else "#30000000")
+            canvas.drawRoundRect(shadowRect, 15f * density, 15f * density, shadowPaint)
+
+            val (topColor, bottomColor, borderColor) = when (tab) {
+                NavTab.SHOP -> Triple("#FFC928", "#D98200", "#FFE98A")
+                NavTab.HEROES -> Triple("#42D4FF", "#0878D8", "#B8F2FF")
+                NavTab.WORLDS -> Triple("#48E38A", "#049C76", "#B6FFD5")
+                NavTab.TROPHIES -> Triple("#FFD84D", "#8E43D3", "#F4C2FF")
             }
 
-            // Draw Icon
-            canvas.save()
-            val scale = if (isPressed) 0.90f else if (isSelected) (1.08f * animSelectedScale) else 1.0f
-            val iconCenterY = (h * 0.36f) - (if (isSelected) 3f * density else 0f)
-            canvas.scale(scale, scale, itemCenterX, iconCenterY)
+            bgPaint.shader = LinearGradient(
+                left, top, left, top + itemH,
+                Color.parseColor(if (isSelected) topColor else "#1E3951"),
+                Color.parseColor(if (isSelected) bottomColor else "#14263B"),
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawRoundRect(RectF(left, top, left + itemW, top + itemH - 3f * density), 15f * density, 15f * density, bgPaint)
+            borderPaint.color = Color.parseColor(if (isSelected) borderColor else "#42627D")
+            borderPaint.strokeWidth = if (isSelected) 2.5f * density else 1.5f * density
+            canvas.drawRoundRect(RectF(left, top, left + itemW, top + itemH - 3f * density), 15f * density, 15f * density, borderPaint)
 
-            draw3DNavIcon(canvas, tab, itemCenterX, iconCenterY, 26f * density, isSelected)
+            val iconY = top + itemH * 0.38f
+            draw3DNavIcon(canvas, tab, cx, iconY, 24f * density, isSelected)
+
+            labelPaint.textSize = (if (isSelected) 12f else 10.5f) * density
+            labelPaint.color = if (isSelected) Color.WHITE else Color.parseColor("#B5C6D8")
+            canvas.drawText(tab.title, cx, top + itemH - 9f * density, labelPaint)
+
             canvas.restore()
-
-            // Draw Label
-            labelPaint.textSize = (if (isSelected) 12f else 11f) * density
-            labelPaint.color = if (isSelected) Color.WHITE else Color.parseColor("#94A3B8")
-            val labelY = h - 10f * density
-            canvas.drawText(tab.title, itemCenterX, labelY, labelPaint)
         }
+        bgPaint.shader = null
     }
 
     private fun draw3DNavIcon(
+
         canvas: Canvas,
         tab: NavTab,
         cx: Float,
