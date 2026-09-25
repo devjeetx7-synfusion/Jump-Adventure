@@ -280,7 +280,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateBottomNavSelection(activeTab: String) {
-        bottomNavView.selectedTabId = activeTab
+        // Bottom navigation is Home-only. Keep selection only while Home is visible.
+        if (this::bottomNavView.isInitialized) {
+            bottomNavView.selectedTabId = activeTab
+        }
     }
 
     private fun showScreen(screenName: String) {
@@ -691,7 +694,6 @@ class MainActivity : AppCompatActivity() {
      * CHARACTERS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openCharactersScreen() {
-        updateBottomNavSelection("CHARACTERS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "HEROES"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -917,7 +919,6 @@ class MainActivity : AppCompatActivity() {
      * SHOP SCREEN
      * ------------------------------------------------------------------------ */
     private fun openShopScreen() {
-        updateBottomNavSelection("SHOP")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "SHOP"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -1033,7 +1034,6 @@ class MainActivity : AppCompatActivity() {
      * WORLDS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openWorldsScreen() {
-        updateBottomNavSelection("WORLDS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "WORLDS"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -1178,7 +1178,6 @@ class MainActivity : AppCompatActivity() {
      * ACHIEVEMENTS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openAchievementsScreen() {
-        updateBottomNavSelection("ACHIEVEMENTS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "TROPHIES"
         secondaryBadgeCoins.visibility = View.VISIBLE
