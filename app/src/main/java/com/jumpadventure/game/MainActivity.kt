@@ -960,6 +960,8 @@ class MainActivity : AppCompatActivity() {
     /* ------------------------------------------------------------------------
      * SHOP SCREEN
      * ------------------------------------------------------------------------ */
+    private var activeShopCategory: String = "CHARACTERS"
+
     private fun openShopScreen() {
         updateSecondaryScreenVeilOverlay(Color.parseColor("#26382109")) // Soft warm gold overlay
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
@@ -976,6 +978,542 @@ class MainActivity : AppCompatActivity() {
         val container = incSecondary.findViewById<LinearLayout>(R.id.secondaryContentContainer)
         container.removeAllViews()
 
+        val density = resources.displayMetrics.density
+
+        // Category Navigation Bar
+        val categoryScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 0, 0, (12 * density).toInt()) }
+        }
+
+        val categoryRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val categories = listOf("CHARACTERS", "SKINS", "TRAILS", "POWER-UPS", "CURRENCY")
+
+        categories.forEach { cat ->
+            val isCatSelected = cat == activeShopCategory
+            val btnCat = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                mainText = cat
+                subText = ""
+                variant = if (isCatSelected) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                layoutParams = LinearLayout.LayoutParams(
+                    (110 * density).toInt(), (40 * density).toInt()
+                ).apply { setMargins(0, 0, (8 * density).toInt(), 0) }
+
+                setOnClickListener {
+                    soundManager.playButtonClick()
+                    activeShopCategory = cat
+                    openShopScreen()
+                }
+            }
+            categoryRow.addView(btnCat)
+        }
+
+        categoryScroll.addView(categoryRow)
+        container.addView(categoryScroll)
+
+        // Render selected category
+        when (activeShopCategory) {
+            "CHARACTERS" -> renderShopCharacters(container, density)
+            "SKINS" -> renderShopSkins(container, density)
+            "TRAILS" -> renderShopTrails(container, density)
+            "POWER-UPS" -> renderShopPowerUps(container, density)
+            "CURRENCY" -> renderShopCurrency(container, density)
+        }
+
+        showScreen("SECONDARY")
+    }
+
+    private fun renderShopCharacters(container: LinearLayout, density: Float) {
+        val characterList = listOf(
+            CharacterItem("DEFAULT", "Red Hoodie", 0, 0, "Default adventurous hero", "#E53935"),
+            CharacterItem("NINJA", "Shadow Ninja", 3000, 0, "Fast shadow warrior", "#212121"),
+            CharacterItem("ROBOT", "Cyber Bot", 5000, 0, "Metallic high jumper", "#78909C"),
+            CharacterItem("GIRL", "Pink Runner", 3000, 0, "Stylish cute runner", "#EC407A"),
+            CharacterItem("PIRATE", "Captain Red", 4000, 0, "Seafaring adventurer", "#D84315"),
+            CharacterItem("COWBOY", "Wild Ranger", 4000, 0, "Outlaw quick jumper", "#8D6E63"),
+            CharacterItem("ICE", "Ice Runner", 5000, 0, "Frosty speed runner", "#00ACC1"),
+            CharacterItem("DESERT", "Desert Runner", 5000, 0, "Dune explorer", "#FB8C00"),
+            CharacterItem("LAVA", "Lava Warrior", 6000, 0, "Fiery cavern jumper", "#D84315"),
+            CharacterItem("NEON", "Neon Runner", 6000, 0, "Cyberpunk sprinter", "#00E676"),
+            CharacterItem("FOREST", "Forest Guardian", 7000, 0, "Nature protector", "#4CAF50"),
+            CharacterItem("GALAXY", "Galaxy Hero", 8000, 0, "Cosmic space jumper", "#7B1FA2")
+        )
+
+        var currentRow: LinearLayout? = null
+
+        characterList.forEachIndexed { index, item ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
+                }
+                container.addView(currentRow)
+            }
+
+            val isSelected = saveData.selectedCharacter == item.id
+            val isUnlocked = saveData.unlockedCharacters.contains(item.id)
+
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = (12 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setBackgroundResource(if (isSelected) R.drawable.bg_card_selected else R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
+                }
+            }
+
+            val charCardView = com.jumpadventure.game.graphics.CharacterCardView(this).apply {
+                characterId = item.id
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (110 * density).toInt()
+                )
+            }
+
+            val tvName = TextView(this).apply {
+                text = item.name
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1F3045"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (4 * density).toInt(), 0, (2 * density).toInt()) }
+            }
+
+            val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                when {
+                    isSelected -> {
+                        mainText = "EQUIPPED"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                    }
+                    isUnlocked -> {
+                        mainText = "EQUIP"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                    }
+                    else -> {
+                        mainText = "BUY"
+                        subText = "${item.priceCoins} COINS"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
+                    }
+                }
+
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (42 * density).toInt()
+                )
+
+                setOnClickListener {
+                    soundManager.playButtonClick()
+                    if (isUnlocked) {
+                        saveData.selectedCharacter = item.id
+                        saveManager.saveData(saveData)
+                        openShopScreen()
+                    } else {
+                        if (saveData.coins >= item.priceCoins) {
+                            saveData.coins -= item.priceCoins
+                            saveData.unlockedCharacters.add(item.id)
+                            saveData.selectedCharacter = item.id
+                            saveManager.saveData(saveData)
+                            openShopScreen()
+                        } else {
+                            showCustomGameDialog(
+                                title = "INSUFFICIENT COINS",
+                                message = "You need ${item.priceCoins - saveData.coins} more coins to buy ${item.name}!"
+                            )
+                        }
+                    }
+                }
+            }
+
+            card.addView(charCardView)
+            card.addView(tvName)
+            card.addView(actionBtn)
+            currentRow?.addView(card)
+        }
+    }
+
+    private fun renderShopSkins(container: LinearLayout, density: Float) {
+        val skinList = listOf(
+            SkinCategoryItem("DEFAULT", "Red Hoodie", "HOODIES", 0, 0, "#E53935", "Classic hoodie outfit"),
+            SkinCategoryItem("GOLDEN_HOODIE", "Golden Hoodie", "HOODIES", 2000, 0, "#FFD700", "Shimmering gold hoodie"),
+            SkinCategoryItem("SHADOW_ARMOR", "Shadow Armor", "ARMOR", 3500, 0, "#212121", "Dark protective plating"),
+            SkinCategoryItem("NEON_NINJA", "Neon Ninja", "NINJA", 4000, 0, "#00E676", "Glowing cyan stealth suit"),
+            SkinCategoryItem("CYBER_MECH", "Cyber Mech", "ROBOT", 5000, 0, "#00E5FF", "Futuristic mechanical armor"),
+            SkinCategoryItem("DRAGON_FLAME", "Dragon Flame", "FANTASY", 6000, 0, "#FF3D00", "Enchanted fiery outfit"),
+            SkinCategoryItem("COSMIC_GALAXY", "Cosmic Galaxy", "SCI-FI", 7500, 0, "#9C27B0", "Starlight space coat")
+        )
+
+        var currentRow: LinearLayout? = null
+
+        skinList.forEachIndexed { index, item ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
+                }
+                container.addView(currentRow)
+            }
+
+            val isSelected = saveData.selectedSkin == item.id
+            val isUnlocked = saveData.unlockedSkins.contains(item.id)
+
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = (12 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setBackgroundResource(if (isSelected) R.drawable.bg_card_selected else R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
+                }
+            }
+
+            val swatch = View(this).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 12f * density
+                    setColor(Color.parseColor(item.colorHex))
+                    setStroke((2 * density).toInt(), Color.parseColor("#334155"))
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    (60 * density).toInt(), (60 * density).toInt()
+                ).apply { setMargins(0, (4 * density).toInt(), 0, (6 * density).toInt()) }
+            }
+
+            val tvName = TextView(this).apply {
+                text = item.name
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1F3045"))
+                gravity = Gravity.CENTER
+            }
+
+            val tvCat = TextView(this).apply {
+                text = item.category
+                textSize = 10f
+                setTextColor(Color.parseColor("#6B7C93"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (2 * density).toInt(), 0, (8 * density).toInt()) }
+            }
+
+            val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                when {
+                    isSelected -> {
+                        mainText = "EQUIPPED"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                    }
+                    isUnlocked -> {
+                        mainText = "EQUIP"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                    }
+                    else -> {
+                        mainText = "BUY"
+                        subText = "${item.priceCoins} COINS"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
+                    }
+                }
+
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (42 * density).toInt()
+                )
+
+                setOnClickListener {
+                    soundManager.playButtonClick()
+                    if (isUnlocked) {
+                        saveData.selectedSkin = item.id
+                        saveManager.saveData(saveData)
+                        openShopScreen()
+                    } else {
+                        if (saveData.coins >= item.priceCoins) {
+                            saveData.coins -= item.priceCoins
+                            saveData.unlockedSkins.add(item.id)
+                            saveData.selectedSkin = item.id
+                            saveManager.saveData(saveData)
+                            openShopScreen()
+                        } else {
+                            showCustomGameDialog(
+                                title = "INSUFFICIENT COINS",
+                                message = "You need ${item.priceCoins - saveData.coins} more coins to buy ${item.name}!"
+                            )
+                        }
+                    }
+                }
+            }
+
+            card.addView(swatch)
+            card.addView(tvName)
+            card.addView(tvCat)
+            card.addView(actionBtn)
+            currentRow?.addView(card)
+        }
+    }
+
+    private fun renderShopTrails(container: LinearLayout, density: Float) {
+        val trailList = listOf(
+            TrailCategoryItem("NONE", "No Trail", 0, 0, "#94A3B8", "NONE", "Clean movement"),
+            TrailCategoryItem("FIRE", "Fire Trail", 1500, 0, "#FF3D00", "FIRE", "Blazing fiery trail"),
+            TrailCategoryItem("ICE", "Ice Trail", 1500, 0, "#00E5FF", "ICE", "Freezing icy frost"),
+            TrailCategoryItem("LIGHTNING", "Lightning Trail", 2500, 0, "#FFD700", "LIGHTNING", "Electric sparks"),
+            TrailCategoryItem("RAINBOW", "Rainbow Trail", 3000, 0, "#E040FB", "RAINBOW", "Shimmering spectrum"),
+            TrailCategoryItem("SHADOW", "Shadow Trail", 3000, 0, "#212121", "SHADOW", "Mysterious dark haze"),
+            TrailCategoryItem("GOLD", "Gold Trail", 3500, 0, "#FFD43B", "GOLD", "Golden coin dust"),
+            TrailCategoryItem("NEON", "Neon Trail", 4000, 0, "#00E676", "NEON", "Bright glowing trail"),
+            TrailCategoryItem("GALAXY", "Galaxy Trail", 5000, 0, "#7B1FA2", "GALAXY", "Cosmic star particles"),
+            TrailCategoryItem("LEAVES", "Leaves Trail", 1500, 0, "#4CAF50", "LEAVES", "Drifting green leaves"),
+            TrailCategoryItem("SNOW", "Snow Trail", 1500, 0, "#FFFFFF", "SNOW", "Falling white snow"),
+            TrailCategoryItem("LAVA", "Lava Trail", 3500, 0, "#FF3D00", "LAVA", "Molten ember trail")
+        )
+
+        var currentRow: LinearLayout? = null
+
+        trailList.forEachIndexed { index, item ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
+                }
+                container.addView(currentRow)
+            }
+
+            val isSelected = saveData.selectedTrail == item.id
+            val isUnlocked = saveData.unlockedTrails.contains(item.id) || item.id == "NONE"
+
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = (12 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setBackgroundResource(if (isSelected) R.drawable.bg_card_selected else R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
+                }
+            }
+
+            val swatch = View(this).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 20f * density
+                    setColor(Color.parseColor(item.colorHex))
+                    setStroke((2 * density).toInt(), Color.parseColor("#334155"))
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    (40 * density).toInt(), (40 * density).toInt()
+                ).apply { setMargins(0, (4 * density).toInt(), 0, (6 * density).toInt()) }
+            }
+
+            val tvName = TextView(this).apply {
+                text = item.name
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1F3045"))
+                gravity = Gravity.CENTER
+            }
+
+            val tvDesc = TextView(this).apply {
+                text = item.description
+                textSize = 10f
+                setTextColor(Color.parseColor("#6B7C93"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (2 * density).toInt(), 0, (8 * density).toInt()) }
+            }
+
+            val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                when {
+                    isSelected -> {
+                        mainText = "EQUIPPED"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                    }
+                    isUnlocked -> {
+                        mainText = "EQUIP"
+                        subText = ""
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                    }
+                    else -> {
+                        mainText = "BUY"
+                        subText = "${item.priceCoins} COINS"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
+                    }
+                }
+
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (42 * density).toInt()
+                )
+
+                setOnClickListener {
+                    soundManager.playButtonClick()
+                    if (isUnlocked) {
+                        saveData.selectedTrail = item.id
+                        saveManager.saveData(saveData)
+                        openShopScreen()
+                    } else {
+                        if (saveData.coins >= item.priceCoins) {
+                            saveData.coins -= item.priceCoins
+                            saveData.unlockedTrails.add(item.id)
+                            saveData.selectedTrail = item.id
+                            saveManager.saveData(saveData)
+                            openShopScreen()
+                        } else {
+                            showCustomGameDialog(
+                                title = "INSUFFICIENT COINS",
+                                message = "You need ${item.priceCoins - saveData.coins} more coins to buy ${item.name}!"
+                            )
+                        }
+                    }
+                }
+            }
+
+            card.addView(swatch)
+            card.addView(tvName)
+            card.addView(tvDesc)
+            card.addView(actionBtn)
+            currentRow?.addView(card)
+        }
+    }
+
+    private fun renderShopPowerUps(container: LinearLayout, density: Float) {
+        val powerups = listOf(
+            PowerUpUpgradeItem("MAGNET", "Coin Magnet", "Increases magnet pull radius and duration", "🧲", 500),
+            PowerUpUpgradeItem("SHIELD", "Energy Shield", "Increases shield duration and hit points", "🛡️", 800),
+            PowerUpUpgradeItem("SPEED", "Speed Boost", "Boosts player speed power-up effect", "⚡", 600),
+            PowerUpUpgradeItem("DOUBLE_COIN", "Double Coin", "Multiplies coins collected during level", "🪙", 1000),
+            PowerUpUpgradeItem("STAR_BOOST", "Star Magnet", "Attracts star collectibles automatically", "⭐", 1200),
+            PowerUpUpgradeItem("JUMP_BOOST", "Super Jump", "Enhances jump precision and height", "👟", 1500)
+        )
+
+        var currentRow: LinearLayout? = null
+
+        powerups.forEachIndexed { index, item ->
+            if (index % 2 == 0) {
+                currentRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { setMargins(0, (6 * density).toInt(), 0, (6 * density).toInt()) }
+                }
+                container.addView(currentRow)
+            }
+
+            val currentLvl = saveData.powerUpLevels[item.id] ?: 1
+            val upgradePrice = item.basePriceCoins * currentLvl
+            val isMax = currentLvl >= item.maxLevel
+
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                val pad = (12 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setBackgroundResource(R.drawable.bg_card_glossy)
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    val marginStart = if (index % 2 == 0) 0 else (6 * density).toInt()
+                    val marginEnd = if (index % 2 == 0) (6 * density).toInt() else 0
+                    setMargins(marginStart, 0, marginEnd, 0)
+                }
+            }
+
+            val tvIcon = TextView(this).apply {
+                text = item.iconEmoji
+                textSize = 32f
+                gravity = Gravity.CENTER
+            }
+
+            val tvName = TextView(this).apply {
+                text = item.name
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#1F3045"))
+                gravity = Gravity.CENTER
+            }
+
+            val tvLvl = TextView(this).apply {
+                text = "LEVEL $currentLvl / ${item.maxLevel}"
+                textSize = 11f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#0284C7"))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (2 * density).toInt(), 0, (8 * density).toInt()) }
+            }
+
+            val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+                if (isMax) {
+                    mainText = "MAX LEVEL"
+                    subText = ""
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                    isEnabled = false
+                } else {
+                    mainText = "UPGRADE"
+                    subText = "$upgradePrice COINS"
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
+                    setOnClickListener {
+                        soundManager.playButtonClick()
+                        if (saveData.coins >= upgradePrice) {
+                            saveData.coins -= upgradePrice
+                            saveData.powerUpLevels[item.id] = currentLvl + 1
+                            saveManager.saveData(saveData)
+                            openShopScreen()
+                        } else {
+                            showCustomGameDialog(
+                                title = "INSUFFICIENT COINS",
+                                message = "You need ${upgradePrice - saveData.coins} more coins to upgrade ${item.name}!"
+                            )
+                        }
+                    }
+                }
+
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, (42 * density).toInt()
+                )
+            }
+
+            card.addView(tvIcon)
+            card.addView(tvName)
+            card.addView(tvLvl)
+            card.addView(actionBtn)
+            currentRow?.addView(card)
+        }
+    }
+
+    private fun renderShopCurrency(container: LinearLayout, density: Float) {
         val packs = listOf(
             Triple("Small Coin Pack", 500, "Daily Explorer Boost"),
             Triple("Medium Coin Pack", 1500, "Adventurer Chest"),
@@ -984,7 +1522,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         var currentRow: LinearLayout? = null
-        val density = resources.displayMetrics.density
 
         packs.forEachIndexed { index, (name, amount, desc) ->
             if (index % 2 == 0) {
@@ -1069,8 +1606,6 @@ class MainActivity : AppCompatActivity() {
             card.addView(claimBtn)
             currentRow?.addView(card)
         }
-
-        showScreen("SECONDARY")
     }
 
     /* ------------------------------------------------------------------------
@@ -1288,12 +1823,45 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val achievements = listOf(
-            AchievementItem("A1", "First Jump", "Complete Level 1", "", 100) { it.highestLevel > 1 },
-            AchievementItem("A2", "Explorer", "Complete 10 levels", "", 300) { it.highestLevel > 10 },
-            AchievementItem("A3", "Collector", "Collect 1,000 coins", "", 500) { it.totalCoinsCollected >= 1000 },
-            AchievementItem("A4", "Star Player", "Earn 50 stars", "", 500) { it.levelStars.values.sum() >= 50 },
-            AchievementItem("A5", "World Traveler", "Unlock 5 worlds", "", 1000) { it.unlockedWorlds.size >= 5 },
-            AchievementItem("A6", "Master", "Complete 100 levels", "", 2000) { it.highestLevel > 100 }
+            // Progress
+            AchievementItem("P1", "First Jump", "Complete Level 1", "", 100) { it.highestLevel > 1 },
+            AchievementItem("P2", "Novice Runner", "Complete 10 levels", "", 300) { it.highestLevel > 10 },
+            AchievementItem("P3", "Adventurer", "Complete 25 levels", "", 500) { it.highestLevel > 25 },
+            AchievementItem("P4", "Champion", "Complete 50 levels", "", 1000) { it.highestLevel > 50 },
+            AchievementItem("P5", "Master Jumper", "Complete 100 levels", "", 2000) { it.highestLevel > 100 },
+            AchievementItem("P6", "Legendary Hero", "Complete 250 levels", "", 5000) { it.highestLevel > 250 },
+            AchievementItem("P7", "Mythic Jumper", "Complete 500 levels", "", 10000) { it.highestLevel > 500 },
+            AchievementItem("P8", "Infinite Legend", "Complete 1,000 levels", "", 25000) { it.highestLevel > 1000 },
+
+            // Coins
+            AchievementItem("C1", "Coin Finder", "Collect 1,000 total coins", "", 200) { it.totalCoinsCollected >= 1000 },
+            AchievementItem("C2", "Coin Collector", "Collect 10,000 total coins", "", 800) { it.totalCoinsCollected >= 10000 },
+            AchievementItem("C3", "Treasure Hunter", "Collect 50,000 total coins", "", 2500) { it.totalCoinsCollected >= 50000 },
+            AchievementItem("C4", "Wealthy Jumper", "Collect 100,000 total coins", "", 5000) { it.totalCoinsCollected >= 100000 },
+            AchievementItem("C5", "Coin Baron", "Collect 500,000 total coins", "", 15000) { it.totalCoinsCollected >= 500000 },
+            AchievementItem("C6", "Coin Millionaire", "Collect 1,000,000 total coins", "", 50000) { it.totalCoinsCollected >= 1000000 },
+
+            // Stars
+            AchievementItem("S1", "Star Gatherer", "Earn 10 total stars", "", 200) { it.levelStars.values.sum() >= 10 },
+            AchievementItem("S2", "Star Collector", "Earn 50 total stars", "", 500) { it.levelStars.values.sum() >= 50 },
+            AchievementItem("S3", "Star Hunter", "Earn 100 total stars", "", 1200) { it.levelStars.values.sum() >= 100 },
+            AchievementItem("S4", "Star Master", "Earn 250 total stars", "", 3000) { it.levelStars.values.sum() >= 250 },
+            AchievementItem("S5", "Starlight Hero", "Earn 500 total stars", "", 7500) { it.levelStars.values.sum() >= 500 },
+            AchievementItem("S6", "Galaxy Star Lord", "Earn 1,000 total stars", "", 20000) { it.levelStars.values.sum() >= 1000 },
+
+            // Gameplay
+            AchievementItem("G1", "First Jump Step", "Perform 100 jumps", "", 150) { it.totalJumps >= 100 },
+            AchievementItem("G2", "Jump Master", "Perform 1,000 jumps", "", 1000) { it.totalJumps >= 1000 },
+            AchievementItem("G3", "Level Completer", "Finish 20 levels", "", 600) { it.totalLevelsCompleted >= 20 },
+            AchievementItem("G4", "Dedicated Jumper", "Finish 50 levels", "", 1500) { it.totalLevelsCompleted >= 50 },
+
+            // Infinite Worlds
+            AchievementItem("W10", "World 10 Traveler", "Reach World 10", "", 1000) { (it.highestLevel - 1) / 25 + 1 >= 10 },
+            AchievementItem("W25", "World 25 Traveler", "Reach World 25", "", 2500) { (it.highestLevel - 1) / 25 + 1 >= 25 },
+            AchievementItem("W50", "World 50 Explorer", "Reach World 50", "", 5000) { (it.highestLevel - 1) / 25 + 1 >= 50 },
+            AchievementItem("W100", "World 100 Conqueror", "Reach World 100", "", 10000) { (it.highestLevel - 1) / 25 + 1 >= 100 },
+            AchievementItem("W250", "World 250 Legend", "Reach World 250", "", 25000) { (it.highestLevel - 1) / 25 + 1 >= 250 },
+            AchievementItem("W500", "Infinite Cosmos", "Reach World 500", "", 50000) { (it.highestLevel - 1) / 25 + 1 >= 500 }
         )
 
         var currentRow: LinearLayout? = null
@@ -1413,6 +1981,22 @@ class MainActivity : AppCompatActivity() {
         container.removeAllViews()
 
         val density = resources.displayMetrics.density
+
+        // Player Speed Control with Live Preview
+        val speedControlView = com.jumpadventure.game.graphics.PlayerSpeedControlView(this).apply {
+            selectedCharacterId = saveData.selectedCharacter
+            speedMultiplier = saveData.playerSpeedMultiplier
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (290 * density).toInt()
+            ).apply { setMargins(0, (8 * density).toInt(), 0, (12 * density).toInt()) }
+
+            onSpeedChangedListener = { newSpeed ->
+                saveData.playerSpeedMultiplier = newSpeed
+                saveManager.saveData(saveData)
+            }
+        }
+        container.addView(speedControlView)
 
         // Sound Toggle
         val soundBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {

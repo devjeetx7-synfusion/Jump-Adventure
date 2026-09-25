@@ -14,6 +14,7 @@ class SaveManager(context: Context) {
         const val KEY_GEMS = "gems"
         const val KEY_CURRENT_LEVEL = "current_level"
         const val KEY_HIGHEST_LEVEL = "highest_level"
+        const val KEY_SPEED_MULTIPLIER = "player_speed_multiplier"
         const val KEY_LEVEL_STARS_JSON = "level_stars_json"
         const val KEY_UNLOCKED_WORLDS_JSON = "unlocked_worlds_json"
         const val KEY_SELECTED_CHAR = "selected_char"
@@ -54,6 +55,7 @@ class SaveManager(context: Context) {
         const val KEY_SHIELD_X = "ctrl_shield_x"
         const val KEY_SHIELD_Y = "ctrl_shield_y"
         const val KEY_SHIELD_SCALE = "ctrl_shield_scale"
+        const val KEY_POWERUP_LEVELS_JSON = "powerup_levels_json"
 
         @Volatile
         private var INSTANCE: SaveManager? = null
@@ -73,6 +75,7 @@ class SaveManager(context: Context) {
         data.gems = prefs.getInt(KEY_GEMS, 35)
         data.currentLevel = prefs.getInt(KEY_CURRENT_LEVEL, 1)
         data.highestLevel = prefs.getInt(KEY_HIGHEST_LEVEL, 1)
+        data.playerSpeedMultiplier = prefs.getFloat(KEY_SPEED_MULTIPLIER, 1.15f)
 
         val starsJson = prefs.getString(KEY_LEVEL_STARS_JSON, null)
         if (!starsJson.isNullOrEmpty()) {
@@ -148,6 +151,20 @@ class SaveManager(context: Context) {
         data.shieldY = prefs.getFloat(KEY_SHIELD_Y, -1f)
         data.shieldScale = prefs.getFloat(KEY_SHIELD_SCALE, 1.0f)
 
+        val powerupsJson = prefs.getString(KEY_POWERUP_LEVELS_JSON, null)
+        if (!powerupsJson.isNullOrEmpty()) {
+            try {
+                val obj = JSONObject(powerupsJson)
+                val keys = obj.keys()
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    data.powerUpLevels[k] = obj.getInt(k)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         return data
     }
 
@@ -157,6 +174,7 @@ class SaveManager(context: Context) {
         editor.putInt(KEY_GEMS, data.gems)
         editor.putInt(KEY_CURRENT_LEVEL, data.currentLevel)
         editor.putInt(KEY_HIGHEST_LEVEL, data.highestLevel)
+        editor.putFloat(KEY_SPEED_MULTIPLIER, data.playerSpeedMultiplier)
 
         val starsObj = JSONObject()
         data.levelStars.forEach { (lvl, stars) ->
@@ -213,6 +231,12 @@ class SaveManager(context: Context) {
         editor.putFloat(KEY_SHIELD_X, data.shieldX)
         editor.putFloat(KEY_SHIELD_Y, data.shieldY)
         editor.putFloat(KEY_SHIELD_SCALE, data.shieldScale)
+
+        val powerupsObj = JSONObject()
+        data.powerUpLevels.forEach { (key, lvl) ->
+            powerupsObj.put(key, lvl)
+        }
+        editor.putString(KEY_POWERUP_LEVELS_JSON, powerupsObj.toString())
 
         editor.apply()
     }

@@ -5,6 +5,7 @@ data class GameSaveData(
     var gems: Int = 35,
     var currentLevel: Int = 1,
     var highestLevel: Int = 1,
+    var playerSpeedMultiplier: Float = 1.15f,
     val levelStars: MutableMap<Int, Int> = mutableMapOf(),
     val unlockedWorlds: MutableSet<Int> = mutableSetOf(1),
     var selectedCharacter: String = "DEFAULT",
@@ -43,10 +44,56 @@ data class GameSaveData(
     var speedScale: Float = 1.0f,
     var shieldX: Float = -1f,
     var shieldY: Float = -1f,
-    var shieldScale: Float = 1.0f
+    var shieldScale: Float = 1.0f,
+    val powerUpLevels: MutableMap<String, Int> = mutableMapOf(
+        "MAGNET" to 1,
+        "SHIELD" to 1,
+        "SPEED" to 1,
+        "DOUBLE_COIN" to 1,
+        "STAR_BOOST" to 1,
+        "JUMP_BOOST" to 1
+    )
 )
 
 data class CharacterItem(
+    val id: String,
+    val name: String,
+    val priceCoins: Int,
+    val priceGems: Int = 0,
+    val description: String,
+    val primaryColorHex: String
+)
+
+data class SkinCategoryItem(
+    val id: String,
+    val name: String,
+    val category: String, // HOODIES, ARMOR, NINJA, ROBOT, FANTASY, SCI-FI, SPECIAL
+    val priceCoins: Int,
+    val priceGems: Int = 0,
+    val colorHex: String,
+    val description: String
+)
+
+data class TrailCategoryItem(
+    val id: String,
+    val name: String,
+    val priceCoins: Int,
+    val priceGems: Int = 0,
+    val colorHex: String,
+    val particleType: String,
+    val description: String
+)
+
+data class PowerUpUpgradeItem(
+    val id: String,
+    val name: String,
+    val description: String,
+    val iconEmoji: String,
+    val basePriceCoins: Int,
+    val maxLevel: Int = 5
+)
+
+data class CharacterItemOld(
     val id: String,
     val name: String,
     val priceCoins: Int,

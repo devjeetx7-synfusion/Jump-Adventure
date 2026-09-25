@@ -57,10 +57,13 @@ object LevelGenerator {
             levelNumber <= 25 -> 8
             levelNumber <= 50 -> 12
             levelNumber <= 100 -> 16
-            else -> 20 + (levelNumber % 10)
+            else -> (18 + (levelNumber % 8)).coerceAtMost(28)
         }
 
         var totalStarsPlaced = 0
+
+        // Speed/difficulty scale factor with a reasonable cap
+        val diffScale = (1.0f + (levelNumber / 100f) * 0.15f).coerceAtMost(1.8f)
 
         for (sectionIdx in 0 until numSections) {
             // Pick section template based on level difficulty
@@ -69,7 +72,7 @@ object LevelGenerator {
             val gap = when {
                 levelNumber <= 10 -> 80f + random.nextFloat() * 40f
                 levelNumber <= 50 -> 100f + random.nextFloat() * 60f
-                else -> 120f + random.nextFloat() * 80f
+                else -> (110f + random.nextFloat() * 70f).coerceAtMost(200f)
             }
 
             currentX += gap
@@ -122,11 +125,12 @@ object LevelGenerator {
                     val platY = groundY - 50f
                     val platW = 140f
                     val moveDist = 120f + random.nextInt(80)
+                    val platSpeed = (2f + random.nextFloat() * 1.5f) * diffScale
                     elements.add(LevelElement(
                         ElementType.MOVING_PLATFORM,
                         currentX, platY, platW, 35f,
                         moveDistanceX = moveDist,
-                        speed = 2f + random.nextFloat() * 1.5f
+                        speed = platSpeed.coerceAtMost(5.0f)
                     ))
                     // Coins above moving platform
                     elements.add(LevelElement(ElementType.COIN, currentX + 40f, platY - 40f, 30f, 30f))
@@ -139,11 +143,12 @@ object LevelGenerator {
                     val platW = 200f
                     elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY, platW, 35f))
                     // Enemy walking on platform
+                    val enemySpeed = (1.5f * diffScale).coerceAtMost(3.5f)
                     elements.add(LevelElement(
                         ElementType.ENEMY,
                         currentX + 80f, groundY - 35f, 35f, 35f,
                         moveDistanceX = 70f,
-                        speed = 1.5f
+                        speed = enemySpeed
                     ))
                     currentX += platW
                 }
