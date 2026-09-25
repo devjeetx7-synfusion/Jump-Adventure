@@ -61,7 +61,9 @@ data class CharacterItem(
     val priceCoins: Int,
     val priceGems: Int = 0,
     val description: String,
-    val primaryColorHex: String
+    val primaryColorHex: String,
+    val skillName: String = "None",
+    val skillDesc: String = "Standard jump & movement"
 )
 
 data class SkinCategoryItem(
@@ -91,36 +93,6 @@ data class PowerUpUpgradeItem(
     val iconEmoji: String,
     val basePriceCoins: Int,
     val maxLevel: Int = 5
-)
-
-data class CharacterItemOld(
-    val id: String,
-    val name: String,
-    val priceCoins: Int,
-    val priceGems: Int = 0,
-    val description: String,
-    val primaryColorHex: String
-)
-
-data class SkinItem(
-    val id: String,
-    val name: String,
-    val priceCoins: Int,
-    val colorHex: String
-)
-
-data class TrailItem(
-    val id: String,
-    val name: String,
-    val priceCoins: Int,
-    val particleType: String
-)
-
-data class PetItem(
-    val id: String,
-    val name: String,
-    val priceCoins: Int,
-    val emoji: String
 )
 
 data class AchievementItem(

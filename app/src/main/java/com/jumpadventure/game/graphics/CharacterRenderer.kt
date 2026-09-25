@@ -12,6 +12,7 @@ object CharacterRenderer {
         canvas: Canvas,
         bounds: RectF,
         characterId: String,
+        skinId: String = "DEFAULT",
         facingRight: Boolean = true,
         animState: AnimState = AnimState.IDLE,
         animTime: Float = 0f
@@ -36,7 +37,6 @@ object CharacterRenderer {
 
         when (animState) {
             AnimState.IDLE -> {
-                // Natural standing / walking loop without vertical bouncing on the platform
                 bounceY = 0f
                 legAngle1 = (sin(animTime * 3.5f.toDouble()) * 12f).toFloat()
                 legAngle2 = (-sin(animTime * 3.5f.toDouble()) * 12f).toFloat()
@@ -70,7 +70,6 @@ object CharacterRenderer {
             }
         }
 
-        // Apply global squash/stretch
         canvas.translate(cx, bounds.bottom)
         canvas.scale(scaleX, scaleY)
         canvas.translate(-cx, -bounds.bottom)
@@ -92,20 +91,62 @@ object CharacterRenderer {
         val eyePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1B1B2F") }
         val eyeHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
 
-        val (outfitColor, hairHatColor, accentColor, shoeColorStr) = when (characterId) {
-            "NINJA" -> listOf("#263238", "#111111", "#E53935", "#111111")
-            "ROBOT" -> listOf("#78909C", "#455A64", "#00E676", "#37474F")
+        // Base Character Colors
+        val (baseOutfit, baseHair, baseAccent, baseShoe) = when (characterId) {
+            "NINJA", "CYBER_NINJA", "SHADOW_HUNTER" -> listOf("#263238", "#111111", "#E53935", "#111111")
+            "ROBOT", "ROBOT_X" -> listOf("#78909C", "#455A64", "#00E676", "#37474F")
             "GIRL" -> listOf("#EC407A", "#F48FB1", "#FFD54F", "#FFFFFF")
             "PIRATE" -> listOf("#D84315", "#3E2723", "#FFD700", "#3E2723")
             "COWBOY" -> listOf("#8D6E63", "#5D4037", "#FFB300", "#5D4037")
-            "ICE" -> listOf("#00ACC1", "#B2EBF2", "#00E5FF", "#FFFFFF")
-            "DESERT" -> listOf("#FB8C00", "#FFE082", "#FF6D00", "#5D4037")
-            "LAVA" -> listOf("#D84315", "#212121", "#FF3D00", "#212121")
-            "NEON" -> listOf("#00E676", "#212121", "#00E5FF", "#00E676")
-            "FOREST" -> listOf("#4CAF50", "#1B5E20", "#81C784", "#33691E")
-            "GALAXY" -> listOf("#7B1FA2", "#1A237E", "#E040FB", "#4A148C")
+            "ICE", "ICE_WARRIOR", "ARCTIC_RANGER" -> listOf("#00ACC1", "#B2EBF2", "#00E5FF", "#FFFFFF")
+            "DESERT", "DESERT_RUNNER" -> listOf("#FB8C00", "#FFE082", "#FF6D00", "#5D4037")
+            "LAVA", "LAVA_KNIGHT" -> listOf("#D84315", "#212121", "#FF3D00", "#212121")
+            "NEON", "NEON_RUNNER" -> listOf("#00E676", "#212121", "#00E5FF", "#00E676")
+            "FOREST", "FOREST_GUARDIAN", "JUNGLE_FIGHTER" -> listOf("#4CAF50", "#1B5E20", "#81C784", "#33691E")
+            "GALAXY", "GALAXY_HERO", "SPACE_RUNNER" -> listOf("#7B1FA2", "#1A237E", "#E040FB", "#4A148C")
+            "STORM_RIDER", "THUNDER_HERO" -> listOf("#0284C7", "#0369A1", "#FFD700", "#0284C7")
+            "SAMURAI" -> listOf("#B91C1C", "#1E1B4B", "#F59E0B", "#1E1B4B")
+            "CRYSTAL_MAGE", "VOID_WALKER" -> listOf("#6D28D9", "#4C1D95", "#06B6D4", "#4C1D95")
+            "GOLDEN_WARRIOR" -> listOf("#D97706", "#78350F", "#F59E0B", "#78350F")
+            "EXPLORER" -> listOf("#059669", "#064E3B", "#F59E0B", "#064E3B")
             else -> listOf("#E53935", "#37474F", "#FFFFFF", "#FFFFFF")
         }
+
+        // Apply Equipped Skin Color Modulation
+        val outfitColor = when (skinId) {
+            "GOLDEN", "GOLDEN_HOODIE" -> "#FFD700"
+            "BLACK", "SHADOW_ARMOR" -> "#212121"
+            "NEON", "NEON_NINJA" -> "#00E676"
+            "WINTER", "ICE" -> "#E0F7FA"
+            "LAVA", "DRAGON_FLAME" -> "#FF3D00"
+            "CYBER_MECH" -> "#00E5FF"
+            "GALAXY", "COSMIC_GALAXY" -> "#9C27B0"
+            else -> baseOutfit
+        }
+
+        val hairHatColor = when (skinId) {
+            "GOLDEN", "GOLDEN_HOODIE" -> "#B45309"
+            "BLACK", "SHADOW_ARMOR" -> "#0F172A"
+            "NEON", "NEON_NINJA" -> "#15803D"
+            "WINTER", "ICE" -> "#818CF8"
+            "LAVA", "DRAGON_FLAME" -> "#7C2D12"
+            "CYBER_MECH" -> "#1E293B"
+            "GALAXY", "COSMIC_GALAXY" -> "#4C1D95"
+            else -> baseHair
+        }
+
+        val accentColor = when (skinId) {
+            "GOLDEN", "GOLDEN_HOODIE" -> "#FFFBEB"
+            "BLACK", "SHADOW_ARMOR" -> "#A855F7"
+            "NEON", "NEON_NINJA" -> "#22D3EE"
+            "WINTER", "ICE" -> "#38BDF8"
+            "LAVA", "DRAGON_FLAME" -> "#FACC15"
+            "CYBER_MECH" -> "#F43F5E"
+            "GALAXY", "COSMIC_GALAXY" -> "#F472B6"
+            else -> baseAccent
+        }
+
+        val shoeColorStr = baseShoe
 
         val outfitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(outfitColor) }
         val hairHatPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor(hairHatColor) }
@@ -129,7 +170,6 @@ object CharacterRenderer {
         canvas.drawRoundRect(leg2Rect, 12f, 12f, leg2Paint)
         canvas.drawRoundRect(leg2Rect, 12f, 12f, darkOutlinePaint)
 
-        // Back Shoe
         val backShoeRect = RectF(hipX - shoeWidth * 0.3f, leg2Bottom - 4f, hipX + shoeWidth * 0.7f, leg2Bottom + shoeHeight)
         canvas.drawRoundRect(backShoeRect, 10f, 10f, shoePaint)
         canvas.drawRoundRect(backShoeRect, 10f, 10f, darkOutlinePaint)
@@ -145,7 +185,6 @@ object CharacterRenderer {
         canvas.drawRoundRect(leg1Rect, 12f, 12f, leg1Paint)
         canvas.drawRoundRect(leg1Rect, 12f, 12f, darkOutlinePaint)
 
-        // Front Shoe
         val frontShoeRect = RectF(hipX - shoeWidth * 0.3f, leg1Bottom - 4f, hipX + shoeWidth * 0.7f, leg1Bottom + shoeHeight)
         canvas.drawRoundRect(frontShoeRect, 10f, 10f, shoePaint)
         canvas.drawRoundRect(frontShoeRect, 10f, 10f, darkOutlinePaint)
@@ -173,32 +212,25 @@ object CharacterRenderer {
         canvas.drawRoundRect(torsoRect, 20f, 20f, darkOutlinePaint)
         outfitPaint.shader = null
 
-        when (characterId) {
-            "DEFAULT" -> {
+        when {
+            characterId == "DEFAULT" -> {
                 val zipPaint = Paint(darkOutlinePaint).apply { strokeWidth = 3f }
                 canvas.drawLine(cx, torsoRect.top + 10f, cx, torsoRect.bottom - 10f, zipPaint)
                 canvas.drawRoundRect(RectF(cx - width * 0.12f, torsoRect.bottom - height * 0.12f, cx + width * 0.12f, torsoRect.bottom - 6f), 8f, 8f, accentPaint)
             }
-            "NINJA" -> {
+            characterId.contains("NINJA") || characterId.contains("HUNTER") -> {
                 canvas.drawRect(RectF(torsoRect.left, torsoRect.centerY() - 6f, torsoRect.right, torsoRect.centerY() + 6f), accentPaint)
             }
-            "ROBOT" -> {
+            characterId.contains("ROBOT") -> {
                 canvas.drawCircle(cx, torsoRect.centerY(), width * 0.08f, accentPaint)
                 canvas.drawCircle(cx, torsoRect.centerY(), width * 0.08f, darkOutlinePaint)
             }
-            "GIRL" -> {
-                val heartPaint = Paint(accentPaint)
-                canvas.drawCircle(cx - 6f, torsoRect.centerY() - 4f, 8f, heartPaint)
-                canvas.drawCircle(cx + 6f, torsoRect.centerY() - 4f, 8f, heartPaint)
+            characterId.contains("GIRL") -> {
+                canvas.drawCircle(cx - 6f, torsoRect.centerY() - 4f, 8f, accentPaint)
+                canvas.drawCircle(cx + 6f, torsoRect.centerY() - 4f, 8f, accentPaint)
             }
-            "PIRATE" -> {
-                canvas.drawCircle(cx - 10f, torsoRect.top + 20f, 5f, accentPaint)
-                canvas.drawCircle(cx + 10f, torsoRect.top + 20f, 5f, accentPaint)
-                canvas.drawCircle(cx - 10f, torsoRect.top + 40f, 5f, accentPaint)
-                canvas.drawCircle(cx + 10f, torsoRect.top + 40f, 5f, accentPaint)
-            }
-            "COWBOY" -> {
-                canvas.drawCircle(cx - 12f, torsoRect.top + 18f, 7f, accentPaint)
+            else -> {
+                canvas.drawCircle(cx, torsoRect.centerY(), width * 0.07f, accentPaint)
             }
         }
 
@@ -218,7 +250,7 @@ object CharacterRenderer {
         val headCX = cx
         val headCY = headY
 
-        if (characterId == "ROBOT") {
+        if (characterId.contains("ROBOT")) {
             val headRect = RectF(headCX - headRadius, headCY - headRadius, headCX + headRadius, headCY + headRadius)
             hairHatPaint.shader = LinearGradient(headRect.left, headRect.top, headRect.right, headRect.bottom, hairHatPaint.color, darkenColor(hairHatPaint.color, 0.7f), Shader.TileMode.CLAMP)
             canvas.drawRoundRect(headRect, 18f, 18f, hairHatPaint)
@@ -239,9 +271,8 @@ object CharacterRenderer {
             val eyeX2 = headCX + headRadius * 0.65f
             val eyeY = headCY - headRadius * 0.05f
 
-            // Eyebrows
             val browPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#3E2723"); strokeWidth = 4f; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
-            if (characterId != "NINJA") {
+            if (!characterId.contains("NINJA")) {
                canvas.drawLine(eyeX1 - 8f, eyeY - 14f, eyeX1 + 8f, eyeY - 10f, browPaint)
                canvas.drawLine(eyeX2 - 8f, eyeY - 10f, eyeX2 + 8f, eyeY - 14f, browPaint)
             }
@@ -260,8 +291,8 @@ object CharacterRenderer {
             canvas.drawCircle(eyeX1, eyeY + 12f, 6f, cheekPaint)
             canvas.drawCircle(eyeX2, eyeY + 12f, 6f, cheekPaint)
 
-            when (characterId) {
-                "DEFAULT" -> {
+            when {
+                characterId == "DEFAULT" -> {
                     val hoodPath = Path().apply {
                         moveTo(headCX - headRadius - 8f, headCY + headRadius + 4f)
                         quadTo(headCX - headRadius - 12f, headCY - headRadius - 12f, headCX, headCY - headRadius - 16f)
@@ -285,7 +316,7 @@ object CharacterRenderer {
                     canvas.drawLine(eyeX1 - 8f, eyeY - 10f, eyeX1 + 8f, eyeY - 14f, browPaint)
                     canvas.drawLine(eyeX2 - 8f, eyeY - 14f, eyeX2 + 8f, eyeY - 10f, browPaint)
                 }
-                "NINJA" -> {
+                characterId.contains("NINJA") || characterId.contains("HUNTER") -> {
                     val maskRect = RectF(headCX - headRadius, headCY, headCX + headRadius, headCY + headRadius)
                     outfitPaint.shader = LinearGradient(maskRect.left, maskRect.top, maskRect.right, maskRect.bottom, outfitPaint.color, darkenColor(outfitPaint.color, 0.7f), Shader.TileMode.CLAMP)
                     canvas.drawRoundRect(maskRect, 10f, 10f, outfitPaint)
@@ -296,34 +327,7 @@ object CharacterRenderer {
                     canvas.drawRect(bandRect, accentPaint)
                     canvas.drawRect(bandRect, darkOutlinePaint)
                 }
-                "GIRL" -> {
-                    hairHatPaint.shader = RadialGradient(headCX - headRadius * 0.4f, headCY - headRadius * 0.5f, headRadius * 0.8f, hairHatPaint.color, darkenColor(hairHatPaint.color, 0.7f), Shader.TileMode.CLAMP)
-                    canvas.drawCircle(headCX - headRadius * 0.4f, headCY - headRadius * 0.5f, headRadius * 0.8f, hairHatPaint)
-                    canvas.drawCircle(headCX - headRadius * 0.4f, headCY - headRadius * 0.5f, headRadius * 0.8f, darkOutlinePaint)
-                    hairHatPaint.shader = null
-                    canvas.drawCircle(headCX - headRadius * 0.5f, headCY - headRadius * 0.8f, 10f, accentPaint)
-                }
-                "PIRATE" -> {
-                    val hatPath = Path().apply {
-                        moveTo(headCX - headRadius * 1.5f, headCY - headRadius * 0.2f)
-                        quadTo(headCX, headCY - headRadius * 1.6f, headCX + headRadius * 1.5f, headCY - headRadius * 0.2f)
-                        close()
-                    }
-                    hairHatPaint.shader = LinearGradient(headCX, headCY - headRadius * 1.6f, headCX, headCY, hairHatPaint.color, darkenColor(hairHatPaint.color, 0.7f), Shader.TileMode.CLAMP)
-                    canvas.drawPath(hatPath, hairHatPaint)
-                    canvas.drawPath(hatPath, darkOutlinePaint)
-                    hairHatPaint.shader = null
-                    canvas.drawLine(headCX - headRadius * 1.4f, headCY - headRadius * 0.3f, headCX + headRadius * 1.4f, headCY - headRadius * 0.3f, accentPaint)
-                }
-                "COWBOY" -> {
-                    val brimRect = RectF(headCX - headRadius * 1.6f, headCY - headRadius * 0.5f, headCX + headRadius * 1.6f, headCY - headRadius * 0.2f)
-                    canvas.drawRoundRect(brimRect, 14f, 14f, hairHatPaint)
-                    canvas.drawRoundRect(brimRect, 14f, 14f, darkOutlinePaint)
-                    val crownRect = RectF(headCX - headRadius * 0.8f, headCY - headRadius * 1.4f, headCX + headRadius * 0.8f, headCY - headRadius * 0.4f)
-                    canvas.drawRoundRect(crownRect, 16f, 16f, hairHatPaint)
-                    canvas.drawRoundRect(crownRect, 16f, 16f, darkOutlinePaint)
-                }
-                "ICE", "DESERT", "LAVA", "NEON", "FOREST", "GALAXY" -> {
+                else -> {
                     val crownRect = RectF(headCX - headRadius * 1.1f, headCY - headRadius * 1.3f, headCX + headRadius * 1.1f, headCY - headRadius * 0.5f)
                     canvas.drawRoundRect(crownRect, 12f, 12f, accentPaint)
                     canvas.drawRoundRect(crownRect, 12f, 12f, darkOutlinePaint)

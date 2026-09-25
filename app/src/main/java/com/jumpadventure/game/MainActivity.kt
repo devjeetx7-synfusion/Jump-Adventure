@@ -325,7 +325,7 @@ class MainActivity : AppCompatActivity() {
      * LEVEL MAP SCREEN
      * ------------------------------------------------------------------------ */
     private fun openLevelMapScreen() {
-        val currentWorld = WorldRepository.getWorldForLevel(saveData.currentLevel)
+        val currentWorld = WorldRepository.getWorldForLevel(saveData.highestLevel)
         incLevelMap.findViewById<TextView>(R.id.tvMapWorldTitle).text = "WORLD ${currentWorld.id}"
         incLevelMap.findViewById<TextView>(R.id.tvMapWorldSub).text = currentWorld.name
 
@@ -340,7 +340,6 @@ class MainActivity : AppCompatActivity() {
         val mapView = com.jumpadventure.game.graphics.LevelMapView(this).apply {
             selectedCharacterId = saveData.selectedCharacter
             setupMap(
-                worldInfo = currentWorld,
                 highestLevel = saveData.highestLevel,
                 currentLevel = saveData.currentLevel,
                 levelStars = saveData.levelStars
@@ -357,7 +356,8 @@ class MainActivity : AppCompatActivity() {
 
         val scrollView = incLevelMap.findViewById<ScrollView>(R.id.mapScrollView)
         scrollView.post {
-            scrollView.fullScroll(View.FOCUS_DOWN)
+            val targetY = mapView.getScrollYForLevel(saveData.highestLevel, scrollView.height)
+            scrollView.scrollTo(0, targetY)
         }
     }
 
@@ -751,14 +751,7 @@ class MainActivity : AppCompatActivity() {
         val container = incSecondary.findViewById<LinearLayout>(R.id.secondaryContentContainer)
         container.removeAllViews()
 
-        val characterList = listOf(
-            CharacterItem("DEFAULT", "Red Hoodie", 0, 0, "Default adventurous hero", "#E53935"),
-            CharacterItem("NINJA", "Shadow Ninja", 3000, 0, "Fast shadow warrior", "#212121"),
-            CharacterItem("ROBOT", "Cyber Bot", 5000, 0, "Metallic high jumper", "#78909C"),
-            CharacterItem("GIRL", "Pink Runner", 3000, 0, "Stylish cute runner", "#EC407A"),
-            CharacterItem("PIRATE", "Captain Red", 4000, 0, "Seafaring adventurer", "#D84315"),
-            CharacterItem("COWBOY", "Wild Ranger", 4000, 0, "Outlaw quick jumper", "#8D6E63")
-        )
+        val characterList = getFullCharacterList()
 
         var currentRow: LinearLayout? = null
         val density = resources.displayMetrics.density
@@ -1033,21 +1026,38 @@ class MainActivity : AppCompatActivity() {
         showScreen("SECONDARY")
     }
 
-    private fun renderShopCharacters(container: LinearLayout, density: Float) {
-        val characterList = listOf(
-            CharacterItem("DEFAULT", "Red Hoodie", 0, 0, "Default adventurous hero", "#E53935"),
-            CharacterItem("NINJA", "Shadow Ninja", 3000, 0, "Fast shadow warrior", "#212121"),
-            CharacterItem("ROBOT", "Cyber Bot", 5000, 0, "Metallic high jumper", "#78909C"),
-            CharacterItem("GIRL", "Pink Runner", 3000, 0, "Stylish cute runner", "#EC407A"),
-            CharacterItem("PIRATE", "Captain Red", 4000, 0, "Seafaring adventurer", "#D84315"),
-            CharacterItem("COWBOY", "Wild Ranger", 4000, 0, "Outlaw quick jumper", "#8D6E63"),
-            CharacterItem("ICE", "Ice Runner", 5000, 0, "Frosty speed runner", "#00ACC1"),
-            CharacterItem("DESERT", "Desert Runner", 5000, 0, "Dune explorer", "#FB8C00"),
-            CharacterItem("LAVA", "Lava Warrior", 6000, 0, "Fiery cavern jumper", "#D84315"),
-            CharacterItem("NEON", "Neon Runner", 6000, 0, "Cyberpunk sprinter", "#00E676"),
-            CharacterItem("FOREST", "Forest Guardian", 7000, 0, "Nature protector", "#4CAF50"),
-            CharacterItem("GALAXY", "Galaxy Hero", 8000, 0, "Cosmic space jumper", "#7B1FA2")
+    private fun getFullCharacterList(): List<CharacterItem> {
+        return listOf(
+            CharacterItem("DEFAULT", "Red Hoodie", 0, 0, "Default adventurous hero", "#E53935", "Standard", "Balanced jump & speed"),
+            CharacterItem("ICE_WARRIOR", "Ice Warrior", 5000, 0, "Frosty warrior jumper", "#00ACC1", "Freeze Hazards", "Slows all level hazards & enemies by 50%"),
+            CharacterItem("DESERT_RUNNER", "Desert Runner", 5000, 0, "Dune sprinter explorer", "#FB8C00", "Dune Explorer", "High speed across desert terrain"),
+            CharacterItem("LAVA_KNIGHT", "Lava Knight", 6000, 0, "Fiery cavern warrior", "#D84315", "Fire Resistance", "Immune to spike hazard damage"),
+            CharacterItem("FOREST_GUARDIAN", "Forest Guardian", 7000, 0, "Nature protector", "#4CAF50", "Magnet Boost", "Passive coin magnet always active"),
+            CharacterItem("NEON_RUNNER", "Neon Runner", 6000, 0, "Cyberpunk sprinter", "#00E676", "Speed Burst", "Permanent +20% movement speed boost"),
+            CharacterItem("GALAXY_HERO", "Galaxy Hero", 8000, 0, "Cosmic space jumper", "#7B1FA2", "Double Jump", "Allows mid-air second jump"),
+            CharacterItem("STORM_RIDER", "Storm Rider", 7500, 0, "Thunder rider hero", "#0284C7", "Speed Burst", "+20% movement speed boost"),
+            CharacterItem("SAMURAI", "Samurai", 7500, 0, "Honor blade warrior", "#B91C1C", "Sword Shield", "Starts level with protective shield"),
+            CharacterItem("ROBOT_X", "Robot X", 8000, 0, "Metallic high jumper", "#78909C", "Energy Shield", "Starts level with energy shield"),
+            CharacterItem("CRYSTAL_MAGE", "Crystal Mage", 9000, 0, "Enchanted spellcaster", "#6D28D9", "Double Jump", "Allows mid-air second jump"),
+            CharacterItem("SHADOW_HUNTER", "Shadow Hunter", 8500, 0, "Dark stealth warrior", "#111111", "Shadow Dash", "High speed stealth movement"),
+            CharacterItem("PIRATE", "Captain Red", 4000, 0, "Seafaring adventurer", "#D84315", "Treasure Bonus", "+50% coins collected"),
+            CharacterItem("EXPLORER", "Explorer", 4500, 0, "Outlaw quick jumper", "#8D6E63", "Treasure Bonus", "+50% coins collected"),
+            CharacterItem("CYBER_NINJA", "Cyber Ninja", 8500, 0, "High tech assassin", "#212121", "Shadow Dash", "High speed stealth movement"),
+            CharacterItem("GOLDEN_WARRIOR", "Golden Warrior", 10000, 0, "Shimmering gold champion", "#D97706", "Coin Bonus", "Collect +50% extra coins"),
+            CharacterItem("ARCTIC_RANGER", "Arctic Ranger", 6500, 0, "Frost mountain scout", "#0284C7", "Freeze Hazards", "Slows all level hazards & enemies"),
+            CharacterItem("THUNDER_HERO", "Thunder Hero", 9500, 0, "Lightning speed hero", "#F59E0B", "Speed Burst", "+20% movement speed boost"),
+            CharacterItem("VOID_WALKER", "Void Walker", 12000, 0, "Cosmic void traveler", "#4C1D95", "Double Jump", "Allows mid-air second jump"),
+            CharacterItem("JUNGLE_FIGHTER", "Jungle Fighter", 7500, 0, "Wild canopy fighter", "#059669", "Magnet Boost", "Passive coin magnet always active"),
+            CharacterItem("SPACE_RUNNER", "Space Runner", 11000, 0, "Starlight explorer", "#2563EB", "Double Jump", "Allows mid-air second jump"),
+            CharacterItem("NINJA", "Shadow Ninja", 3000, 0, "Fast shadow warrior", "#212121", "Shadow Dash", "High speed movement"),
+            CharacterItem("ROBOT", "Cyber Bot", 5000, 0, "Metallic high jumper", "#78909C", "Energy Shield", "Starts level with shield"),
+            CharacterItem("GIRL", "Pink Runner", 3000, 0, "Stylish cute runner", "#EC407A", "Agility Boost", "Lightweight jumper"),
+            CharacterItem("COWBOY", "Wild Ranger", 4000, 0, "Outlaw quick jumper", "#8D6E63", "Quick Draw", "Enhanced movement precision")
         )
+    }
+
+    private fun renderShopCharacters(container: LinearLayout, density: Float) {
+        val characterList = getFullCharacterList()
 
         var currentRow: LinearLayout? = null
 
@@ -1515,10 +1525,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderShopCurrency(container: LinearLayout, density: Float) {
         val packs = listOf(
-            Triple("Small Coin Pack", 500, "Daily Explorer Boost"),
-            Triple("Medium Coin Pack", 1500, "Adventurer Chest"),
-            Triple("Large Coin Pack", 5000, "Treasure Hoard"),
-            Triple("Mega Gem Pack", 50, "Shiny Gem Stash")
+            Triple("1,000 Coin Pack", 1000, "Daily Starter Pack"),
+            Triple("5,000 Coin Pack", 5000, "Adventurer Pouch"),
+            Triple("25,000 Coin Pack", 25000, "Treasure Chest"),
+            Triple("100,000 Coin Pack", 100000, "Vault Hoard"),
+            Triple("500,000 Coin Pack", 500000, "Royal Treasury"),
+            Triple("1,000,000 Coin Pack", 1000000, "Millionaire Stash"),
+            Triple("50 Gem Pack", 50, "Small Gem Pouch"),
+            Triple("150 Gem Pack", 150, "Shiny Gem Bag"),
+            Triple("500 Gem Pack", 500, "Gem Box"),
+            Triple("1,500 Gem Pack", 1500, "Gem Chest"),
+            Triple("5,000 Gem Pack", 5000, "Crystal Vault"),
+            Triple("10,000 Gem Pack", 10000, "Cosmic Gem Hoard")
         )
 
         var currentRow: LinearLayout? = null
