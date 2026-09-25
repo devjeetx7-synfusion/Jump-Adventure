@@ -11,6 +11,13 @@
         android:scaleType="centerCrop"
         android:src="@drawable/home_bg" />
 
+    <!-- Screen-specific Dark/Colored Veil Overlay for Readability -->
+    <View
+        android:id="@+id/secondaryVeilOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#260B1426" />
+
     <!-- TOP HUD BAR -->
     <RelativeLayout
         android:id="@+id/secondaryTopBar"
@@ -68,6 +75,7 @@
         android:paddingHorizontal="16dp"
         android:paddingBottom="16dp"
         android:scrollbars="none"
+        android:overScrollMode="never"
         android:fadingEdge="none">
 
         <LinearLayout

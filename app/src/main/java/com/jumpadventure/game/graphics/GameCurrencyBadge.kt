@@ -2,9 +2,11 @@ package com.jumpadventure.game.graphics
 
 import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import androidx.core.content.ContextCompat
 import com.jumpadventure.game.R
 
 class GameCurrencyBadge @JvmOverloads constructor(
@@ -44,7 +46,6 @@ class GameCurrencyBadge @JvmOverloads constructor(
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 3f
-        color = Color.parseColor("#E2E8F0")
     }
     private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#40FFFFFF")
@@ -74,19 +75,19 @@ class GameCurrencyBadge @JvmOverloads constructor(
     private val plusRect = RectF()
     private val plusShadowRect = RectF()
 
-    private var coinBitmap: Bitmap? = null
-    private var gemBitmap: Bitmap? = null
+    private var coinDrawable: Drawable? = null
+    private var gemDrawable: Drawable? = null
 
     init {
         isClickable = true
         isFocusable = true
-        loadBitmaps()
+        loadDrawables()
     }
 
-    private fun loadBitmaps() {
+    private fun loadDrawables() {
         runCatching {
-            coinBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_coin)
-            gemBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_gem)
+            coinDrawable = ContextCompat.getDrawable(context, R.drawable.ic_coin)
+            gemDrawable = ContextCompat.getDrawable(context, R.drawable.ic_gem)
         }
     }
 
@@ -198,28 +199,35 @@ class GameCurrencyBadge @JvmOverloads constructor(
             Shader.TileMode.CLAMP
         )
         canvas.drawRoundRect(pillRect, pillR, pillR, bgPaint)
+
+        borderPaint.color = if (type == CurrencyType.COIN) Color.parseColor("#FFD43B") else Color.parseColor("#C084FC")
+        borderPaint.strokeWidth = 2.5f * density
         canvas.drawRoundRect(pillRect, pillR, pillR, borderPaint)
 
         // Pill top highlight
         val highlightRect = RectF(pillRect.left + pillR * 0.5f, pillRect.top + 2f, pillRect.right - pillR * 0.5f, pillRect.top + pillRect.height() * 0.35f)
         canvas.drawRoundRect(highlightRect, 8f, 8f, highlightPaint)
 
-        // 2. Draw Currency Icon on Left
-        val iconSize = (h * 0.65f).coerceIn(24f * density, 30f * density)
+        // 2. Draw Currency Vector Icon on Left
+        val iconSize = (h * 0.68f).coerceIn(24f * density, 30f * density)
         val iconX = pillRect.left + 5f * density
         val iconY = (h - iconSize) / 2f
 
-        val iconBmp = if (type == CurrencyType.COIN) coinBitmap else gemBitmap
-        if (iconBmp != null && !iconBmp.isRecycled) {
-            val src = Rect(0, 0, iconBmp.width, iconBmp.height)
-            val dst = RectF(iconX, iconY, iconX + iconSize, iconY + iconSize)
-            canvas.drawBitmap(iconBmp, src, dst, null)
+        val iconDrawable = if (type == CurrencyType.COIN) coinDrawable else gemDrawable
+        if (iconDrawable != null) {
+            iconDrawable.setBounds(
+                iconX.toInt(),
+                iconY.toInt(),
+                (iconX + iconSize).toInt(),
+                (iconY + iconSize).toInt()
+            )
+            iconDrawable.draw(canvas)
         }
 
         // 3. Draw Number Typography
         val textSizeDp = 14f
         textPaint.textSize = textSizeDp * density
-        val textX = iconX + iconSize + 5f * density
+        val textX = iconX + iconSize + 6f * density
         val textY = h / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
         canvas.drawText(formattedText, textX, textY, textPaint)
 

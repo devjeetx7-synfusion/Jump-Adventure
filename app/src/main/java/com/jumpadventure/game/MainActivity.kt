@@ -286,6 +286,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateSecondaryScreenVeilOverlay(veilColor: Int) {
+        val veilView = incSecondary.findViewById<View>(R.id.secondaryVeilOverlay) ?: return
+        veilView.setBackgroundColor(veilColor)
+    }
+
     private fun showScreen(screenName: String) {
         currentScreenName = screenName
         incMainMenu.visibility = View.GONE
@@ -519,7 +524,9 @@ class MainActivity : AppCompatActivity() {
 
         applyOverlayResponsiveSizing(isLevelComplete = true)
 
-        val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
+        val board = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogBoardView>(R.id.vDialogBoard)
+        board.boardType = com.jumpadventure.game.graphics.GameDialogBoardView.BoardType.WINNER
+
         val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
         val sub = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
         val stars3D = incOverlay.findViewById<com.jumpadventure.game.graphics.Stars3DView>(R.id.vOverlayStars3D)
@@ -529,7 +536,6 @@ class MainActivity : AppCompatActivity() {
         val secondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
         val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
-        board.setImageResource(R.drawable.winner_bg)
         curvedTitle.titleText = "LEVEL COMPLETE!"
         sub.text = "LEVEL ${saveData.currentLevel}"
 
@@ -627,7 +633,9 @@ class MainActivity : AppCompatActivity() {
 
         applyOverlayResponsiveSizing(isLevelComplete = false)
 
-        val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
+        val board = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogBoardView>(R.id.vDialogBoard)
+        board.boardType = com.jumpadventure.game.graphics.GameDialogBoardView.BoardType.PAUSE
+
         val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
         val sub = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
 
@@ -635,7 +643,6 @@ class MainActivity : AppCompatActivity() {
         val secondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
         val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
-        board.setImageResource(R.drawable.pause_board)
         incOverlay.findViewById<android.widget.ImageView>(R.id.ivOverlayCrown).visibility = View.GONE
         curvedTitle.titleText = "GAME PAUSED"
         sub.text = "LEVEL ${saveData.currentLevel}"
@@ -694,6 +701,7 @@ class MainActivity : AppCompatActivity() {
      * CHARACTERS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openCharactersScreen() {
+        updateSecondaryScreenVeilOverlay(Color.parseColor("#260F172A")) // Soft navy overlay
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "HEROES"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -919,6 +927,7 @@ class MainActivity : AppCompatActivity() {
      * SHOP SCREEN
      * ------------------------------------------------------------------------ */
     private fun openShopScreen() {
+        updateSecondaryScreenVeilOverlay(Color.parseColor("#26382109")) // Soft warm gold overlay
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "SHOP"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -1034,6 +1043,7 @@ class MainActivity : AppCompatActivity() {
      * WORLDS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openWorldsScreen() {
+        updateSecondaryScreenVeilOverlay(Color.parseColor("#260F2A38")) // Soft blue/teal overlay
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "WORLDS"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -1060,8 +1070,8 @@ class MainActivity : AppCompatActivity() {
                 background = android.graphics.drawable.GradientDrawable().apply {
                     cornerRadius = 24f * density
                     setStroke((2.5f * density).toInt(), Color.parseColor("#7AA7C7E8"))
-                setColor(Color.parseColor("#241E293B"))
-                elevation = 8f * density
+                    setColor(Color.parseColor("#241E293B"))
+                    elevation = 8f * density
                 }
                 clipToOutline = true
             }
@@ -1228,6 +1238,7 @@ class MainActivity : AppCompatActivity() {
      * ACHIEVEMENTS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openAchievementsScreen() {
+        updateSecondaryScreenVeilOverlay(Color.parseColor("#261E0F38")) // Soft purple/blue overlay
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "TROPHIES"
         secondaryBadgeCoins.visibility = View.VISIBLE
@@ -1354,6 +1365,7 @@ class MainActivity : AppCompatActivity() {
      * SETTINGS SCREEN
      * ------------------------------------------------------------------------ */
     private fun openSettingsScreen() {
+        updateSecondaryScreenVeilOverlay(Color.parseColor("#260B1426")) // Soft navy overlay
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "SETTINGS"
         secondaryBadgeCoins.visibility = View.GONE
@@ -1372,7 +1384,7 @@ class MainActivity : AppCompatActivity() {
         val soundBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
             mainText = "SOUND EFFECTS"
             subText = if (saveData.soundEnabled) "STATE: ON" else "STATE: OFF"
-            variant = if (saveData.soundEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
             ).apply { setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt()) }
@@ -1382,7 +1394,6 @@ class MainActivity : AppCompatActivity() {
                 soundManager.soundEnabled = saveData.soundEnabled
                 saveManager.saveData(saveData)
                 subText = if (saveData.soundEnabled) "STATE: ON" else "STATE: OFF"
-                variant = if (saveData.soundEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
             }
         }
         container.addView(soundBtn)
@@ -1391,7 +1402,7 @@ class MainActivity : AppCompatActivity() {
         val musicBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
             mainText = "BACKGROUND MUSIC"
             subText = if (saveData.musicEnabled) "STATE: ON" else "STATE: OFF"
-            variant = if (saveData.musicEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
             ).apply { setMargins(0, (8 * density).toInt(), 0, (8 * density).toInt()) }
@@ -1401,7 +1412,6 @@ class MainActivity : AppCompatActivity() {
                 soundManager.musicEnabled = saveData.musicEnabled
                 saveManager.saveData(saveData)
                 subText = if (saveData.musicEnabled) "STATE: ON" else "STATE: OFF"
-                variant = if (saveData.musicEnabled) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
             }
         }
         container.addView(musicBtn)
