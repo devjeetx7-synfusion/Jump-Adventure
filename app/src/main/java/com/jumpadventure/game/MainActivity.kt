@@ -1055,11 +1055,13 @@ class MainActivity : AppCompatActivity() {
             val cardFrame = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    (200 * density).toInt()
+                    (214 * density).toInt()
                 ).apply { setMargins(0, (10 * density).toInt(), 0, (10 * density).toInt()) }
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = 22f * density
-                    setStroke((3.5f * density).toInt(), Color.parseColor("#3B82F6"))
+                    cornerRadius = 24f * density
+                    setStroke((2.5f * density).toInt(), Color.parseColor("#7AA7C7E8"))
+                setColor(Color.parseColor("#241E293B"))
+                elevation = 8f * density
                 }
                 clipToOutline = true
             }
@@ -1110,7 +1112,7 @@ class MainActivity : AppCompatActivity() {
 
             val tvWorldTitle = TextView(this).apply {
                 text = "WORLD ${world.id}: ${world.name.uppercase()}"
-                textSize = 21f
+                textSize = 19f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.WHITE)
                 setShadowLayer(8f, 0f, 4f, Color.parseColor("#0F172A"))
@@ -1128,8 +1130,55 @@ class MainActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, (4 * density).toInt(), 0, (14 * density).toInt()) }
+                ).apply { setMargins(0, (3 * density).toInt(), 0, (6 * density).toInt()) }
             }
+
+            val rewardRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    (34 * density).toInt()
+                ).apply { setMargins(0, 0, 0, (7 * density).toInt()) }
+            }
+
+            fun addRewardBadge(iconRes: Int, value: String, coin: Boolean) {
+                val badge = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = 17f * density
+                        setColor(Color.parseColor(if (coin) "#D9A9600A" else "#D96A1BB1"))
+                        setStroke((1.5f * density).toInt(), Color.parseColor("#BFFFFFFF"))
+                    }
+                    setPadding((7 * density).toInt(), 0, (10 * density).toInt(), 0)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        (32 * density).toInt()
+                    ).apply {
+                        if (rewardRow.childCount > 0) setMargins((7 * density).toInt(), 0, 0, 0)
+                    }
+                }
+                val icon = ImageView(this@MainActivity).apply {
+                    setImageResource(iconRes)
+                    layoutParams = LinearLayout.LayoutParams((23 * density).toInt(), (23 * density).toInt())
+                }
+                val tv = TextView(this@MainActivity).apply {
+                    text = value
+                    textSize = 12f
+                    typeface = Typeface.DEFAULT_BOLD
+                    setTextColor(Color.WHITE)
+                    setPadding((5 * density).toInt(), 0, 0, 0)
+                }
+                badge.addView(icon)
+                badge.addView(tv)
+                rewardRow.addView(badge)
+            }
+
+            val coinReward = maxOf(100, world.id * 100)
+            val gemReward = maxOf(1, world.id * 2)
+            addRewardBadge(R.drawable.ic_coin, "+$coinReward", true)
+            addRewardBadge(R.drawable.ic_gem, "+$gemReward", false)
 
             val statusBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
                 if (isUnlocked) {
@@ -1162,6 +1211,7 @@ class MainActivity : AppCompatActivity() {
 
             contentLayout.addView(tvWorldTitle)
             contentLayout.addView(tvWorldLevels)
+            contentLayout.addView(rewardRow)
             contentLayout.addView(statusBtn)
 
             cardFrame.addView(bgImageView)
