@@ -26,7 +26,7 @@ class SparkleView @JvmOverloads constructor(
         var shape: Int = 0 // 0: star/diamond, 1: circle
     )
 
-    private val particles = Array(72) { Particle() }
+    private val particles = Array(96) { Particle() }
     private val sparkleGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val starPath = Path()
