@@ -1,9 +1,11 @@
 package com.jumpadventure.game.graphics
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.OvershootInterpolator
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -19,20 +21,43 @@ class Stars3DView @JvmOverloads constructor(
             invalidate()
         }
 
+    private val starScales = floatArrayOf(1f, 1f, 1f)
+
     private val starPath = Path()
     private val starFacePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val starShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#9C4200") }
-    private val starUnearnedShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4A5568") }
+    private val starUnearnedShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#334155") }
     private val starStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         color = Color.parseColor("#632200")
     }
     private val unearnedStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.parseColor("#2D3748")
+        color = Color.parseColor("#1E293B")
     }
     private val starHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(200, 255, 255, 255)
+        color = Color.argb(220, 255, 255, 255)
+    }
+
+    fun startPopAnimation() {
+        for (i in 0 until 3) {
+            if (i < starsEarned) {
+                starScales[i] = 0f
+                val anim = ValueAnimator.ofFloat(0f, 1f).apply {
+                    duration = 280
+                    startDelay = (i * 140).toLong()
+                    interpolator = OvershootInterpolator(2.0f)
+                    addUpdateListener { va ->
+                        starScales[i] = va.animatedValue as Float
+                        invalidate()
+                    }
+                }
+                anim.start()
+            } else {
+                starScales[i] = 1f
+            }
+        }
+        invalidate()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -69,14 +94,20 @@ class Stars3DView @JvmOverloads constructor(
         val startX = w / 2f - (count - 1) * spacing / 2f
         val centerY = h / 2f
 
-        starStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2f)
-        unearnedStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2f)
+        starStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2.5f)
+        unearnedStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2.5f)
 
         for (i in 0 until count) {
             val cx = startX + i * spacing
             val isEarned = i < starsEarned
+            val popScale = starScales[i]
 
-            // Middle star is slightly larger for 3D reward feel
+            if (popScale <= 0f) continue
+
+            canvas.save()
+            canvas.scale(popScale, popScale, cx, centerY)
+
+            // Middle star is slightly larger for 3D reward balance
             val scaleFactor = if (i == 1) 1.18f else 1.0f
             val currentSize = starSize * scaleFactor
 
@@ -114,10 +145,10 @@ class Stars3DView @JvmOverloads constructor(
                 LinearGradient(
                     cx - currentSize, centerY - currentSize, cx + currentSize, centerY + currentSize,
                     intArrayOf(
-                        Color.parseColor("#CBD5E0"),
-                        Color.parseColor("#A0AEC0"),
-                        Color.parseColor("#718096"),
-                        Color.parseColor("#4A5568")
+                        Color.parseColor("#E2E8F0"),
+                        Color.parseColor("#94A3B8"),
+                        Color.parseColor("#64748B"),
+                        Color.parseColor("#334155")
                     ),
                     floatArrayOf(0f, 0.35f, 0.75f, 1f),
                     Shader.TileMode.CLAMP
@@ -137,6 +168,8 @@ class Stars3DView @JvmOverloads constructor(
                 }
                 canvas.drawPath(highlightPath, starHighlightPaint)
             }
+
+            canvas.restore()
         }
         starFacePaint.shader = null
     }

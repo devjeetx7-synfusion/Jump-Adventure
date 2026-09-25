@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:minHeight="64dp"
+        android:minHeight="58dp"
         android:clipChildren="false"
         android:paddingStart="16dp"
         android:paddingTop="8dp"
@@ -27,210 +27,58 @@
 
         <ImageButton
             android:id="@+id/btnSettings"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_button_game_secondary"
             android:contentDescription="Settings"
-            android:padding="11dp"
+            android:padding="10dp"
             android:src="@drawable/ic_settings" />
 
         <LinearLayout
             android:id="@+id/currencyContainer"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="44dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <LinearLayout
+            <com.jumpadventure.game.graphics.GameCurrencyBadge
+                android:id="@+id/badgeCoins"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:layout_marginEnd="7dp"
-                android:background="@drawable/bg_pill_badge"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="5dp"
-                android:paddingEnd="10dp">
+                android:layout_height="44dp"
+                android:layout_marginEnd="6dp" />
 
-                <ImageView
-                    android:layout_width="27dp"
-                    android:layout_height="27dp"
-                    android:src="@drawable/ic_coin" />
-
-                <TextView
-                    android:id="@+id/tvCoins"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="5dp"
-                    android:maxLines="1"
-                    android:text="1,250"
-                    android:textColor="@color/game_text_dark"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout
+            <com.jumpadventure.game.graphics.GameCurrencyBadge
+                android:id="@+id/badgeGems"
                 android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_pill_badge"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="5dp"
-                android:paddingEnd="10dp">
-
-                <ImageView
-                    android:layout_width="27dp"
-                    android:layout_height="27dp"
-                    android:src="@drawable/ic_gem" />
-
-                <TextView
-                    android:id="@+id/tvGems"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="5dp"
-                    android:maxLines="1"
-                    android:text="35"
-                    android:textColor="@color/game_text_dark"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                android:layout_height="44dp" />
         </LinearLayout>
     </RelativeLayout>
 
-    <LinearLayout
-        android:id="@+id/bottomNavContainer"
+    <com.jumpadventure.game.graphics.GameBottomNavView
+        android:id="@+id/bottomNavView"
         android:layout_width="match_parent"
         android:layout_height="72dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/bg_bottom_nav_container"
-        android:elevation="10dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
-        android:weightSum="4">
-
-        <LinearLayout
-            android:id="@+id/navShop"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingVertical="4dp">
-            <ImageView
-                android:id="@+id/ivNavShop"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:src="@drawable/ic_shop" />
-            <TextView
-                android:id="@+id/tvNavShop"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Shop"
-                android:textColor="@color/game_text_dark"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navCharacters"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingVertical="4dp">
-            <ImageView
-                android:id="@+id/ivNavCharacters"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:src="@drawable/ic_hero" />
-            <TextView
-                android:id="@+id/tvNavCharacters"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Heroes"
-                android:textColor="@color/game_text_dark"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navWorlds"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingVertical="4dp">
-            <ImageView
-                android:id="@+id/ivNavWorlds"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:src="@drawable/ic_world" />
-            <TextView
-                android:id="@+id/tvNavWorlds"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Worlds"
-                android:textColor="@color/game_text_dark"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navAchievements"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingVertical="4dp">
-            <ImageView
-                android:id="@+id/ivNavAchievements"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:src="@drawable/ic_trophy" />
-            <TextView
-                android:id="@+id/tvNavAchievements"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Trophies"
-                android:textColor="@color/game_text_dark"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-    </LinearLayout>
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="8dp" />
 
     <FrameLayout
         android:id="@+id/homeContentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/topBar"
-        android:layout_above="@id/bottomNavContainer"
+        android:layout_above="@id/bottomNavView"
         android:clipChildren="false">
 
         <ImageView
             android:id="@+id/ivHomeLogo"
-            android:layout_width="310dp"
-            android:layout_height="145dp"
+            android:layout_width="330dp"
+            android:layout_height="155dp"
             android:layout_gravity="top|center_horizontal"
             android:adjustViewBounds="true"
             android:contentDescription="Jump Adventure Logo"
@@ -242,7 +90,7 @@
             android:layout_width="190dp"
             android:layout_height="218dp"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="104dp"
+            android:layout_marginBottom="110dp"
             android:adjustViewBounds="true"
             android:contentDescription="Mountain Platform"
             android:scaleType="fitCenter"
@@ -253,7 +101,7 @@
             android:layout_width="190dp"
             android:layout_height="210dp"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="290dp"
+            android:layout_marginBottom="295dp"
             android:clipChildren="false" />
 
         <com.jumpadventure.game.graphics.GamePrimaryButton
@@ -261,7 +109,7 @@
             android:layout_width="320dp"
             android:layout_height="78dp"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="18dp" />
 
     </FrameLayout>
 

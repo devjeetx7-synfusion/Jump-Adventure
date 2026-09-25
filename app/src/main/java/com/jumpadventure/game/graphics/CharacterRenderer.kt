@@ -36,25 +36,31 @@ object CharacterRenderer {
 
         when (animState) {
             AnimState.IDLE -> {
-                bounceY = (sin(animTime * 4f.toDouble()) * (height * 0.03f)).toFloat()
+                // Natural standing / walking loop without vertical bouncing on the platform
+                bounceY = 0f
+                legAngle1 = (sin(animTime * 3.5f.toDouble()) * 12f).toFloat()
+                legAngle2 = (-sin(animTime * 3.5f.toDouble()) * 12f).toFloat()
+                armAngle1 = (-sin(animTime * 3.5f.toDouble()) * 14f).toFloat()
+                armAngle2 = (sin(animTime * 3.5f.toDouble()) * 14f).toFloat()
             }
             AnimState.RUN -> {
-                bounceY = abs(sin(animTime * 12f.toDouble()) * (height * 0.05f)).toFloat()
+                bounceY = abs(sin(animTime * 12f.toDouble()) * (height * 0.04f)).toFloat()
                 legAngle1 = (sin(animTime * 12f.toDouble()) * 30f).toFloat()
                 legAngle2 = (-sin(animTime * 12f.toDouble()) * 30f).toFloat()
                 armAngle1 = (-sin(animTime * 12f.toDouble()) * 35f).toFloat()
                 armAngle2 = (sin(animTime * 12f.toDouble()) * 35f).toFloat()
             }
             AnimState.JUMP -> {
-                bounceY = -height * 0.05f
+                bounceY = 0f
                 scaleY = 1.15f
                 scaleX = 0.9f
-                legAngle1 = -20f
+                legAngle1 = -22f
                 legAngle2 = 25f
-                armAngle1 = -45f
-                armAngle2 = 30f
+                armAngle1 = -50f
+                armAngle2 = 35f
             }
             AnimState.FALL -> {
+                bounceY = 0f
                 scaleY = 0.95f
                 scaleX = 1.05f
                 legAngle1 = 15f
@@ -270,8 +276,8 @@ object CharacterRenderer {
                         canvas.drawCircle(eyeX1 + 3f, eyeY - 3f, width * 0.02f, eyeHighlightPaint)
                         canvas.drawCircle(eyeX2 + 3f, eyeY - 3f, width * 0.02f, eyeHighlightPaint)
                     }
-                    canvas.drawLine(eyeX1 - 8f, eyeY - 14f, eyeX1 + 8f, eyeY - 10f, browPaint)
-                    canvas.drawLine(eyeX2 - 8f, eyeY - 10f, eyeX2 + 8f, eyeY - 14f, browPaint)
+                    canvas.drawLine(eyeX1 - 8f, eyeY - 10f, eyeX1 + 8f, eyeY - 14f, browPaint)
+                    canvas.drawLine(eyeX2 - 8f, eyeY - 14f, eyeX2 + 8f, eyeY - 10f, browPaint)
                 }
                 "NINJA" -> {
                     val maskRect = RectF(headCX - headRadius, headCY, headCX + headRadius, headCY + headRadius)
