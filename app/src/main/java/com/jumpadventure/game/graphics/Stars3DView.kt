@@ -22,6 +22,13 @@ class Stars3DView @JvmOverloads constructor(
         }
 
     private val starScales = floatArrayOf(1f, 1f, 1f)
+    private val shimmerOffsets = floatArrayOf(-1f, -1f, -1f)
+    private val shimmerAnimators = arrayOfNulls<ValueAnimator>(3)
+    private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+        alpha = 150
+    }
 
     private val starPath = Path()
     private val starFacePaint = Paint(Paint.ANTI_ALIAS_FLAG)
