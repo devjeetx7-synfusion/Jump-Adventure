@@ -167,7 +167,7 @@ class GameDialogBoardView @JvmOverloads constructor(
                 boardRect.right - 18f * d to boardRect.bottom - 18f * d
             )) {
                 canvas.drawCircle(x, y, boltR, sparklePaint)
-                canvas.drawCircle(x, y, boltR * 0.35f, ColorPaintWhite)
+                canvas.drawCircle(x, y, boltR * 0.35f, whiteDotPaint)
             }
         }
 
@@ -177,6 +177,5 @@ class GameDialogBoardView @JvmOverloads constructor(
         highlightPaint.shader = null
     }
 
-    private val ColorPaintWhite: Paint
-        get() = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 180 }
+    private val whiteDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 180 }
 }
