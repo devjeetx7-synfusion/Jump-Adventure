@@ -98,6 +98,12 @@ object CharacterRenderer {
             "GIRL" -> listOf("#EC407A", "#F48FB1", "#FFD54F", "#FFFFFF")
             "PIRATE" -> listOf("#D84315", "#3E2723", "#FFD700", "#3E2723")
             "COWBOY" -> listOf("#8D6E63", "#5D4037", "#FFB300", "#5D4037")
+            "ICE" -> listOf("#00ACC1", "#B2EBF2", "#00E5FF", "#FFFFFF")
+            "DESERT" -> listOf("#FB8C00", "#FFE082", "#FF6D00", "#5D4037")
+            "LAVA" -> listOf("#D84315", "#212121", "#FF3D00", "#212121")
+            "NEON" -> listOf("#00E676", "#212121", "#00E5FF", "#00E676")
+            "FOREST" -> listOf("#4CAF50", "#1B5E20", "#81C784", "#33691E")
+            "GALAXY" -> listOf("#7B1FA2", "#1A237E", "#E040FB", "#4A148C")
             else -> listOf("#E53935", "#37474F", "#FFFFFF", "#FFFFFF")
         }
 
@@ -316,6 +322,11 @@ object CharacterRenderer {
                     val crownRect = RectF(headCX - headRadius * 0.8f, headCY - headRadius * 1.4f, headCX + headRadius * 0.8f, headCY - headRadius * 0.4f)
                     canvas.drawRoundRect(crownRect, 16f, 16f, hairHatPaint)
                     canvas.drawRoundRect(crownRect, 16f, 16f, darkOutlinePaint)
+                }
+                "ICE", "DESERT", "LAVA", "NEON", "FOREST", "GALAXY" -> {
+                    val crownRect = RectF(headCX - headRadius * 1.1f, headCY - headRadius * 1.3f, headCX + headRadius * 1.1f, headCY - headRadius * 0.5f)
+                    canvas.drawRoundRect(crownRect, 12f, 12f, accentPaint)
+                    canvas.drawRoundRect(crownRect, 12f, 12f, darkOutlinePaint)
                 }
             }
         }

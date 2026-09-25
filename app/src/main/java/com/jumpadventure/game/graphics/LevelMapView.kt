@@ -242,9 +242,15 @@ class LevelMapView @JvmOverloads constructor(
             )
 
             if (node.isUnlocked) {
-                // Level Number
-                textPaint.textSize = if (node.isBoss) 34f else 28f
-                canvas.drawText("${node.levelNumber}", node.x, node.y + 10f, textPaint)
+                // Level Number with responsive text size for large numbers
+                val numStr = "${node.levelNumber}"
+                textPaint.textSize = when {
+                    numStr.length >= 5 -> 18f
+                    numStr.length == 4 -> 21f
+                    numStr.length == 3 -> 25f
+                    else -> if (node.isBoss) 32f else 28f
+                }
+                canvas.drawText(numStr, node.x, node.y + textPaint.textSize * 0.35f, textPaint)
 
                 // Star Rating under node
                 if (node.stars > 0) {

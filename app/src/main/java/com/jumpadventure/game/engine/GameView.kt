@@ -50,7 +50,7 @@ class GameView(
 
     private var velocityX = 0f
     private var velocityY = 0f
-    private val moveSpeed = 9f
+    private val baseMoveSpeed = 11f
     private val jumpStrength = -17f
     private val gravity = 0.75f
     private var isGrounded = false
@@ -95,6 +95,18 @@ class GameView(
     )
 
     private val activeElements = mutableListOf<ActiveElement>()
+
+    // Trail Particles
+    private class TrailParticle(
+        var x: Float,
+        var y: Float,
+        var vx: Float,
+        var vy: Float,
+        var alpha: Int,
+        val color: Int,
+        val size: Float
+    )
+    private val trailParticles = mutableListOf<TrailParticle>()
 
     // Cached Background Bitmap & Rects
     private var cachedBgBitmap: Bitmap? = null
@@ -335,15 +347,21 @@ class GameView(
             if (speedTimer <= 0) isSpeedActive = false
         }
 
-        animTick += 1f / 60f
+        val speedMult = saveData.playerSpeedMultiplier.coerceIn(0.75f, 1.50f)
+        val effectiveSpeed = baseMoveSpeed * speedMult * (if (isSpeedActive) 1.5f else 1.0f)
+
+        if (moveLeftPressed || moveRightPressed) {
+            animTick += (1f / 60f) * (effectiveSpeed / baseMoveSpeed)
+        } else {
+            animTick += 1f / 60f
+        }
 
         // Horizontal velocity update
-        val currentSpeed = if (isSpeedActive) moveSpeed * 1.5f else moveSpeed
         if (moveLeftPressed) {
-            velocityX = -currentSpeed
+            velocityX = -effectiveSpeed
             isFacingRight = false
         } else if (moveRightPressed) {
-            velocityX = currentSpeed
+            velocityX = effectiveSpeed
             isFacingRight = true
         } else {
             velocityX = 0f
@@ -351,6 +369,49 @@ class GameView(
 
         // Apply gravity
         velocityY += gravity
+
+        // Spawn movement trail particles
+        if ((velocityX != 0f || velocityY != 0f) && saveData.selectedTrail != "NONE") {
+            val px = playerX + visualWidth / 2f
+            val py = playerY + visualHeight * 0.7f
+            val trailColor = when (saveData.selectedTrail) {
+                "FIRE" -> listOf(Color.YELLOW, Color.RED, Color.parseColor("#FF9F1C")).random()
+                "ICE" -> listOf(Color.CYAN, Color.WHITE, Color.parseColor("#00E5FF")).random()
+                "LIGHTNING" -> listOf(Color.YELLOW, Color.CYAN, Color.WHITE).random()
+                "RAINBOW" -> Color.HSVToColor(floatArrayOf((animTick * 180f) % 360f, 1f, 1f))
+                "SHADOW" -> listOf(Color.parseColor("#2D3748"), Color.BLACK, Color.parseColor("#4A5568")).random()
+                "GOLD" -> listOf(Color.parseColor("#FFD700"), Color.parseColor("#FFD43B"), Color.WHITE).random()
+                "NEON" -> listOf(Color.parseColor("#00E676"), Color.parseColor("#E040FB"), Color.CYAN).random()
+                "GALAXY" -> listOf(Color.parseColor("#9C27B0"), Color.parseColor("#3F51B5"), Color.WHITE).random()
+                "LEAVES" -> listOf(Color.parseColor("#4CAF50"), Color.parseColor("#81C784")).random()
+                "SNOW" -> Color.WHITE
+                "LAVA" -> listOf(Color.parseColor("#FF3D00"), Color.parseColor("#D84315")).random()
+                else -> Color.YELLOW
+            }
+            trailParticles.add(
+                TrailParticle(
+                    x = px + (Math.random().toFloat() - 0.5f) * 20f,
+                    y = py + (Math.random().toFloat() - 0.5f) * 10f,
+                    vx = -velocityX * 0.2f + (Math.random().toFloat() - 0.5f) * 1.5f,
+                    vy = (Math.random().toFloat() - 0.5f) * 1.5f,
+                    alpha = 230,
+                    color = trailColor,
+                    size = 10f + Math.random().toFloat() * 12f
+                )
+            )
+        }
+
+        // Update trail particles
+        val trailIter = trailParticles.iterator()
+        while (trailIter.hasNext()) {
+            val p = trailIter.next()
+            p.x += p.vx
+            p.y += p.vy
+            p.alpha -= 14
+            if (p.alpha <= 0) {
+                trailIter.remove()
+            }
+        }
 
         // Update player position
         playerX += velocityX
@@ -691,6 +752,16 @@ class GameView(
                         canvas.drawRoundRect(rect, 20f, 20f, archPaint)
                     }
                 }
+            }
+
+            // Draw Trail Particles
+            trailParticles.forEach { p ->
+                val pPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = p.color
+                    alpha = p.alpha.coerceIn(0, 255)
+                    style = Paint.Style.FILL
+                }
+                canvas.drawCircle(p.x, p.y, p.size, pPaint)
             }
 
             // Draw Player Character (Full Body Illustrated Hero)

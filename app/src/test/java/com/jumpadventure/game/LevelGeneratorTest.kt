@@ -34,10 +34,10 @@ class LevelGeneratorTest {
         val w1 = WorldRepository.getWorldForLevel(1)
         assertEquals(1, w1.id)
 
-        val w5 = WorldRepository.getWorldForLevel(150)
+        val w5 = WorldRepository.getWorldForLevel(101)
         assertEquals(5, w5.id)
 
-        val w10 = WorldRepository.getWorldForLevel(2000)
-        assertEquals(10, w10.id)
+        val w80 = WorldRepository.getWorldForLevel(2000)
+        assertEquals(80, w80.id)
     }
 }
