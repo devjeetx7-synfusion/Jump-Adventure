@@ -5,6 +5,7 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import com.jumpadventure.game.level.WorldRepository
 import com.jumpadventure.game.model.WorldInfo
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -18,6 +19,7 @@ class LevelMapView @JvmOverloads constructor(
 
     data class NodeInfo(
         val levelNumber: Int,
+        val worldId: Int,
         val isUnlocked: Boolean,
         val isCurrent: Boolean,
         val isBoss: Boolean,
@@ -30,9 +32,10 @@ class LevelMapView @JvmOverloads constructor(
     var selectedCharacterId: String = "DEFAULT"
 
     private val nodes = mutableListOf<NodeInfo>()
+    private var maxRenderLevel = 50
     private var mapTotalHeight = 1000f
+    private val nodeSpacingY = 170f
 
-    private var currentWorldInfo: WorldInfo? = null
     private var currentHighestLevel: Int = 1
     private var currentLevelNum: Int = 1
     private var effectiveCurrentLevel: Int = 1
@@ -40,7 +43,7 @@ class LevelMapView @JvmOverloads constructor(
 
     // Paints
     private val pathPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#80FFFFFF")
+        color = Color.parseColor("#90FFFFFF")
         style = Paint.Style.STROKE
         strokeWidth = 16f
         pathEffect = DashPathEffect(floatArrayOf(24f, 16f), 0f)
@@ -81,70 +84,77 @@ class LevelMapView @JvmOverloads constructor(
     private val nodeShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(110, 0, 0, 0) }
 
     private var animTime = 0f
-    private var cachedBgBitmap: Bitmap? = null
-    private val bgSrcRect = Rect()
-    private val bgDstRect = RectF()
-    private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-    private val bgOverlayPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val nodeGlossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(90, 255, 255, 255) }
     private val pulsePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#80FFD54F") }
     private val lockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#455A64") }
 
+    // World Banner Paints
+    private val bannerBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#D90F172A")
+    }
+    private val bannerBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#FFD43B")
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+    }
+    private val bannerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textSize = 26f
+        typeface = Typeface.DEFAULT_BOLD
+        textAlign = Paint.Align.CENTER
+    }
+
+    private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
     fun setupMap(
-        worldInfo: WorldInfo,
         highestLevel: Int,
         currentLevel: Int,
         levelStars: Map<Int, Int>
     ) {
-        currentWorldInfo = worldInfo
-        currentHighestLevel = highestLevel
-        currentLevelNum = currentLevel
+        currentHighestLevel = maxOf(1, highestLevel)
+        currentLevelNum = maxOf(1, currentLevel)
         currentLevelStars = levelStars
 
-        val bgResId = com.jumpadventure.game.level.WorldRepository.getWorldBackgroundRes(worldInfo.id)
-        cachedBgBitmap = BitmapFactory.decodeResource(resources, bgResId)
+        // Render nodes well past the current highest level to support infinite upward scrolling
+        maxRenderLevel = maxOf(currentHighestLevel + 35, 50)
 
         rebuildNodes()
         requestLayout()
         invalidate()
     }
 
-    private fun rebuildNodes() {
-        val worldInfo = currentWorldInfo ?: return
-        nodes.clear()
-        val totalLevels = worldInfo.endLevel - worldInfo.startLevel + 1
-        val startLvl = worldInfo.startLevel
+    fun getScrollYForLevel(levelNumber: Int, viewportHeight: Int): Int {
+        val safeLevel = levelNumber.coerceIn(1, maxRenderLevel)
+        val nodeIndex = safeLevel - 1
+        val nodeY = mapTotalHeight - 200f - (nodeIndex * nodeSpacingY)
+        val targetScrollY = (nodeY - viewportHeight / 2f).toInt()
+        val maxScroll = (mapTotalHeight - viewportHeight).toInt().coerceAtLeast(0)
+        return targetScrollY.coerceIn(0, maxScroll)
+    }
 
-        val nodeSpacingY = 170f
-        mapTotalHeight = totalLevels * nodeSpacingY + 300f
+    private fun rebuildNodes() {
+        nodes.clear()
+        mapTotalHeight = maxRenderLevel * nodeSpacingY + 400f
 
         val viewWidth = if (width > 0) width.toFloat() else 1080f
         val centerX = viewWidth / 2f
         val amplitude = viewWidth * 0.32f
 
-        // The marker follows the latest playable/unlocked progression frontier.
-        // currentLevel can temporarily point to a selected level, so highestLevel
-        // is preferred as the persistent progression position on the map.
-        effectiveCurrentLevel = when {
-            currentHighestLevel in startLvl..worldInfo.endLevel -> currentHighestLevel
-            currentHighestLevel > worldInfo.endLevel -> worldInfo.endLevel
-            currentLevelNum in startLvl..worldInfo.endLevel -> currentLevelNum
-            else -> startLvl
-        }
+        effectiveCurrentLevel = currentHighestLevel
 
-        // Progression ascends upward: level 1 at bottom, higher levels toward top
-        for (i in 0 until totalLevels) {
-            val lvl = startLvl + i
+        for (i in 0 until maxRenderLevel) {
+            val lvl = i + 1
+            val world = WorldRepository.getWorldForLevel(lvl)
             val isUnlocked = lvl <= currentHighestLevel
             val isCurr = lvl == effectiveCurrentLevel
-            val isBoss = (lvl % 5 == 0) || (lvl == worldInfo.endLevel)
+            val isBoss = (lvl % 5 == 0) || (lvl % 25 == 0)
             val stars = currentLevelStars[lvl] ?: 0
 
             val angle = i * 0.7f
             val nx = centerX + sin(angle.toDouble()).toFloat() * amplitude
-            val ny = mapTotalHeight - 150f - (i * nodeSpacingY)
+            val ny = mapTotalHeight - 200f - (i * nodeSpacingY)
 
-            nodes.add(NodeInfo(lvl, isUnlocked, isCurr, isBoss, stars, nx, ny))
+            nodes.add(NodeInfo(lvl, world.id, isUnlocked, isCurr, isBoss, stars, nx, ny))
         }
     }
 
@@ -167,46 +177,80 @@ class LevelMapView @JvmOverloads constructor(
         animTime += 0.05f
 
         val w = width.toFloat().coerceAtLeast(1f)
-        val h = maxOf(mapTotalHeight, height.toFloat()).coerceAtLeast(1f)
+        val clipBounds = canvas.clipBounds
+        val visibleTop = clipBounds.top.toFloat() - 200f
+        val visibleBottom = clipBounds.bottom.toFloat() + 200f
 
-        // 1. Full-viewport continuous world background artwork
-        val bg = cachedBgBitmap
-        if (bg != null && !bg.isRecycled) {
-            val scale = maxOf(w / bg.width.toFloat(), h / bg.height.toFloat())
-            val scaledW = bg.width.toFloat() * scale
-            val scaledH = bg.height.toFloat() * scale
-            val left = (w - scaledW) / 2f
-            val top = (h - scaledH) / 2f
+        // 1. Draw World Background Sections with Seamless Color Transitions
+        val minVisibleWorldId = maxOf(1, WorldRepository.getWorldForLevel(nodes.firstOrNull { it.y <= visibleBottom }?.levelNumber ?: 1).id - 1)
+        val maxVisibleWorldId = WorldRepository.getWorldForLevel(nodes.lastOrNull { it.y >= visibleTop }?.levelNumber ?: maxRenderLevel).id + 1
 
-            bgSrcRect.set(0, 0, bg.width, bg.height)
-            bgDstRect.set(left, top, left + scaledW, top + scaledH)
-            canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
+        for (worldId in minVisibleWorldId..maxVisibleWorldId) {
+            val worldStartLvl = (worldId - 1) * 25 + 1
+            val worldEndLvl = worldId * 25
 
-            // Dark overlay for level chart readability
-            bgOverlayPaint.color = Color.parseColor("#600B1426")
-            canvas.drawRect(0f, 0f, w, h, bgOverlayPaint)
-        } else {
-            canvas.drawColor(Color.parseColor(currentWorldInfo?.skyColorHex ?: "#4CAF50"))
+            val worldStartY = mapTotalHeight - 200f - ((worldStartLvl - 1) * nodeSpacingY) + nodeSpacingY * 0.5f
+            val worldEndY = mapTotalHeight - 200f - ((worldEndLvl - 1) * nodeSpacingY) - nodeSpacingY * 0.5f
+
+            if (worldEndY > visibleBottom || worldStartY < visibleTop) continue
+
+            val currentWorld = WorldRepository.getWorldForLevel(worldStartLvl)
+            val nextWorld = WorldRepository.getWorldForLevel(worldEndLvl + 1)
+
+            val sky1 = Color.parseColor(currentWorld.skyColorHex)
+            val sky2 = Color.parseColor(nextWorld.skyColorHex)
+
+            bgPaint.shader = LinearGradient(
+                0f, worldStartY, 0f, worldEndY,
+                sky1, sky2, Shader.TileMode.CLAMP
+            )
+            canvas.drawRect(0f, worldEndY, w, worldStartY, bgPaint)
+            bgPaint.shader = null
+
+            // World Title Ribbon at transition between worlds
+            if (worldStartY in visibleTop..visibleBottom) {
+                val bannerW = (w * 0.75f).coerceAtMost(550f)
+                val bannerH = 54f
+                val bannerRect = RectF((w - bannerW) / 2f, worldStartY - bannerH / 2f, (w + bannerW) / 2f, worldStartY + bannerH / 2f)
+
+                canvas.drawRoundRect(bannerRect, 16f, 16f, bannerBgPaint)
+                canvas.drawRoundRect(bannerRect, 16f, 16f, bannerBorderPaint)
+
+                val worldTitleText = "WORLD ${currentWorld.id}: ${currentWorld.name.uppercase()}"
+                bannerTextPaint.textSize = when {
+                    worldTitleText.length > 30 -> 18f
+                    worldTitleText.length > 24 -> 20f
+                    else -> 24f
+                }
+                canvas.drawText(worldTitleText, w / 2f, bannerRect.centerY() + bannerTextPaint.textSize * 0.35f, bannerTextPaint)
+            }
         }
 
         if (nodes.isEmpty()) return
 
-        // 2. Path connecting nodes
+        // 2. Visible Path Connecting Nodes
         val path = Path()
-        path.moveTo(nodes.first().x, nodes.first().y)
-        for (i in 1 until nodes.size) {
-            val prev = nodes[i - 1]
-            val curr = nodes[i]
-            val midY = (prev.y + curr.y) / 2f
-            path.cubicTo(prev.x, midY, curr.x, midY, curr.x, curr.y)
-        }
-        canvas.drawPath(path, pathPaint)
+        val visibleNodes = nodes.filter { it.y in visibleTop..visibleBottom }
+        if (visibleNodes.isNotEmpty()) {
+            val firstIdx = nodes.indexOf(visibleNodes.first()).coerceAtLeast(0)
+            val lastIdx = nodes.indexOf(visibleNodes.last()).coerceAtMost(nodes.size - 1)
+            val startDrawIdx = maxOf(0, firstIdx - 1)
+            val endDrawIdx = minOf(nodes.size - 1, lastIdx + 1)
 
-        // 2. Draw Nodes
-        nodes.forEach { node ->
+            path.moveTo(nodes[startDrawIdx].x, nodes[startDrawIdx].y)
+            for (i in (startDrawIdx + 1)..endDrawIdx) {
+                val prev = nodes[i - 1]
+                val curr = nodes[i]
+                val midY = (prev.y + curr.y) / 2f
+                path.cubicTo(prev.x, midY, curr.x, midY, curr.x, curr.y)
+            }
+            canvas.drawPath(path, pathPaint)
+        }
+
+        // 3. Draw Visible Level Nodes
+        visibleNodes.forEach { node ->
             val radius = if (node.isBoss) 60f else 48f
 
-            // Pulse effect for current level
             if (node.isCurrent) {
                 val pulseRadius = radius + (sin(animTime * 4.0) * 8.0).toFloat()
                 canvas.drawCircle(node.x, node.y, pulseRadius + 8f, pulsePaint)
@@ -222,7 +266,7 @@ class LevelMapView @JvmOverloads constructor(
             Color.colorToHSV(baseColor, hsv)
             hsv[2] *= 0.7f
             val darkColor = Color.HSVToColor(hsv)
-            // 3D node: bottom shadow/extrusion, glossy gradient face, rim and highlight.
+
             canvas.drawCircle(node.x, node.y + 7f, radius + 1f, nodeShadowPaint)
             nodePaint.shader = RadialGradient(
                 node.x - radius * 0.32f, node.y - radius * 0.34f,
@@ -242,7 +286,6 @@ class LevelMapView @JvmOverloads constructor(
             )
 
             if (node.isUnlocked) {
-                // Level Number with responsive text size for large numbers
                 val numStr = "${node.levelNumber}"
                 textPaint.textSize = when {
                     numStr.length >= 5 -> 18f
@@ -252,14 +295,9 @@ class LevelMapView @JvmOverloads constructor(
                 }
                 canvas.drawText(numStr, node.x, node.y + textPaint.textSize * 0.35f, textPaint)
 
-                // Star Rating under node
                 if (node.stars > 0) {
-                    val starY = node.y + radius + 22f
-                    for (s in 0 until node.stars) {
-                        val starX = node.x + (s - (node.stars - 1) / 2f) * 24f
-                        canvas.drawCircle(starX, starY, 8f, starFacePaint)
-                        canvas.drawCircle(starX, starY, 8f, outlinePaint)
-                    }
+                    val starCount = node.stars.coerceIn(0, 3)
+                    draw3DStars(canvas, node.x, node.y + radius + 26f, starCount, radius)
                 }
             } else {
                 val shacklePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -272,12 +310,7 @@ class LevelMapView @JvmOverloads constructor(
                 canvas.drawRoundRect(RectF(node.x - 16f, node.y - 4f, node.x + 16f, node.y + 16f), 4f, 4f, outlinePaint)
             }
 
-            if (node.isUnlocked) {
-                val starCount = node.stars.coerceIn(0, 3)
-                draw3DStars(canvas, node.x, node.y + radius + 26f, starCount, radius)
-            }
-
-            // Draw exactly one character marker on the current playable level.
+            // Draw Character marker on current playable level
             if (node.levelNumber == effectiveCurrentLevel) {
                 val charW = 76f
                 val charH = 86f
@@ -327,7 +360,6 @@ class LevelMapView @JvmOverloads constructor(
             }
             starPath.close()
 
-            // 3D bottom extrusion
             canvas.save()
             canvas.translate(0f, 3.5f)
             canvas.drawPath(starPath, starShadowPaint)
@@ -347,7 +379,6 @@ class LevelMapView @JvmOverloads constructor(
         }
         starFacePaint.shader = null
     }
-
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_UP) {

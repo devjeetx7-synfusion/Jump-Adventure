@@ -39,10 +39,8 @@ class GameView(
     // Player Physics State & Logical Collider vs Visual Drawing Sizes
     private var playerX = 50f
     private var playerY = 700f
-    // Visual hero artwork rendering dimensions
     private val visualWidth = 92f
     private val visualHeight = 124f
-    // Logical physics collider dimensions (slightly tighter to prevent clipping/getting stuck)
     private val colliderWidth = 54f
     private val colliderHeight = 104f
     private val colliderOffsetX = (visualWidth - colliderWidth) / 2f
@@ -57,6 +55,15 @@ class GameView(
     private var lives = 3
     private var checkpointX = 50f
     private var checkpointY = 676f
+
+    // Character Gameplay Skill States
+    private var maxMidAirJumps = 0
+    private var midAirJumpsDone = 0
+    private var isPassiveMagnet = false
+    private var isFireResistant = false
+    private var isCoinBonusActive = false
+    private var isSpeedBurstActive = false
+    private var enemySpeedMultiplier = 1.0f
 
     @Volatile
     private var levelCompletionHandled = false
@@ -84,7 +91,6 @@ class GameView(
     private var starsCollectedInLevel = 0
     private var levelStartTime = System.currentTimeMillis()
 
-    // Dynamic Element States (for moving platforms/enemies/active coins)
     private class ActiveElement(
         val original: LevelElement,
         var currentX: Float,
@@ -96,7 +102,6 @@ class GameView(
 
     private val activeElements = mutableListOf<ActiveElement>()
 
-    // Trail Particles
     private class TrailParticle(
         var x: Float,
         var y: Float,
@@ -108,14 +113,12 @@ class GameView(
     )
     private val trailParticles = mutableListOf<TrailParticle>()
 
-    // Cached Background Bitmap & Rects
     private var cachedBgBitmap: Bitmap? = null
     private val bgSrcRect = Rect()
     private val bgDstRect = RectF()
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val bgEdgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    // Colors & Paints
     private val skyPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val platformPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val darkOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -131,13 +134,7 @@ class GameView(
         color = Color.parseColor("#FFEB3B")
         style = Paint.Style.FILL
     }
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        textSize = 36f
-        typeface = Typeface.DEFAULT_BOLD
-    }
 
-    // Touch Control Rects
     private val leftButtonRect = RectF()
     private val rightButtonRect = RectF()
     private val jumpButtonRect = RectF()
@@ -155,9 +152,6 @@ class GameView(
         worldInfo = WorldRepository.getWorldForLevel(levelNum)
         levelLayout = LevelGenerator.generateLevel(levelNum)
 
-        // Always spawn the hero on top of the actual starting platform.
-        // The previous hard-coded Y=700 placed the 124px visual hero below the
-        // 800px platform, so gravity made the character fall immediately.
         playerX = 50f
         playerY = findSafeSpawnY(playerX)
         velocityX = 0f
@@ -171,6 +165,18 @@ class GameView(
         moveLeftPressed = false
         moveRightPressed = false
 
+        // Configure Character Gameplay Skills
+        val charId = saveData.selectedCharacter
+        maxMidAirJumps = if (charId in listOf("GALAXY_HERO", "GALAXY", "SPACE_RUNNER", "CRYSTAL_MAGE", "VOID_WALKER")) 1 else 0
+        midAirJumpsDone = 0
+
+        isShieldActive = charId in listOf("ROBOT", "ROBOT_X", "CYBER_BOT")
+        isPassiveMagnet = charId in listOf("FOREST_GUARDIAN", "FOREST", "JUNGLE_FIGHTER")
+        isFireResistant = charId in listOf("LAVA_KNIGHT", "LAVA")
+        isCoinBonusActive = charId in listOf("GOLDEN_WARRIOR", "PIRATE", "EXPLORER")
+        isSpeedBurstActive = charId in listOf("STORM_RIDER", "THUNDER_HERO", "NEON_RUNNER", "NEON")
+        enemySpeedMultiplier = if (charId in listOf("ICE_WARRIOR", "ICE", "ARCTIC_RANGER")) 0.5f else 1.0f
+
         coinsCollectedInLevel = 0
         starsCollectedInLevel = 0
         levelStartTime = System.currentTimeMillis()
@@ -183,7 +189,6 @@ class GameView(
         skyPaint.color = Color.parseColor(worldInfo.skyColorHex)
         platformPaint.color = Color.parseColor(worldInfo.platformColorHex)
 
-        // Cached environmental background bitmap loading
         val bgResId = WorldRepository.getWorldBackgroundRes(worldInfo.id)
         cachedBgBitmap = BitmapFactory.decodeResource(resources, bgResId)
     }
@@ -216,7 +221,6 @@ class GameView(
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        android.util.Log.d("JUMP_DEBUG", "SURFACE_CREATED")
         isRunning = true
         gameThread = Thread(this).apply { start() }
     }
@@ -237,7 +241,6 @@ class GameView(
         val marginBottom = 40f * density
         val gap = 16f * density
 
-        // Default placements
         val defLeftX = marginHoriz
         val defLeftY = height - baseSideSize - marginBottom
         val defRightX = marginHoriz + baseSideSize + gap
@@ -252,42 +255,36 @@ class GameView(
         val defShieldX = width - marginHoriz - basePowerSize
         val defShieldY = defJumpY - basePowerSize * 1.1f
 
-        // LEFT
         val leftW = baseSideSize * saveData.leftScale
         val leftH = baseSideSize * saveData.leftScale
         val lx = if (saveData.leftX >= 0) saveData.leftX.coerceIn(0f, width - leftW) else defLeftX
         val ly = if (saveData.leftY >= 0) saveData.leftY.coerceIn(0f, height - leftH) else defLeftY
         leftButtonRect.set(lx, ly, lx + leftW, ly + leftH)
 
-        // RIGHT
         val rightW = baseSideSize * saveData.rightScale
         val rightH = baseSideSize * saveData.rightScale
         val rx = if (saveData.rightX >= 0) saveData.rightX.coerceIn(0f, width - rightW) else defRightX
         val ry = if (saveData.rightY >= 0) saveData.rightY.coerceIn(0f, height - rightH) else defRightY
         rightButtonRect.set(rx, ry, rx + rightW, ry + rightH)
 
-        // JUMP
         val jumpW = baseJumpSize * saveData.jumpScale
         val jumpH = baseJumpSize * saveData.jumpScale
         val jx = if (saveData.jumpX >= 0) saveData.jumpX.coerceIn(0f, width - jumpW) else defJumpX
         val jy = if (saveData.jumpY >= 0) saveData.jumpY.coerceIn(0f, height - jumpH) else defJumpY
         jumpButtonRect.set(jx, jy, jx + jumpW, jy + jumpH)
 
-        // MAGNET
         val magnetW = basePowerSize * saveData.magnetScale
         val magnetH = basePowerSize * saveData.magnetScale
         val mx = if (saveData.magnetX >= 0) saveData.magnetX.coerceIn(0f, width - magnetW) else defMagnetX
         val my = if (saveData.magnetY >= 0) saveData.magnetY.coerceIn(0f, height - magnetH) else defMagnetY
         magnetButtonRect.set(mx, my, mx + magnetW, my + magnetH)
 
-        // SPEED
         val speedW = basePowerSize * saveData.speedScale
         val speedH = basePowerSize * saveData.speedScale
         val sx = if (saveData.speedX >= 0) saveData.speedX.coerceIn(0f, width - speedW) else defSpeedX
         val sy = if (saveData.speedY >= 0) saveData.speedY.coerceIn(0f, height - speedH) else defSpeedY
         speedButtonRect.set(sx, sy, sx + speedW, sy + speedH)
 
-        // SHIELD
         val shieldW = basePowerSize * saveData.shieldScale
         val shieldH = basePowerSize * saveData.shieldScale
         val shx = if (saveData.shieldX >= 0) saveData.shieldX.coerceIn(0f, width - shieldW) else defShieldX
@@ -312,8 +309,6 @@ class GameView(
         val targetFPS = 60
         val targetTime = 1000L / targetFPS
 
-        android.util.Log.d("JUMP_DEBUG", "GAME_LOOP_STARTED")
-
         while (isRunning) {
             val startTime = System.currentTimeMillis()
 
@@ -337,7 +332,6 @@ class GameView(
     }
 
     private fun update() {
-        // Power-up timers
         if (isMagnetActive) {
             magnetTimer--
             if (magnetTimer <= 0) isMagnetActive = false
@@ -348,7 +342,8 @@ class GameView(
         }
 
         val speedMult = saveData.playerSpeedMultiplier.coerceIn(0.75f, 1.50f)
-        val effectiveSpeed = baseMoveSpeed * speedMult * (if (isSpeedActive) 1.5f else 1.0f)
+        val skillSpeed = if (isSpeedBurstActive) 1.20f else 1.0f
+        val effectiveSpeed = baseMoveSpeed * speedMult * skillSpeed * (if (isSpeedActive) 1.5f else 1.0f)
 
         if (moveLeftPressed || moveRightPressed) {
             animTick += (1f / 60f) * (effectiveSpeed / baseMoveSpeed)
@@ -356,7 +351,6 @@ class GameView(
             animTick += 1f / 60f
         }
 
-        // Horizontal velocity update
         if (moveLeftPressed) {
             velocityX = -effectiveSpeed
             isFacingRight = false
@@ -367,10 +361,9 @@ class GameView(
             velocityX = 0f
         }
 
-        // Apply gravity
         velocityY += gravity
 
-        // Spawn movement trail particles
+        // Particle Trails
         if ((velocityX != 0f || velocityY != 0f) && saveData.selectedTrail != "NONE") {
             val px = playerX + visualWidth / 2f
             val py = playerY + visualHeight * 0.7f
@@ -401,28 +394,22 @@ class GameView(
             )
         }
 
-        // Update trail particles
         val trailIter = trailParticles.iterator()
         while (trailIter.hasNext()) {
             val p = trailIter.next()
             p.x += p.vx
             p.y += p.vy
             p.alpha -= 14
-            if (p.alpha <= 0) {
-                trailIter.remove()
-            }
+            if (p.alpha <= 0) trailIter.remove()
         }
 
-        // Update player position
         playerX += velocityX
         playerY += velocityY
 
-        // Camera follow
         val screenWidth = width.toFloat().takeIf { it > 0 } ?: 1080f
         cameraX = playerX - screenWidth * 0.35f
         if (cameraX < 0) cameraX = 0f
 
-        // Collision logic using dedicated logical collider rectangle
         isGrounded = false
         val colliderLeft = playerX + colliderOffsetX
         val colliderTop = playerY + colliderOffsetY
@@ -432,14 +419,13 @@ class GameView(
             if (active.isCollected) return@forEach
             val elem = active.original
 
-            // Dynamic movement for moving platforms and enemies
             if (elem.type == ElementType.MOVING_PLATFORM) {
                 active.currentX += elem.speed * active.direction
                 if (abs(active.currentX - elem.x) > elem.moveDistanceX) {
                     active.direction *= -1f
                 }
             } else if (elem.type == ElementType.ENEMY) {
-                active.currentX += elem.speed * active.direction
+                active.currentX += elem.speed * enemySpeedMultiplier * active.direction
                 if (abs(active.currentX - elem.x) > elem.moveDistanceX) {
                     active.direction *= -1f
                 }
@@ -447,19 +433,18 @@ class GameView(
 
             val elemRect = RectF(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
 
-            // Magnet effect for coins
-            if (isMagnetActive && elem.type == ElementType.COIN) {
+            // Magnet effect (power-up or passive character skill)
+            if ((isMagnetActive || isPassiveMagnet) && elem.type == ElementType.COIN) {
                 val dist = hypot((active.currentX - playerX).toDouble(), (active.currentY - playerY).toDouble())
-                if (dist < 350) {
-                    active.currentX += (playerX - active.currentX) * 0.15f
-                    active.currentY += (playerY - active.currentY) * 0.15f
+                if (dist < 380) {
+                    active.currentX += (playerX - active.currentX) * 0.16f
+                    active.currentY += (playerY - active.currentY) * 0.16f
                 }
             }
 
             if (RectF.intersects(playerRect, elemRect)) {
                 when (elem.type) {
                     ElementType.PLATFORM, ElementType.MOVING_PLATFORM, ElementType.BOX -> {
-                        // Top collision (landing on platform)
                         val prevFeetY = colliderTop + colliderHeight - velocityY
                         val currentFeetY = colliderTop + colliderHeight
                         if (velocityY >= 0f) {
@@ -469,8 +454,8 @@ class GameView(
                                 playerY = platformTop - visualHeight
                                 velocityY = 0f
                                 isGrounded = true
+                                midAirJumpsDone = 0
 
-                                // Ride moving platform
                                 if (elem.type == ElementType.MOVING_PLATFORM) {
                                     playerX += elem.speed * active.direction
                                 }
@@ -482,7 +467,6 @@ class GameView(
             }
         }
 
-        // Second pass for triggers / items / damage
         val updatedColliderTop = playerY + colliderOffsetY
         val updatedPlayerRect = RectF(playerX + colliderOffsetX, updatedColliderTop, playerX + colliderOffsetX + colliderWidth, updatedColliderTop + colliderHeight)
 
@@ -496,7 +480,7 @@ class GameView(
 
                     ElementType.COIN -> {
                         active.isCollected = true
-                        coinsCollectedInLevel += 10
+                        coinsCollectedInLevel += if (isCoinBonusActive) 15 else 10
                         soundManager.playCoin()
                     }
 
@@ -514,7 +498,18 @@ class GameView(
                         }
                     }
 
-                    ElementType.SPIKE, ElementType.ENEMY -> {
+                    ElementType.SPIKE -> {
+                        if (isFireResistant) {
+                            // Immune to spikes via Fire Resistance skill
+                        } else if (isShieldActive) {
+                            isShieldActive = false
+                            active.isCollected = true
+                        } else {
+                            handlePlayerHit()
+                        }
+                    }
+
+                    ElementType.ENEMY -> {
                         if (isShieldActive) {
                             isShieldActive = false
                             active.isCollected = true
@@ -532,12 +527,10 @@ class GameView(
             }
         }
 
-        // Fall into gap check
         if (playerY > 1200f) {
             handlePlayerHit()
         }
 
-        // Notify HUD callback
         val progress = (playerX / levelLayout.totalWidth).coerceIn(0f, 1f)
         onProgressUpdated(coinsCollectedInLevel, starsCollectedInLevel, progress)
     }
@@ -549,8 +542,6 @@ class GameView(
         lives--
 
         if (lives <= 0) {
-            // Stop the game loop BEFORE showing the game-over UI. Otherwise the
-            // loop keeps firing GAME OVER every frame and can steal button input.
             gameOverHandled = true
             isRunning = false
             moveLeftPressed = false
@@ -566,6 +557,7 @@ class GameView(
         velocityX = 0f
         velocityY = 0f
         isGrounded = true
+        midAirJumpsDone = 0
     }
 
     private fun findSafeSpawnY(x: Float): Float {
@@ -597,6 +589,13 @@ class GameView(
         if (isGrounded) {
             velocityY = jumpStrength
             isGrounded = false
+            midAirJumpsDone = 0
+            soundManager.playJump()
+            saveData.totalJumps++
+        } else if (midAirJumpsDone < maxMidAirJumps) {
+            // Double jump skill
+            velocityY = jumpStrength * 0.92f
+            midAirJumpsDone++
             soundManager.playJump()
             saveData.totalJumps++
         }
@@ -604,7 +603,7 @@ class GameView(
 
     fun activateMagnetPowerUp() {
         isMagnetActive = true
-        magnetTimer = 300 // 5 seconds at 60fps
+        magnetTimer = 300
     }
 
     fun activateShieldPowerUp() {
@@ -624,7 +623,6 @@ class GameView(
             val w = width.toFloat()
             val h = height.toFloat()
 
-            // 1. Environmental Background Asset Rendering with Parallax
             val bg = cachedBgBitmap
             if (bg != null && !bg.isRecycled && w > 0f && h > 0f) {
                 val bgW = bg.width.toFloat()
@@ -661,7 +659,6 @@ class GameView(
             canvas.save()
             canvas.translate(-cameraX, 0f)
 
-            // Render Level Elements
             activeElements.forEach { active ->
                 if (active.isCollected) return@forEach
                 val elem = active.original
@@ -669,7 +666,6 @@ class GameView(
 
                 when (elem.type) {
                     ElementType.PLATFORM, ElementType.MOVING_PLATFORM -> {
-                        // Premium 2.5D styled Platform
                         platformPaint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.bottom, platformPaint.color, Color.parseColor("#4E342E"), Shader.TileMode.CLAMP)
                         canvas.drawRoundRect(rect, 12f, 12f, platformPaint)
                         canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
@@ -693,7 +689,6 @@ class GameView(
                         canvas.drawCircle(cx, cy, elem.width / 2f, coinPaint)
                         canvas.drawCircle(cx, cy, elem.width / 2f, darkOutlinePaint)
                         coinPaint.shader = null
-                        // Inner sheen line
                         val shinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 180 }
                         canvas.drawCircle(cx - 4f, cy - 4f, elem.width / 6f, shinePaint)
                     }
@@ -747,14 +742,12 @@ class GameView(
                         val doorPaint = Paint().apply { color = Color.parseColor("#8D6E63") }
                         canvas.drawRoundRect(rect, 20f, 20f, doorPaint)
                         canvas.drawRoundRect(rect, 20f, 20f, darkOutlinePaint)
-                        // Glowing arch
                         val archPaint = Paint().apply { color = Color.YELLOW; style = Paint.Style.STROKE; strokeWidth = 8f }
                         canvas.drawRoundRect(rect, 20f, 20f, archPaint)
                     }
                 }
             }
 
-            // Draw Trail Particles
             trailParticles.forEach { p ->
                 val pPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = p.color
@@ -764,12 +757,10 @@ class GameView(
                 canvas.drawCircle(p.x, p.y, p.size, pPaint)
             }
 
-            // Draw Player Character (Full Body Illustrated Hero)
             drawPlayer(canvas)
 
             canvas.restore()
 
-            // Draw Touch Controls HUD
             drawControls(canvas)
 
         } finally {
@@ -793,13 +784,13 @@ class GameView(
             canvas = canvas,
             bounds = playerBounds,
             characterId = saveData.selectedCharacter,
+            skinId = saveData.selectedSkin,
             facingRight = isFacingRight,
             animState = animState,
             animTime = animTick
         )
         canvas.restore()
 
-        // Shield aura effect
         if (isShieldActive) {
             val shieldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.parseColor("#4000E6FF")
@@ -818,7 +809,6 @@ class GameView(
             updateControlLayouts(w.toInt(), h.toInt())
         }
 
-        // Transparent circular 3D game controls without big background panel.
         val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(85, 0, 20, 50)
         }
@@ -854,7 +844,6 @@ class GameView(
             canvas.drawCircle(rect.centerX(), centerY, radius - 2f, glassPaint)
             glassPaint.shader = null
 
-            // Glossy top highlight oval
             canvas.drawOval(
                 RectF(rect.centerX() - radius * 0.5f, centerY - radius * 0.75f, rect.centerX() + radius * 0.2f, centerY - radius * 0.35f),
                 highlightPaint
@@ -863,7 +852,6 @@ class GameView(
             canvas.drawCircle(rect.centerX(), centerY, radius - 2f, borderPaint)
         }
 
-        // 1. LEFT (Blue / Cyan)
         drawCircleButton(
             leftButtonRect,
             moveLeftPressed,
@@ -881,7 +869,6 @@ class GameView(
         }
         canvas.drawPath(leftPath, iconPaint)
 
-        // 2. RIGHT (Blue / Cyan)
         drawCircleButton(
             rightButtonRect,
             moveRightPressed,
@@ -899,7 +886,6 @@ class GameView(
         }
         canvas.drawPath(rightPath, iconPaint)
 
-        // 3. JUMP (Green / Teal)
         drawCircleButton(
             jumpButtonRect,
             false,
@@ -909,10 +895,9 @@ class GameView(
         textPaint.textSize = minOf(jumpButtonRect.width() * 0.22f, 26f)
         canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + textPaint.textSize * 0.34f, textPaint)
 
-        // 4. MAGNET (Blue)
         drawCircleButton(
             magnetButtonRect,
-            isMagnetActive,
+            isMagnetActive || isPassiveMagnet,
             Color.parseColor("#38BDF8"),
             Color.parseColor("#0284C7")
         )
@@ -928,10 +913,9 @@ class GameView(
         canvas.drawLine(mcx - ms, mcy, mcx - ms, mcy + ms * 0.5f, magnetIconPaint)
         canvas.drawLine(mcx + ms, mcy, mcx + ms, mcy + ms * 0.5f, magnetIconPaint)
 
-        // 5. SPEED (Orange / Gold)
         drawCircleButton(
             speedButtonRect,
-            isSpeedActive,
+            isSpeedActive || isSpeedBurstActive,
             Color.parseColor("#FFD43B"),
             Color.parseColor("#FF9F1C")
         )
@@ -949,7 +933,6 @@ class GameView(
         }
         canvas.drawPath(speedPath, iconPaint)
 
-        // 6. SHIELD (Green / Teal)
         drawCircleButton(
             shieldButtonRect,
             isShieldActive,
