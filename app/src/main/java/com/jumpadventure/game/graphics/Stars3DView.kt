@@ -41,9 +41,12 @@ class Stars3DView @JvmOverloads constructor(
 
     fun startPopAnimation() {
         for (i in 0 until 3) {
+            shimmerAnimators[i]?.cancel()
+            shimmerAnimators[i] = null
+            shimmerOffsets[i] = -1f
             if (i < starsEarned) {
                 starScales[i] = 0f
-                val anim = ValueAnimator.ofFloat(0f, 1f).apply {
+                val pop = ValueAnimator.ofFloat(0f, 1f).apply {
                     duration = 280
                     startDelay = (i * 140).toLong()
                     interpolator = OvershootInterpolator(2.0f)
@@ -52,7 +55,20 @@ class Stars3DView @JvmOverloads constructor(
                         invalidate()
                     }
                 }
-                anim.start()
+                pop.start()
+
+                val shimmer = ValueAnimator.ofFloat(-1f, 1.15f).apply {
+                    duration = 900
+                    startDelay = (i * 140 + 420).toLong()
+                    repeatCount = 1
+                    interpolator = android.view.animation.LinearInterpolator()
+                    addUpdateListener { va ->
+                        shimmerOffsets[i] = va.animatedValue as Float
+                        invalidate()
+                    }
+                }
+                shimmerAnimators[i] = shimmer
+                shimmer.start()
             } else {
                 starScales[i] = 1f
             }
@@ -167,6 +183,24 @@ class Stars3DView @JvmOverloads constructor(
                     close()
                 }
                 canvas.drawPath(highlightPath, starHighlightPaint)
+
+                // One-pass shimmer sweep across each earned star.
+                val sweep = shimmerOffsets[i]
+                if (sweep >= -0.5f && sweep <= 1.1f) {
+                    canvas.save()
+                    canvas.clipPath(starPath)
+                    val sweepX = cx - currentSize + sweep * currentSize * 2.0f
+                    shimmerPaint.alpha = 190
+                    shimmerPaint.strokeWidth = maxOf(2f, currentSize * 0.08f)
+                    canvas.drawLine(
+                        sweepX,
+                        centerY - currentSize * 1.1f,
+                        sweepX + currentSize * 0.55f,
+                        centerY + currentSize * 1.1f,
+                        shimmerPaint
+                    )
+                    canvas.restore()
+                }
             }
 
             canvas.restore()
