@@ -42,7 +42,8 @@ class SparkleView @JvmOverloads constructor(
         val w = width.toFloat().coerceAtLeast(100f)
         val h = height.toFloat().coerceAtLeast(100f)
         val originX = w / 2f
-        val originY = h * 0.25f
+        // Burst from the center of the modal rather than the overlay's top area.
+        val originY = h * 0.50f
 
         val colors = intArrayOf(
             Color.parseColor("#FFD43B"), // Gold
