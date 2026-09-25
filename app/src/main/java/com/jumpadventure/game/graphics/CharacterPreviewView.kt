@@ -22,6 +22,24 @@ class CharacterPreviewView @JvmOverloads constructor(
             invalidate()
         }
 
+    var selectedSkinId: String = "DEFAULT"
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    var selectedTrailId: String = "NONE"
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    var playerSpeedMultiplier: Float = 1.15f
+        set(value) {
+            field = value.coerceIn(0.75f, 1.50f)
+            invalidate()
+        }
+
     var onCharacterTappedListener: (() -> Unit)? = null
 
     private var animTime = 0f
@@ -32,18 +50,71 @@ class CharacterPreviewView @JvmOverloads constructor(
     private var jumpYOffset = 0f
 
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#40000000") }
-    private val sparklePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private class PreviewParticle(
+        var x: Float,
+        var y: Float,
+        var vx: Float,
+        var vy: Float,
+        var alpha: Int,
+        val color: Int,
+        val size: Float
+    )
+    private val trailParticles = mutableListOf<PreviewParticle>()
 
     private val charBounds = RectF()
     private val shadowOval = RectF()
 
     private val animRunnable = object : Runnable {
         override fun run() {
-            val dt = 1f / frameRate
+            val speedFactor = playerSpeedMultiplier.coerceIn(0.75f, 1.50f)
+            val dt = (1f / frameRate) * speedFactor
             animTime += dt
-            updateJumpState(dt)
+            updateJumpState(1f / frameRate)
+            updateParticles()
             invalidate()
             postDelayed(this, (1000 / frameRate).toLong())
+        }
+    }
+
+    private fun updateParticles() {
+        if (selectedTrailId != "NONE") {
+            val trailColor = when (selectedTrailId) {
+                "FIRE" -> listOf(Color.YELLOW, Color.RED, Color.parseColor("#FF9F1C")).random()
+                "ICE" -> listOf(Color.CYAN, Color.WHITE, Color.parseColor("#00E5FF")).random()
+                "LIGHTNING" -> listOf(Color.YELLOW, Color.CYAN, Color.WHITE).random()
+                "RAINBOW" -> Color.HSVToColor(floatArrayOf((animTime * 180f) % 360f, 1f, 1f))
+                "SHADOW" -> listOf(Color.parseColor("#2D3748"), Color.BLACK, Color.parseColor("#4A5568")).random()
+                "GOLD" -> listOf(Color.parseColor("#FFD700"), Color.parseColor("#FFD43B"), Color.WHITE).random()
+                "NEON" -> listOf(Color.parseColor("#00E676"), Color.parseColor("#E040FB"), Color.CYAN).random()
+                "GALAXY" -> listOf(Color.parseColor("#9C27B0"), Color.parseColor("#3F51B5"), Color.WHITE).random()
+                "LEAVES" -> listOf(Color.parseColor("#4CAF50"), Color.parseColor("#81C784")).random()
+                "SNOW" -> Color.WHITE
+                "LAVA" -> listOf(Color.parseColor("#FF3D00"), Color.parseColor("#D84315")).random()
+                else -> Color.YELLOW
+            }
+            if (trailParticles.size < 12 && Math.random() < 0.45) {
+                trailParticles.add(
+                    PreviewParticle(
+                        x = (width / 2f) + (Math.random().toFloat() - 0.5f) * 30f,
+                        y = (height - 25f) + (Math.random().toFloat() - 0.5f) * 10f,
+                        vx = (Math.random().toFloat() - 0.5f) * 0.8f,
+                        vy = -(0.5f + Math.random().toFloat() * 0.8f),
+                        alpha = 180,
+                        color = trailColor,
+                        size = 5f + Math.random().toFloat() * 6f
+                    )
+                )
+            }
+        }
+        val pIter = trailParticles.iterator()
+        while (pIter.hasNext()) {
+            val p = pIter.next()
+            p.x += p.vx
+            p.y += p.vy
+            p.alpha -= 8
+            if (p.alpha <= 0) pIter.remove()
         }
     }
 
@@ -168,15 +239,14 @@ class CharacterPreviewView @JvmOverloads constructor(
         shadowOval.set(cx - shadowW / 2f, feetY - 6f, cx + shadowW / 2f, feetY + 8f)
         canvas.drawOval(shadowOval, shadowPaint)
 
-        // 2. Ambient Sparkles around Hero
-        for (i in 0..2) {
-            val sparkX = cx + (if (i == 0) -w * 0.32f else if (i == 1) w * 0.32f else w * 0.22f)
-            val sparkY = h * 0.25f + (i * 36f) + (sin((animTime * 3.5f + i).toDouble()) * 8f).toFloat()
-            val size = (5f + sin((animTime * 5f + i).toDouble()) * 2f).toFloat()
-            canvas.drawCircle(sparkX, sparkY, size, sparklePaint)
+        // 2. Trail Effect Particles
+        trailParticles.forEach { p ->
+            particlePaint.color = p.color
+            particlePaint.alpha = p.alpha.coerceIn(0, 255)
+            canvas.drawCircle(p.x, p.y + jumpYOffset, p.size, particlePaint)
         }
 
-        // 3. Draw Character Hero Full-Body
+        // 3. Draw Character Hero Full-Body with natural walking cycle
         val charW = w * 0.55f
         val charH = h * 0.88f
         val currentFeetY = feetY + jumpYOffset
@@ -189,7 +259,7 @@ class CharacterPreviewView @JvmOverloads constructor(
         )
 
         val renderAnimState = when (jumpState) {
-            JumpState.IDLE_WALK -> CharacterRenderer.AnimState.IDLE
+            JumpState.IDLE_WALK -> CharacterRenderer.AnimState.RUN
             JumpState.JUMP_ANTICIPATION -> CharacterRenderer.AnimState.IDLE
             JumpState.JUMP_RISING -> CharacterRenderer.AnimState.JUMP
             JumpState.JUMP_FALLING -> CharacterRenderer.AnimState.FALL
@@ -200,6 +270,7 @@ class CharacterPreviewView @JvmOverloads constructor(
             canvas = canvas,
             bounds = charBounds,
             characterId = selectedCharacterId,
+            skinId = selectedSkinId,
             facingRight = true,
             animState = renderAnimState,
             animTime = animTime

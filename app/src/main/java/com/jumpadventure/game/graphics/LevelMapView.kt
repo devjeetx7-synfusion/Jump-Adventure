@@ -177,9 +177,20 @@ class LevelMapView @JvmOverloads constructor(
         animTime += 0.05f
 
         val w = width.toFloat().coerceAtLeast(1f)
+        val totalH = height.toFloat().coerceAtLeast(mapTotalHeight)
         val clipBounds = canvas.clipBounds
         val visibleTop = clipBounds.top.toFloat() - 200f
         val visibleBottom = clipBounds.bottom.toFloat() + 200f
+
+        // Base continuous environment fill over entire view height to eliminate any black unpainted region
+        val bottomWorld = WorldRepository.getWorldForLevel(1)
+        val baseSkyColor = Color.parseColor(bottomWorld.skyColorHex)
+        bgPaint.shader = LinearGradient(
+            0f, 0f, 0f, totalH,
+            Color.parseColor("#0B132B"), baseSkyColor, Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, w, totalH, bgPaint)
+        bgPaint.shader = null
 
         // 1. Draw World Background Sections with Seamless Color Transitions
         val minVisibleWorldId = maxOf(1, WorldRepository.getWorldForLevel(nodes.firstOrNull { it.y <= visibleBottom }?.levelNumber ?: 1).id - 1)
@@ -189,8 +200,15 @@ class LevelMapView @JvmOverloads constructor(
             val worldStartLvl = (worldId - 1) * 25 + 1
             val worldEndLvl = worldId * 25
 
-            val worldStartY = mapTotalHeight - 200f - ((worldStartLvl - 1) * nodeSpacingY) + nodeSpacingY * 0.5f
-            val worldEndY = mapTotalHeight - 200f - ((worldEndLvl - 1) * nodeSpacingY) - nodeSpacingY * 0.5f
+            var worldStartY = mapTotalHeight - 200f - ((worldStartLvl - 1) * nodeSpacingY) + nodeSpacingY * 0.5f
+            var worldEndY = mapTotalHeight - 200f - ((worldEndLvl - 1) * nodeSpacingY) - nodeSpacingY * 0.5f
+
+            if (worldId == 1) {
+                worldStartY = maxOf(worldStartY, totalH)
+            }
+            if (worldId == maxVisibleWorldId) {
+                worldEndY = minOf(worldEndY, 0f)
+            }
 
             if (worldEndY > visibleBottom || worldStartY < visibleTop) continue
 
@@ -310,27 +328,30 @@ class LevelMapView @JvmOverloads constructor(
                 canvas.drawRoundRect(RectF(node.x - 16f, node.y - 4f, node.x + 16f, node.y + 16f), 4f, 4f, outlinePaint)
             }
 
-            // Draw Character marker on current playable level
-            if (node.levelNumber == effectiveCurrentLevel) {
-                val charW = 76f
-                val charH = 86f
-                val anchorOffsetY = 5f
-                val markerBottom = node.y - radius + anchorOffsetY
-                val markerBounds = RectF(
-                    node.x - charW / 2f,
-                    markerBottom - charH,
-                    node.x + charW / 2f,
-                    markerBottom
-                )
-                CharacterRenderer.drawCharacter(
-                    canvas = canvas,
-                    bounds = markerBounds,
-                    characterId = selectedCharacterId,
-                    facingRight = true,
-                    animState = CharacterRenderer.AnimState.IDLE,
-                    animTime = animTime
-                )
-            }
+        }
+
+        // 4. Character Marker Overlay - Drawn strictly AFTER all paths, nodes, and stars
+        val currentNode = nodes.firstOrNull { it.levelNumber == effectiveCurrentLevel }
+        if (currentNode != null && currentNode.y in (visibleTop - 100f)..(visibleBottom + 100f)) {
+            val radius = if (currentNode.isBoss) 60f else 48f
+            val charW = 76f
+            val charH = 86f
+            val anchorOffsetY = 5f
+            val markerBottom = currentNode.y - radius + anchorOffsetY
+            val markerBounds = RectF(
+                currentNode.x - charW / 2f,
+                markerBottom - charH,
+                currentNode.x + charW / 2f,
+                markerBottom
+            )
+            CharacterRenderer.drawCharacter(
+                canvas = canvas,
+                bounds = markerBounds,
+                characterId = selectedCharacterId,
+                facingRight = true,
+                animState = CharacterRenderer.AnimState.IDLE,
+                animTime = animTime
+            )
         }
     }
 
