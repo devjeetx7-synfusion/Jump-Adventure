@@ -412,11 +412,13 @@ class MainActivity : AppCompatActivity() {
         saveManager.saveData(saveData)
 
         incOverlay.visibility = View.VISIBLE
+        incOverlay.bringToFront()
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
         customDialog.visibility = View.GONE
 
         val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
         boardContainer.visibility = View.VISIBLE
+        boardContainer.bringToFront()
 
         val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
         val header = incOverlay.findViewById<TextView>(R.id.tvOverlayHeader)
@@ -486,8 +488,10 @@ class MainActivity : AppCompatActivity() {
     private fun showPauseOverlay() {
         currentGameView?.pauseGame()
         incOverlay.visibility = View.VISIBLE
+        incOverlay.bringToFront()
         val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
         boardContainer.visibility = View.VISIBLE
+        boardContainer.bringToFront()
         val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
         board.setImageResource(R.drawable.pause_board)
 
@@ -701,6 +705,7 @@ class MainActivity : AppCompatActivity() {
         onCancel: (() -> Unit)? = null
     ) {
         incOverlay.visibility = View.VISIBLE
+        incOverlay.bringToFront()
         val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
         boardContainer.visibility = View.GONE
 
@@ -709,7 +714,7 @@ class MainActivity : AppCompatActivity() {
         customDialog.isClickable = true
         customDialog.isFocusable = true
         customDialog.bringToFront()
-        incOverlay.bringToFront()
+
         customDialog.titleView.text = title
         customDialog.messageView.text = message
         customDialog.buttonContainer.removeAllViews()
@@ -750,12 +755,6 @@ class MainActivity : AppCompatActivity() {
             customDialog.buttonContainer.addView(btnSec)
         }
 
-        // Ensure the dynamically-created game buttons are above the overlay
-        // hit target and receive normal Android click dispatch.
-        btnPrimary.bringToFront()
-        if (secondaryBtnText != null) {
-            customDialog.buttonContainer.getChildAt(1)?.bringToFront()
-        }
         customDialog.requestLayout()
         customDialog.invalidate()
     }

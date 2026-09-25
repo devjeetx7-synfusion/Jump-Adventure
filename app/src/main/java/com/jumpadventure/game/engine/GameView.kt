@@ -152,7 +152,7 @@ class GameView(
         lives = 3
         levelCompletionHandled = false
         gameOverHandled = false
-        isGrounded = false
+        isGrounded = true
         moveLeftPressed = false
         moveRightPressed = false
 
@@ -351,14 +351,19 @@ class GameView(
                     ElementType.PLATFORM, ElementType.MOVING_PLATFORM, ElementType.BOX -> {
                         // Top collision (landing on platform)
                         val prevFeetY = colliderTop + colliderHeight - velocityY
-                        if (velocityY > 0 && prevFeetY <= active.currentY + 18f) {
-                            playerY = active.currentY - visualHeight
-                            velocityY = 0f
-                            isGrounded = true
+                        val currentFeetY = colliderTop + colliderHeight
+                        if (velocityY >= 0f) {
+                            val platformTop = active.currentY
+                            val isLanding = (prevFeetY <= platformTop + 24f && currentFeetY >= platformTop - 6f)
+                            if (isLanding) {
+                                playerY = platformTop - visualHeight
+                                velocityY = 0f
+                                isGrounded = true
 
-                            // Ride moving platform
-                            if (elem.type == ElementType.MOVING_PLATFORM) {
-                                playerX += elem.speed * active.direction
+                                // Ride moving platform
+                                if (elem.type == ElementType.MOVING_PLATFORM) {
+                                    playerX += elem.speed * active.direction
+                                }
                             }
                         }
                     }
@@ -450,7 +455,7 @@ class GameView(
         playerY = checkpointY
         velocityX = 0f
         velocityY = 0f
-        isGrounded = false
+        isGrounded = true
     }
 
     private fun findSafeSpawnY(x: Float): Float {
