@@ -831,30 +831,93 @@ class GameView(
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        fun drawCircleButton(rect: RectF, pressed: Boolean, topColor: Int, bottomColor: Int) {
+        fun drawCircleButton(
+            rect: RectF,
+            pressed: Boolean,
+            active: Boolean,
+            topColor: Int,
+            bottomColor: Int,
+            timerText: String? = null
+        ) {
             val radius = minOf(rect.width(), rect.height()) * 0.5f
             val offset = if (pressed) 2f else 6f
-            canvas.drawCircle(rect.centerX(), rect.centerY() + offset, radius - 1f, shadowPaint)
+            val cx = rect.centerX()
+            val cy = rect.centerY() - (if (pressed) 1f else 0f)
+
+            // Outer drop shadow
+            canvas.drawCircle(cx, rect.centerY() + offset, radius - 1f, shadowPaint)
+
+            // Active Pulsing Ring & Halo
+            if (active) {
+                val pulse = (sin(animTick * 8.0) * 3.0).toFloat()
+                val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = topColor
+                    alpha = 110
+                    style = Paint.Style.STROKE
+                    strokeWidth = 6f
+                }
+                canvas.drawCircle(cx, cy, radius + 4f + pulse, glowPaint)
+
+                val activeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.WHITE
+                    style = Paint.Style.STROKE
+                    strokeWidth = 5f
+                }
+                canvas.drawCircle(cx, cy, radius, activeBorder)
+            }
 
             glassPaint.shader = LinearGradient(
                 rect.left, rect.top, rect.left, rect.bottom,
-                topColor, bottomColor, Shader.TileMode.CLAMP
+                if (active) Color.WHITE else topColor,
+                bottomColor,
+                Shader.TileMode.CLAMP
             )
-            val centerY = rect.centerY() - (if (pressed) 1f else 0f)
-            canvas.drawCircle(rect.centerX(), centerY, radius - 2f, glassPaint)
+            canvas.drawCircle(cx, cy, radius - 2f, glassPaint)
             glassPaint.shader = null
 
             canvas.drawOval(
-                RectF(rect.centerX() - radius * 0.5f, centerY - radius * 0.75f, rect.centerX() + radius * 0.2f, centerY - radius * 0.35f),
+                RectF(cx - radius * 0.5f, cy - radius * 0.75f, cx + radius * 0.2f, cy - radius * 0.35f),
                 highlightPaint
             )
 
-            canvas.drawCircle(rect.centerX(), centerY, radius - 2f, borderPaint)
+            if (!active) {
+                canvas.drawCircle(cx, cy, radius - 2f, borderPaint)
+            }
+
+            // Compact timer / active count badge
+            if (!timerText.isNullOrEmpty()) {
+                val badgeW = radius * 1.5f
+                val badgeH = radius * 0.55f
+                val badgeRect = RectF(
+                    cx - badgeW / 2f,
+                    cy + radius * 0.42f,
+                    cx + badgeW / 2f,
+                    cy + radius * 0.97f
+                )
+                val badgeBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.parseColor("#E60F172A")
+                }
+                val badgeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
+                    style = Paint.Style.STROKE
+                    strokeWidth = 2f
+                }
+                val badgeTextP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
+                    textSize = badgeH * 0.75f
+                    typeface = Typeface.DEFAULT_BOLD
+                    textAlign = Paint.Align.CENTER
+                }
+                canvas.drawRoundRect(badgeRect, 8f, 8f, badgeBg)
+                canvas.drawRoundRect(badgeRect, 8f, 8f, badgeBorder)
+                canvas.drawText(timerText, cx, badgeRect.centerY() + badgeTextP.textSize * 0.35f, badgeTextP)
+            }
         }
 
         drawCircleButton(
             leftButtonRect,
             moveLeftPressed,
+            false,
             Color.parseColor("#42D9FF"),
             Color.parseColor("#0879D7")
         )
@@ -872,6 +935,7 @@ class GameView(
         drawCircleButton(
             rightButtonRect,
             moveRightPressed,
+            false,
             Color.parseColor("#42D9FF"),
             Color.parseColor("#0879D7")
         )
@@ -889,17 +953,25 @@ class GameView(
         drawCircleButton(
             jumpButtonRect,
             false,
+            false,
             Color.parseColor("#4DE3B0"),
             Color.parseColor("#078D6D")
         )
         textPaint.textSize = minOf(jumpButtonRect.width() * 0.22f, 26f)
         canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + textPaint.textSize * 0.34f, textPaint)
 
+        val magnetText = when {
+            isMagnetActive -> String.format("%.1fs", (magnetTimer / 60f).coerceAtLeast(0f))
+            isPassiveMagnet -> "PASSIVE"
+            else -> null
+        }
         drawCircleButton(
             magnetButtonRect,
+            false,
             isMagnetActive || isPassiveMagnet,
             Color.parseColor("#38BDF8"),
-            Color.parseColor("#0284C7")
+            Color.parseColor("#0284C7"),
+            magnetText
         )
         val magnetIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -913,11 +985,18 @@ class GameView(
         canvas.drawLine(mcx - ms, mcy, mcx - ms, mcy + ms * 0.5f, magnetIconPaint)
         canvas.drawLine(mcx + ms, mcy, mcx + ms, mcy + ms * 0.5f, magnetIconPaint)
 
+        val speedText = when {
+            isSpeedActive -> String.format("%.1fs", (speedTimer / 60f).coerceAtLeast(0f))
+            isSpeedBurstActive -> "PASSIVE"
+            else -> null
+        }
         drawCircleButton(
             speedButtonRect,
+            false,
             isSpeedActive || isSpeedBurstActive,
             Color.parseColor("#FFD43B"),
-            Color.parseColor("#FF9F1C")
+            Color.parseColor("#FF9F1C"),
+            speedText
         )
         val speedPath = Path().apply {
             val scx = speedButtonRect.centerX()
@@ -933,11 +1012,14 @@ class GameView(
         }
         canvas.drawPath(speedPath, iconPaint)
 
+        val shieldText = if (isShieldActive) "ACTIVE" else null
         drawCircleButton(
             shieldButtonRect,
+            false,
             isShieldActive,
             Color.parseColor("#36C96F"),
-            Color.parseColor("#059669")
+            Color.parseColor("#059669"),
+            shieldText
         )
         val shieldPath = Path().apply {
             val shcx = shieldButtonRect.centerX()

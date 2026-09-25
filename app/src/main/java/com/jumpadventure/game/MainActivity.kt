@@ -260,6 +260,9 @@ class MainActivity : AppCompatActivity() {
 
         btnPlay.setPlayInfo(saveData.currentLevel)
         charPreviewView.selectedCharacterId = saveData.selectedCharacter
+        charPreviewView.selectedSkinId = saveData.selectedSkin
+        charPreviewView.selectedTrailId = saveData.selectedTrail
+        charPreviewView.playerSpeedMultiplier = saveData.playerSpeedMultiplier
     }
 
     private fun setupMainMenuListeners() {

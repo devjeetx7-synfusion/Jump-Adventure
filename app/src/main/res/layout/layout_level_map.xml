@@ -58,22 +58,27 @@
                 android:id="@+id/tvMapWorldTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:shadowColor="#8B4500"
+                android:shadowColor="#000000"
                 android:shadowDx="0"
                 android:shadowDy="4"
-                android:shadowRadius="2"
+                android:shadowRadius="6"
                 android:text="WORLD 1"
-                android:textColor="#FFCA28"
-                android:textSize="27sp"
+                android:textColor="#FFD43B"
+                android:textSize="32sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvMapWorldSub"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:shadowColor="#000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="4"
                 android:text="Green Forest"
-                android:textColor="@color/game_text_navy"
-                android:textSize="15sp"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </RelativeLayout>

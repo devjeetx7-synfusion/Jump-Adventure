@@ -84,7 +84,7 @@
             android:adjustViewBounds="true"
             android:contentDescription="Jump Adventure Logo"
             android:scaleType="fitCenter"
-            android:src="@drawable/jumpadventurename" />
+            android:src="@drawable/jumpadventure_home" />
 
         <ImageView
             android:id="@+id/ivMountainPlatform"
