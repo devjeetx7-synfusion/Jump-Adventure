@@ -112,10 +112,10 @@ class Stars3DView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
 
         val count = 3
-        val starSize = (h * 0.38f).coerceIn(16f, 32f)
-        val spacing = starSize * 2.3f
+        val starSize = (h * 0.34f).coerceIn(16f, 30f)
+        val spacing = starSize * 2.45f
         val startX = w / 2f - (count - 1) * spacing / 2f
-        val centerY = h / 2f
+        val centerY = h * 0.52f
 
         starStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2.5f)
         unearnedStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2.5f)
@@ -127,12 +127,12 @@ class Stars3DView @JvmOverloads constructor(
 
             if (popScale <= 0f) continue
 
-            canvas.save()
-            canvas.scale(popScale, popScale, cx, centerY)
-
-            // Middle star is slightly larger for 3D reward balance
-            val scaleFactor = if (i == 1) 1.18f else 1.0f
+            val scaleFactor = if (i == 1) 1.38f else 1.0f
             val currentSize = starSize * scaleFactor
+            val starCenterY = if (i == 1) centerY - starSize * 0.18f else centerY + starSize * 0.08f
+
+            canvas.save()
+            canvas.scale(popScale, popScale, cx, starCenterY)
 
             // Setup star Path
             starPath.reset()
@@ -140,7 +140,7 @@ class Stars3DView @JvmOverloads constructor(
                 val angle = Math.toRadians(-90.0 + p * 36.0)
                 val radius = if (p % 2 == 0) currentSize else currentSize * 0.45f
                 val px = cx + cos(angle).toFloat() * radius
-                val py = centerY + sin(angle).toFloat() * radius
+                val py = starCenterY + sin(angle).toFloat() * radius
                 if (p == 0) starPath.moveTo(px, py) else starPath.lineTo(px, py)
             }
             starPath.close()
@@ -154,7 +154,7 @@ class Stars3DView @JvmOverloads constructor(
             // 2. Main face shader gradient
             starFacePaint.shader = if (isEarned) {
                 LinearGradient(
-                    cx - currentSize, centerY - currentSize, cx + currentSize, centerY + currentSize,
+                    cx - currentSize, starCenterY - currentSize, cx + currentSize, starCenterY + currentSize,
                     intArrayOf(
                         Color.parseColor("#FFF9C4"),
                         Color.parseColor("#FFD54F"),
@@ -166,7 +166,7 @@ class Stars3DView @JvmOverloads constructor(
                 )
             } else {
                 LinearGradient(
-                    cx - currentSize, centerY - currentSize, cx + currentSize, centerY + currentSize,
+                    cx - currentSize, starCenterY - currentSize, cx + currentSize, starCenterY + currentSize,
                     intArrayOf(
                         Color.parseColor("#E2E8F0"),
                         Color.parseColor("#94A3B8"),
@@ -181,31 +181,46 @@ class Stars3DView @JvmOverloads constructor(
             canvas.drawPath(starPath, starFacePaint)
             canvas.drawPath(starPath, if (isEarned) starStrokePaint else unearnedStrokePaint)
 
-            // 3. Highlight facet on top-left arm
+            // 3. Highlight facet on top-left arm & premium angled 3D shimmer sweep
             if (isEarned) {
                 val highlightPath = Path().apply {
-                    moveTo(cx - currentSize * 0.38f, centerY - currentSize * 0.35f)
-                    lineTo(cx - currentSize * 0.05f, centerY - currentSize * 0.75f)
-                    lineTo(cx - currentSize * 0.15f, centerY - currentSize * 0.15f)
+                    moveTo(cx - currentSize * 0.38f, starCenterY - currentSize * 0.35f)
+                    lineTo(cx - currentSize * 0.05f, starCenterY - currentSize * 0.75f)
+                    lineTo(cx - currentSize * 0.15f, starCenterY - currentSize * 0.15f)
                     close()
                 }
                 canvas.drawPath(highlightPath, starHighlightPaint)
 
-                // One-pass shimmer sweep across each earned star.
+                // Angled 3D shimmer sweep across earned stars
                 val sweep = shimmerOffsets[i]
-                if (sweep >= -0.5f && sweep <= 1.1f) {
+                if (sweep >= -0.5f && sweep <= 1.15f) {
                     canvas.save()
                     canvas.clipPath(starPath)
-                    val sweepX = cx - currentSize + sweep * currentSize * 2.0f
-                    shimmerPaint.alpha = 150
-                    val sweepWidth = maxOf(3f, currentSize * 0.14f)
-                    val sweepRect = RectF(
-                        sweepX - sweepWidth,
-                        centerY - currentSize * 1.15f,
-                        sweepX + sweepWidth,
-                        centerY + currentSize * 1.15f
+                    canvas.rotate(-25f, cx, starCenterY)
+
+                    val sweepX = cx - currentSize * 1.4f + sweep * currentSize * 2.8f
+                    val sweepWidth = maxOf(4f, currentSize * 0.28f)
+
+                    shimmerPaint.shader = LinearGradient(
+                        sweepX - sweepWidth, 0f, sweepX + sweepWidth, 0f,
+                        intArrayOf(
+                            Color.argb(0, 255, 255, 255),
+                            Color.argb(220, 255, 255, 255),
+                            Color.argb(0, 255, 255, 255)
+                        ),
+                        floatArrayOf(0f, 0.5f, 1f),
+                        Shader.TileMode.CLAMP
                     )
-                    canvas.drawRoundRect(sweepRect, sweepWidth, sweepWidth, shimmerPaint)
+
+                    canvas.drawRect(
+                        sweepX - sweepWidth,
+                        starCenterY - currentSize * 1.5f,
+                        sweepX + sweepWidth,
+                        starCenterY + currentSize * 1.5f,
+                        shimmerPaint
+                    )
+
+                    shimmerPaint.shader = null
                     canvas.restore()
                 }
             }

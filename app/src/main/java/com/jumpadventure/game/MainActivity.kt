@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
 
             logo.layoutParams = FrameLayout.LayoutParams(logoW, logoH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = dp(2f)
+                topMargin = dp(12f)
             }
 
             // Move ONLY the PLAY NOW button slightly upward (compact clear gap above BottomNav)
@@ -451,18 +451,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         val horizontalPad = (if (compact) 16 else 20) * density
-        val topPad = if (isLevelComplete) {
-            if (compact) 18f * density else 24f * density
-        } else {
-            if (compact) 22f * density else 28f * density
-        }
-        val bottomPad = if (compact) 10f * density else 14f * density
+        val topPad = if (compact) 18f * density else 22f * density
+        val bottomPad = if (compact) 12f * density else 14f * density
         contentLayout.setPadding(horizontalPad.toInt(), topPad.toInt(), horizontalPad.toInt(), bottomPad.toInt())
 
         val titleHeight = if (isLevelComplete) {
-            if (compact) 44 else 50
+            if (compact) 42 else 48
         } else {
-            if (compact) 44 else 48
+            if (compact) 42 else 46
         }
         curvedTitle.layoutParams = (curvedTitle.layoutParams as LinearLayout.LayoutParams).apply {
             width = (targetWidth * 0.86f).toInt()
@@ -470,9 +466,14 @@ class MainActivity : AppCompatActivity() {
             setMargins(0, 0, 0, (2 * density).toInt())
         }
 
+        val subText = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
+        subText?.layoutParams = (subText.layoutParams as LinearLayout.LayoutParams).apply {
+            setMargins(0, 0, 0, if (isLevelComplete) (2 * density).toInt() else (12 * density).toInt())
+        }
+
         if (isLevelComplete) {
             stars3D.visibility = View.VISIBLE
-            val starHeight = if (compact) 78 else 86
+            val starHeight = if (compact) 64 else 72
             stars3D.layoutParams = (stars3D.layoutParams as LinearLayout.LayoutParams).apply {
                 width = (targetWidth * 0.72f).toInt()
                 height = (starHeight * density).toInt()
@@ -480,7 +481,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             rewardSummary.visibility = View.VISIBLE
-            val rewardHeight = if (compact) 62 else 70
+            val rewardHeight = if (compact) 58 else 64
             rewardSummary.layoutParams = (rewardSummary.layoutParams as LinearLayout.LayoutParams).apply {
                 width = LinearLayout.LayoutParams.MATCH_PARENT
                 height = (rewardHeight * density).toInt()
@@ -489,7 +490,7 @@ class MainActivity : AppCompatActivity() {
 
             primaryBtn.layoutParams = (primaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
                 width = LinearLayout.LayoutParams.MATCH_PARENT
-                height = ((if (compact) 46 else 50) * density).toInt()
+                height = ((if (compact) 44 else 48) * density).toInt()
                 setMargins(0, 0, 0, (6 * density).toInt())
             }
         } else {
@@ -497,12 +498,12 @@ class MainActivity : AppCompatActivity() {
             rewardSummary.visibility = View.GONE
             primaryBtn.layoutParams = (primaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
                 width = LinearLayout.LayoutParams.MATCH_PARENT
-                height = ((if (compact) 46 else 50) * density).toInt()
-                setMargins(0, 0, 0, (7 * density).toInt())
+                height = ((if (compact) 44 else 48) * density).toInt()
+                setMargins(0, 0, 0, (6 * density).toInt())
             }
         }
 
-        val secondaryHeight = ((if (compact) 44 else 48) * density).toInt()
+        val secondaryHeight = ((if (compact) 42 else 46) * density).toInt()
         secondaryBtn.layoutParams = (secondaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
             width = 0
             height = secondaryHeight
