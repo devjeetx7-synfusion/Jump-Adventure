@@ -567,6 +567,9 @@ class MainActivity : AppCompatActivity() {
             showScreen("MAIN_MENU")
         }
 
+        // Remove the unused separate hero/logo slot; the board artwork already contains the decoration.
+        incOverlay.findViewById<android.widget.ImageView>(R.id.ivOverlayCrown).visibility = View.GONE
+
         // Trigger entrance animation & sparkles
         boardContainer.scaleX = 0.92f
         boardContainer.scaleY = 0.92f
@@ -622,6 +625,8 @@ class MainActivity : AppCompatActivity() {
         val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
         board.setImageResource(R.drawable.pause_board)
+        // Do not overlay the generic hero/logo icon on the pause board.
+        incOverlay.findViewById<android.widget.ImageView>(R.id.ivOverlayCrown).visibility = View.GONE
         curvedTitle.titleText = "GAME PAUSED"
         sub.text = "LEVEL ${saveData.currentLevel}"
 
