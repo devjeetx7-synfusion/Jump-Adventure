@@ -21,7 +21,8 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipToPadding="false"
+        android:minHeight="0dp">
 
         <com.jumpadventure.game.graphics.GameDialogBoardView
             android:id="@+id/vDialogBoard"
