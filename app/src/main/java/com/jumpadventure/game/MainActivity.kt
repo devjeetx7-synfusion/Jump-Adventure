@@ -11,6 +11,8 @@ import androidx.appcompat.app.AppCompatActivity
 import com.jumpadventure.game.audio.SoundManager
 import com.jumpadventure.game.data.SaveManager
 import com.jumpadventure.game.engine.GameView
+import com.jumpadventure.game.graphics.GameBottomNavView
+import com.jumpadventure.game.graphics.GameCurrencyBadge
 import com.jumpadventure.game.level.WorldRepository
 import com.jumpadventure.game.model.*
 
@@ -32,8 +34,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var incOverlay: View
 
     // Main Menu Views
-    private lateinit var tvCoins: TextView
-    private lateinit var tvGems: TextView
+    private lateinit var badgeCoins: GameCurrencyBadge
+    private lateinit var badgeGems: GameCurrencyBadge
+    private lateinit var bottomNavView: GameBottomNavView
+    private lateinit var secondaryBadgeCoins: GameCurrencyBadge
+    private lateinit var secondaryBottomNavView: GameBottomNavView
     private lateinit var btnPlay: com.jumpadventure.game.graphics.GamePrimaryButton
     private lateinit var charPreviewView: com.jumpadventure.game.graphics.CharacterPreviewView
 
@@ -89,11 +94,30 @@ class MainActivity : AppCompatActivity() {
 
         setupWindowInsets()
 
-        tvCoins = incMainMenu.findViewById(R.id.tvCoins)
-        tvGems = incMainMenu.findViewById(R.id.tvGems)
+        badgeCoins = incMainMenu.findViewById(R.id.badgeCoins)
+        badgeGems = incMainMenu.findViewById(R.id.badgeGems)
+        bottomNavView = incMainMenu.findViewById(R.id.bottomNavView)
+
+        secondaryBadgeCoins = incSecondary.findViewById(R.id.secondaryBadgeCoins)
+        secondaryBottomNavView = incSecondary.findViewById(R.id.secondaryBottomNavView)
+
         btnPlay = incMainMenu.findViewById(R.id.btnPlay)
         charPreviewView = incMainMenu.findViewById(R.id.charPreviewView)
+
+        badgeCoins.type = GameCurrencyBadge.CurrencyType.COIN
+        badgeGems.type = GameCurrencyBadge.CurrencyType.GEM
+        secondaryBadgeCoins.type = GameCurrencyBadge.CurrencyType.COIN
+
+        badgeCoins.onPlusClickListener = { soundManager.playButtonClick(); openShopScreen() }
+        badgeGems.onPlusClickListener = { soundManager.playButtonClick(); openShopScreen() }
+        secondaryBadgeCoins.onPlusClickListener = { soundManager.playButtonClick(); openShopScreen() }
+
+        charPreviewView.onCharacterTappedListener = {
+            soundManager.playJump()
+        }
+
         setupResponsiveHomeLayout()
+        setupSecondaryScrollEdgeEffect()
     }
 
     private fun setupResponsiveHomeLayout() {
@@ -110,30 +134,31 @@ class MainActivity : AppCompatActivity() {
             val h = container.height
             if (w <= 0 || h <= 0) return
 
-            val logoH = (h * 0.18f).toInt().coerceIn(dp(100f), dp(135f))
-            val logoW = minOf(dp(290f), (w * 0.82f).toInt())
+            // Slightly larger logo for stronger visual identity & balance
+            val logoH = (h * 0.22f).toInt().coerceIn(dp(120f), dp(155f))
+            val logoW = minOf(dp(330f), (w * 0.88f).toInt())
 
             logo.layoutParams = FrameLayout.LayoutParams(logoW, logoH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                topMargin = dp(4f)
+                topMargin = dp(2f)
             }
 
-            val playH = dp(78f).coerceIn(dp(68f), (h * 0.12f).toInt())
+            // Move ONLY the PLAY NOW button slightly upward (compact clear gap above BottomNav)
+            val playH = dp(76f).coerceIn(dp(68f), (h * 0.13f).toInt())
             val playW = minOf(dp(320f), w - dp(28f))
 
             play.layoutParams = FrameLayout.LayoutParams(playW, playH).apply {
                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(4f)
+                bottomMargin = dp(18f)
             }
 
-            // Move mountain slightly lower (~25-35dp lower than original)
-            val mountainW = minOf(dp(250f), (w * 0.70f).toInt())
+            // Mountain platform
+            val mountainW = minOf(dp(240f), (w * 0.68f).toInt())
             val mountainRatio = 3264f / 2857f
-            val mountainH = (mountainW * mountainRatio).toInt().coerceAtMost((h * 0.40f).toInt())
+            val mountainH = (mountainW * mountainRatio).toInt().coerceAtMost((h * 0.38f).toInt())
 
-            // Shift mountain downward slightly
-            val mountainBottom = h + dp(18f)
-            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(100f))
+            val mountainBottom = h + dp(14f)
+            val mountainTop = (mountainBottom - mountainH).coerceAtLeast(logoH + dp(90f))
 
             mountain.layoutParams = FrameLayout.LayoutParams(mountainW, mountainH).apply {
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -143,7 +168,6 @@ class MainActivity : AppCompatActivity() {
             // Character feet sit directly on the top grass surface of the mountain (no gap)
             val characterW = minOf(dp(160f), (w * 0.45f).toInt())
             val characterH = minOf(dp(180f), (h * 0.23f).toInt())
-            // Top grass surface is ~16% down from asset top
             val mountainSurfaceY = mountainTop + (mountainH * 0.16f).toInt()
             val charTopMargin = (mountainSurfaceY - characterH + dp(10f)).toInt().coerceAtLeast(logoH + dp(4f))
 
@@ -159,6 +183,36 @@ class MainActivity : AppCompatActivity() {
         container.post { kotlin.runCatching { applyLayout() } }
     }
 
+    private fun setupSecondaryScrollEdgeEffect() {
+        val scrollView = incSecondary.findViewById<ScrollView>(R.id.secondaryScrollView) ?: return
+        val content = incSecondary.findViewById<LinearLayout>(R.id.secondaryContentContainer) ?: return
+        val density = resources.displayMetrics.density
+        val edgeFadeDistance = 60f * density
+
+        scrollView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            val visibleTop = scrollY.toFloat()
+            val visibleBottom = visibleTop + scrollView.height.toFloat()
+
+            for (i in 0 until content.childCount) {
+                val child = content.getChildAt(i) ?: continue
+                val childTop = child.top.toFloat()
+                val childBottom = child.bottom.toFloat()
+
+                val distFromTop = childBottom - visibleTop
+                val distFromBottom = visibleBottom - childTop
+
+                var alpha = 1.0f
+                if (distFromTop < edgeFadeDistance) {
+                    alpha = (distFromTop / edgeFadeDistance).coerceIn(0.2f, 1.0f)
+                } else if (distFromBottom < edgeFadeDistance) {
+                    alpha = (distFromBottom / edgeFadeDistance).coerceIn(0.2f, 1.0f)
+                }
+
+                child.alpha = alpha
+            }
+        }
+    }
+
     private fun setupWindowInsets() {
         val root = findViewById<View>(R.id.rootLayout) ?: return
 
@@ -170,11 +224,11 @@ class MainActivity : AppCompatActivity() {
         )
 
         val bottomMarginViews = listOfNotNull(
-            incMainMenu.findViewById<View>(R.id.bottomNavContainer)
+            incMainMenu.findViewById<View>(R.id.bottomNavView),
+            incSecondary.findViewById<View>(R.id.secondaryBottomNavView)
         )
 
         val bottomPadViews = listOfNotNull(
-            incSecondary.findViewById<View>(R.id.secondaryScrollView),
             incLevelMap.findViewById<View>(R.id.mapScrollView)
         )
 
@@ -192,8 +246,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateCurrencyHUD() {
-        tvCoins.text = "${saveData.coins}"
-        tvGems.text = "${saveData.gems}"
+        badgeCoins.amount = saveData.coins
+        badgeGems.amount = saveData.gems
+        secondaryBadgeCoins.amount = saveData.coins
+
         btnPlay.setPlayInfo(saveData.currentLevel)
         charPreviewView.selectedCharacterId = saveData.selectedCharacter
     }
@@ -209,50 +265,23 @@ class MainActivity : AppCompatActivity() {
             openLevelMapScreen()
         }
 
-        incMainMenu.findViewById<View>(R.id.navShop).setOnClickListener {
+        val navListener: (String) -> Unit = { tabId ->
             soundManager.playButtonClick()
-            openShopScreen()
+            when (tabId) {
+                "SHOP" -> openShopScreen()
+                "CHARACTERS" -> openCharactersScreen()
+                "WORLDS" -> openWorldsScreen()
+                "ACHIEVEMENTS" -> openAchievementsScreen()
+            }
         }
 
-        incMainMenu.findViewById<View>(R.id.navCharacters).setOnClickListener {
-            soundManager.playButtonClick()
-            openCharactersScreen()
-        }
-
-        incMainMenu.findViewById<View>(R.id.navWorlds).setOnClickListener {
-            soundManager.playButtonClick()
-            openWorldsScreen()
-        }
-
-        incMainMenu.findViewById<View>(R.id.navAchievements).setOnClickListener {
-            soundManager.playButtonClick()
-            openAchievementsScreen()
-        }
+        bottomNavView.onTabSelectedListener = navListener
+        secondaryBottomNavView.onTabSelectedListener = navListener
     }
 
     private fun updateBottomNavSelection(activeTab: String) {
-        val navItems = mapOf(
-            "SHOP" to Pair(incMainMenu.findViewById<View>(R.id.navShop), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavShop), incMainMenu.findViewById<TextView>(R.id.tvNavShop))),
-            "CHARACTERS" to Pair(incMainMenu.findViewById<View>(R.id.navCharacters), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavCharacters), incMainMenu.findViewById<TextView>(R.id.tvNavCharacters))),
-            "WORLDS" to Pair(incMainMenu.findViewById<View>(R.id.navWorlds), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavWorlds), incMainMenu.findViewById<TextView>(R.id.tvNavWorlds))),
-            "ACHIEVEMENTS" to Pair(incMainMenu.findViewById<View>(R.id.navAchievements), Pair(incMainMenu.findViewById<ImageView>(R.id.ivNavAchievements), incMainMenu.findViewById<TextView>(R.id.tvNavAchievements)))
-        )
-
-        navItems.forEach { (key, views) ->
-            val container = views.first ?: return@forEach
-            val icon = views.second.first ?: return@forEach
-            val text = views.second.second ?: return@forEach
-
-            if (key == activeTab) {
-                container.setBackgroundResource(R.drawable.bg_nav_active_capsule)
-                icon.setColorFilter(Color.WHITE)
-                text.setTextColor(Color.WHITE)
-            } else {
-                container.background = null
-                icon.setColorFilter(Color.parseColor("#1F3045"))
-                text.setTextColor(Color.parseColor("#1F3045"))
-            }
-        }
+        bottomNavView.selectedTabId = activeTab
+        secondaryBottomNavView.selectedTabId = activeTab
     }
 
     private fun showScreen(screenName: String) {
@@ -322,7 +351,6 @@ class MainActivity : AppCompatActivity() {
      * GAMEPLAY ENGINE STARTER
      * ------------------------------------------------------------------------ */
     private fun startLevelGameplay(levelNum: Int) {
-        android.util.Log.d("JUMP_DEBUG", "GAMEPLAY_START: levelNum=$levelNum")
         saveData.currentLevel = levelNum
         saveManager.saveData(saveData)
 
@@ -342,7 +370,6 @@ class MainActivity : AppCompatActivity() {
         pbLevelProgress.progress = 0
 
         val currentWorld = WorldRepository.getWorldForLevel(levelNum)
-        android.util.Log.d("JUMP_DEBUG", "LEVEL_ID=$levelNum, WORLD_ID=${currentWorld.id}, BACKGROUND=${WorldRepository.getWorldBackgroundRes(currentWorld.id)}, CHARACTER=${saveData.selectedCharacter}")
 
         val newGameView = GameView(
             context = this,
@@ -366,7 +393,6 @@ class MainActivity : AppCompatActivity() {
             }
         )
 
-        android.util.Log.d("JUMP_DEBUG", "GAMEVIEW_CREATED")
         currentGameView = newGameView
         gameContainer.addView(
             newGameView,
@@ -375,7 +401,6 @@ class MainActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )
-        android.util.Log.d("JUMP_DEBUG", "GAMEVIEW_ATTACHED")
 
         incGameplay.findViewById<ImageButton>(R.id.btnPause).setOnClickListener {
             soundManager.playButtonClick()
@@ -437,14 +462,7 @@ class MainActivity : AppCompatActivity() {
         contentLayout.setPadding(padStartEnd, padTop, padStartEnd, padBottom)
 
         val crownView = incOverlay.findViewById<ImageView>(R.id.ivOverlayCrown)
-        // The board artwork already contains its own header decoration; keep the
-        // generic placeholder fully hidden on both reward and pause overlays.
         crownView.visibility = View.GONE
-        val crownSize = if (isCompact) (40 * density).toInt() else (52 * density).toInt()
-        crownView.layoutParams = (crownView.layoutParams as LinearLayout.LayoutParams).apply {
-            width = crownSize
-            height = crownSize
-        }
 
         val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
         val titleH = if (isCompact) (34 * density).toInt() else (42 * density).toInt()
@@ -538,6 +556,7 @@ class MainActivity : AppCompatActivity() {
         sub.text = "LEVEL ${saveData.currentLevel}"
 
         stars3D.starsEarned = starsEarned
+        stars3D.startPopAnimation()
         rewardSummary.setRewardData(coinsEarned, starsEarned, timeTakenSec)
 
         primary.visibility = View.VISIBLE
@@ -584,10 +603,8 @@ class MainActivity : AppCompatActivity() {
             showScreen("MAIN_MENU")
         }
 
-        // Remove the unused separate hero/logo slot; the board artwork already contains the decoration.
         incOverlay.findViewById<android.widget.ImageView>(R.id.ivOverlayCrown).visibility = View.GONE
 
-        // Trigger entrance animation
         boardContainer.scaleX = 0.92f
         boardContainer.scaleY = 0.92f
         boardContainer.animate()
@@ -599,8 +616,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleGameOver() {
-        // Freeze the failed run before opening the dialog so the game surface
-        // cannot keep updating underneath and repeatedly recreate the dialog.
         currentGameView?.stopGameLoop()
         showCustomGameDialog(
             title = "GAME OVER",
@@ -703,9 +718,8 @@ class MainActivity : AppCompatActivity() {
     private fun openCharactersScreen() {
         updateBottomNavSelection("CHARACTERS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
-        val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "HEROES"
-        tvCoinsSec.text = "${saveData.coins}"
+        secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -927,9 +941,8 @@ class MainActivity : AppCompatActivity() {
     private fun openShopScreen() {
         updateBottomNavSelection("SHOP")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
-        val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "SHOP"
-        tvCoinsSec.text = "${saveData.coins}"
+        secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -1018,7 +1031,7 @@ class MainActivity : AppCompatActivity() {
                         saveData.coins += amount
                     }
                     saveManager.saveData(saveData)
-                    tvCoinsSec.text = "${saveData.coins}"
+                    secondaryBadgeCoins.amount = saveData.coins
                     showCustomGameDialog(
                         title = "REWARD CLAIMED!",
                         message = "You received +$amount ${if (isGem) "Gems" else "Coins"}!"
@@ -1042,9 +1055,8 @@ class MainActivity : AppCompatActivity() {
     private fun openWorldsScreen() {
         updateBottomNavSelection("WORLDS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
-        val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "WORLDS"
-        tvCoinsSec.text = "${saveData.coins}"
+        secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -1057,14 +1069,15 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
 
         WorldRepository.worlds.forEach { world ->
-            // World card container where artwork fills full background edge-to-edge
+            // World card container with 3D game border and elevation
             val cardFrame = FrameLayout(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     (200 * density).toInt()
                 ).apply { setMargins(0, (10 * density).toInt(), 0, (10 * density).toInt()) }
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = 20f * density
+                    cornerRadius = 22f * density
+                    setStroke((3.5f * density).toInt(), Color.parseColor("#3B82F6"))
                 }
                 clipToOutline = true
             }
@@ -1080,13 +1093,19 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
+            val totalStars = saveData.levelStars.values.sum()
+            val isUnlocked = saveData.unlockedWorlds.contains(world.id) || totalStars >= world.requiredStarsToUnlock || saveData.highestLevel >= world.startLevel
+
             // 2. Dark translucent overlay for contrast & readability
             val overlayView = View(this).apply {
                 background = android.graphics.drawable.GradientDrawable(
                     android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(
+                    if (isUnlocked) intArrayOf(
                         Color.parseColor("#400F172A"),
-                        Color.parseColor("#B00B1426")
+                        Color.parseColor("#C00F172A")
+                    ) else intArrayOf(
+                        Color.parseColor("#901E293B"),
+                        Color.parseColor("#E20F172A")
                     )
                 )
                 layoutParams = FrameLayout.LayoutParams(
@@ -1095,7 +1114,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            // 3. Card Content: Title, Levels, and 3D Glass Explore button
+            // 3. Card Content: Title, Levels, and 3D Action button
             val contentLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER_HORIZONTAL
@@ -1109,10 +1128,10 @@ class MainActivity : AppCompatActivity() {
 
             val tvWorldTitle = TextView(this).apply {
                 text = "WORLD ${world.id}: ${world.name.uppercase()}"
-                textSize = 22f
+                textSize = 21f
                 typeface = Typeface.DEFAULT_BOLD
                 setTextColor(Color.WHITE)
-                setShadowLayer(6f, 0f, 4f, Color.parseColor("#0F172A"))
+                setShadowLayer(8f, 0f, 4f, Color.parseColor("#0F172A"))
                 gravity = Gravity.CENTER
             }
 
@@ -1130,14 +1149,11 @@ class MainActivity : AppCompatActivity() {
                 ).apply { setMargins(0, (4 * density).toInt(), 0, (14 * density).toInt()) }
             }
 
-            val totalStars = saveData.levelStars.values.sum()
-            val isUnlocked = saveData.unlockedWorlds.contains(world.id) || totalStars >= world.requiredStarsToUnlock || saveData.highestLevel >= world.startLevel
-
             val statusBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
                 if (isUnlocked) {
                     mainText = "EXPLORE"
                     subText = ""
-                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GLASS
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
                     setOnClickListener {
                         soundManager.playButtonClick()
                         saveData.currentLevel = world.startLevel
@@ -1147,7 +1163,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     mainText = "LOCKED"
                     subText = "${world.requiredStarsToUnlock} STARS REQUIRED"
-                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                    variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GRAY
                     setOnClickListener {
                         soundManager.playButtonClick()
                         showCustomGameDialog(
@@ -1158,7 +1174,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 layoutParams = LinearLayout.LayoutParams(
                     minOf((220 * density).toInt(), (resources.displayMetrics.widthPixels * 0.7f).toInt()),
-                    (54 * density).toInt()
+                    (52 * density).toInt()
                 )
             }
 
@@ -1182,9 +1198,8 @@ class MainActivity : AppCompatActivity() {
     private fun openAchievementsScreen() {
         updateBottomNavSelection("ACHIEVEMENTS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
-        val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "TROPHIES"
-        tvCoinsSec.text = "${saveData.coins}"
+        secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -1307,9 +1322,8 @@ class MainActivity : AppCompatActivity() {
      * ------------------------------------------------------------------------ */
     private fun openSettingsScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
-        val tvCoinsSec = incSecondary.findViewById<TextView>(R.id.tvSecondaryCoins)
         title.text = "SETTINGS"
-        tvCoinsSec.text = "${saveData.coins}"
+        secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
