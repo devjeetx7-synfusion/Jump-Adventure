@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import kotlin.math.min
 
 class GameDialogBoardView @JvmOverloads constructor(
     context: Context,
@@ -20,22 +21,23 @@ class GameDialogBoardView @JvmOverloads constructor(
         }
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-    }
+    private val innerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#40FFFFFF")
-    }
+    private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val sparklePaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     private val shadowRect = RectF()
     private val boardRect = RectF()
+    private val innerRect = RectF()
     private val highlightRect = RectF()
-    private val starPath = Path()
+    private val accentPath = Path()
 
     init {
         setWillNotDraw(false)
+        isClickable = false
+        isFocusable = false
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -44,75 +46,137 @@ class GameDialogBoardView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val density = resources.displayMetrics.density
-        val cornerR = 32f * density
-        val shadowDepth = 10f * density
+        val d = resources.displayMetrics.density
+        val margin = 3f * d
+        val shadowDepth = min(12f * d, h * 0.055f)
+        val corner = min(30f * d, w * 0.085f)
 
-        // 1. Draw 3D Extrusion Shadow
-        shadowRect.set(2f * density, shadowDepth, w - 2f * density, h)
-        shadowPaint.color = if (boardType == BoardType.PAUSE) Color.parseColor("#09101A") else Color.parseColor("#522800")
-        canvas.drawRoundRect(shadowRect, cornerR, cornerR, shadowPaint)
+        boardRect.set(margin, 0f, w - margin, h - shadowDepth)
+        shadowRect.set(margin + 1f * d, shadowDepth, w - margin - 1f * d, h)
 
-        // 2. Draw Main Board Base
-        boardRect.set(2f * density, 0f, w - 2f * density, h - shadowDepth)
+        // Deep 3D extrusion.
+        shadowPaint.shader = LinearGradient(
+            0f, shadowRect.top, 0f, shadowRect.bottom,
+            if (boardType == BoardType.PAUSE) Color.parseColor("#07111E")
+            else Color.parseColor("#5C2B00"),
+            if (boardType == BoardType.PAUSE) Color.parseColor("#02070D")
+            else Color.parseColor("#2A1000"),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRoundRect(shadowRect, corner, corner, shadowPaint)
 
-        if (boardType == BoardType.PAUSE) {
-            bgPaint.shader = LinearGradient(
-                boardRect.left, boardRect.top, boardRect.left, boardRect.bottom,
-                Color.parseColor("#1C2C42"), Color.parseColor("#0F1A28"),
+        // Main board.
+        bgPaint.shader = if (boardType == BoardType.PAUSE) {
+            LinearGradient(
+                0f, boardRect.top, 0f, boardRect.bottom,
+                Color.parseColor("#233B57"),
+                Color.parseColor("#101D2B"),
                 Shader.TileMode.CLAMP
             )
-            borderPaint.color = Color.parseColor("#38BDF8")
-            borderPaint.strokeWidth = 3.5f * density
-        } else { // WINNER
-            bgPaint.shader = LinearGradient(
-                boardRect.left, boardRect.top, boardRect.left, boardRect.bottom,
-                Color.parseColor("#26203D"), Color.parseColor("#120E22"),
+        } else {
+            LinearGradient(
+                0f, boardRect.top, 0f, boardRect.bottom,
+                Color.parseColor("#3B315B"),
+                Color.parseColor("#171126"),
                 Shader.TileMode.CLAMP
             )
-            borderPaint.color = Color.parseColor("#FFD43B")
-            borderPaint.strokeWidth = 4.5f * density
         }
+        canvas.drawRoundRect(boardRect, corner, corner, bgPaint)
 
-        canvas.drawRoundRect(boardRect, cornerR, cornerR, bgPaint)
+        // Inner bevel.
+        innerRect.set(
+            boardRect.left + 8f * d,
+            boardRect.top + 8f * d,
+            boardRect.right - 8f * d,
+            boardRect.bottom - 8f * d
+        )
+        innerPaint.style = Paint.Style.STROKE
+        innerPaint.strokeWidth = 2f * d
+        innerPaint.color = if (boardType == BoardType.PAUSE) {
+            Color.parseColor("#204A6B")
+        } else {
+            Color.parseColor("#6D4708")
+        }
+        canvas.drawRoundRect(innerRect, corner - 6f * d, corner - 6f * d, innerPaint)
 
-        // 3. Draw Top Gloss Highlight
+        // Soft top gloss, restrained so content stays readable.
+        highlightPaint.shader = LinearGradient(
+            0f, boardRect.top, 0f, boardRect.top + boardRect.height() * 0.22f,
+            Color.argb(78, 255, 255, 255),
+            Color.argb(0, 255, 255, 255),
+            Shader.TileMode.CLAMP
+        )
         highlightRect.set(
-            boardRect.left + 8f * density,
-            boardRect.top + 4f * density,
-            boardRect.right - 8f * density,
+            boardRect.left + 8f * d,
+            boardRect.top + 4f * d,
+            boardRect.right - 8f * d,
             boardRect.top + boardRect.height() * 0.28f
         )
-        canvas.drawRoundRect(highlightRect, cornerR * 0.7f, cornerR * 0.7f, highlightPaint)
+        canvas.drawRoundRect(highlightRect, corner * 0.72f, corner * 0.72f, highlightPaint)
 
-        // 4. Draw Beveled Outer Border
-        canvas.drawRoundRect(boardRect, cornerR, cornerR, borderPaint)
+        // Outer bright rim / depth line.
+        borderPaint.strokeWidth = if (boardType == BoardType.PAUSE) 3.4f * d else 4.2f * d
+        borderPaint.color = if (boardType == BoardType.PAUSE) Color.parseColor("#20C9FF")
+                            else Color.parseColor("#FFC928")
+        canvas.drawRoundRect(boardRect, corner, corner, borderPaint)
 
-        // 5. Board Specific Decorative Accents
-        if (boardType == BoardType.WINNER) {
-            // Gold corner rivets
-            accentPaint.color = Color.parseColor("#FFE885")
-            val rivetOffset = 20f * density
-            val rivetR = 4f * density
-            canvas.drawCircle(boardRect.left + rivetOffset, boardRect.top + rivetOffset, rivetR, accentPaint)
-            canvas.drawCircle(boardRect.right - rivetOffset, boardRect.top + rivetOffset, rivetR, accentPaint)
-            canvas.drawCircle(boardRect.left + rivetOffset, boardRect.bottom - rivetOffset, rivetR, accentPaint)
-            canvas.drawCircle(boardRect.right - rivetOffset, boardRect.bottom - rivetOffset, rivetR, accentPaint)
-        } else {
-            // Blue cyan inner accent line
+        if (boardType == BoardType.PAUSE) {
+            // Simple cyan corner/side accents.
             accentPaint.style = Paint.Style.STROKE
-            accentPaint.color = Color.parseColor("#1538BDF8")
-            accentPaint.strokeWidth = 2f * density
-            val innerRect = RectF(
-                boardRect.left + 8f * density,
-                boardRect.top + 8f * density,
-                boardRect.right - 8f * density,
-                boardRect.bottom - 8f * density
+            accentPaint.strokeWidth = 2.2f * d
+            accentPaint.color = Color.parseColor("#27445F")
+            val ir = RectF(
+                boardRect.left + 14f * d,
+                boardRect.top + 14f * d,
+                boardRect.right - 14f * d,
+                boardRect.bottom - 14f * d
             )
-            canvas.drawRoundRect(innerRect, cornerR - 6f * density, cornerR - 6f * density, accentPaint)
-            accentPaint.style = Paint.Style.FILL
+            canvas.drawRoundRect(ir, corner - 10f * d, corner - 10f * d, accentPaint)
+        } else {
+            // Winner: larger center glow behind stars + golden corner bolts.
+            val glow = RadialGradient(
+                boardRect.centerX(),
+                boardRect.top + boardRect.height() * 0.27f,
+                maxOf(30f * d, boardRect.width() * 0.62f),
+                intArrayOf(
+                    Color.argb(72, 255, 220, 70),
+                    Color.argb(25, 255, 180, 20),
+                    Color.argb(0, 255, 180, 20)
+                ),
+                floatArrayOf(0f, 0.45f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            accentPaint.shader = glow
+            canvas.drawOval(
+                RectF(
+                    boardRect.left + 14f * d,
+                    boardRect.top + 24f * d,
+                    boardRect.right - 14f * d,
+                    boardRect.top + boardRect.height() * 0.50f
+                ),
+                accentPaint
+            )
+            accentPaint.shader = null
+
+            val boltR = 4.5f * d
+            sparklePaint.color = Color.parseColor("#FFE98A")
+            for ((x, y) in arrayOf(
+                boardRect.left + 18f * d to boardRect.top + 18f * d,
+                boardRect.right - 18f * d to boardRect.top + 18f * d,
+                boardRect.left + 18f * d to boardRect.bottom - 18f * d,
+                boardRect.right - 18f * d to boardRect.bottom - 18f * d
+            )) {
+                canvas.drawCircle(x, y, boltR, sparklePaint)
+                canvas.drawCircle(x, y, boltR * 0.35f, ColorPaintWhite)
+            }
         }
 
         bgPaint.shader = null
+        shadowPaint.shader = null
+        innerPaint.shader = null
+        highlightPaint.shader = null
     }
+
+    private val ColorPaintWhite: Paint
+        get() = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 180 }
 }
