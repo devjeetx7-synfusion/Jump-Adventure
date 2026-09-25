@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (incOverlay.visibility == View.VISIBLE) {
+            incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)?.stopCelebration()
             incOverlay.visibility = View.GONE
             overlayHandler.removeCallbacksAndMessages(null)
             return
@@ -72,6 +73,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
         super.onBackPressed()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)?.stopCelebration()
     }
 
     private fun initViews() {
@@ -255,6 +261,7 @@ class MainActivity : AppCompatActivity() {
         incLevelMap.visibility = View.GONE
         incGameplay.visibility = View.GONE
         incSecondary.visibility = View.GONE
+        incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)?.stopCelebration()
         incOverlay.visibility = View.GONE
         overlayHandler.removeCallbacksAndMessages(null)
 
@@ -503,6 +510,10 @@ class MainActivity : AppCompatActivity() {
         incOverlay.visibility = View.VISIBLE
         incOverlay.bringToFront()
 
+        val sparkleOverlay = incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)
+        sparkleOverlay.startCelebration()
+        soundManager.playVictory()
+
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
         customDialog.visibility = View.GONE
 
@@ -551,6 +562,7 @@ class MainActivity : AppCompatActivity() {
             if (isActionClicked) return@setOnClickListener
             isActionClicked = true
             soundManager.playButtonClick()
+            sparkleOverlay.stopCelebration()
             incOverlay.visibility = View.GONE
             startLevelGameplay(saveData.currentLevel + 1)
         }
@@ -558,6 +570,7 @@ class MainActivity : AppCompatActivity() {
             if (isActionClicked) return@setOnClickListener
             isActionClicked = true
             soundManager.playButtonClick()
+            sparkleOverlay.stopCelebration()
             incOverlay.visibility = View.GONE
             startLevelGameplay(saveData.currentLevel)
         }
@@ -565,6 +578,7 @@ class MainActivity : AppCompatActivity() {
             if (isActionClicked) return@setOnClickListener
             isActionClicked = true
             soundManager.playButtonClick()
+            sparkleOverlay.stopCelebration()
             incOverlay.visibility = View.GONE
             currentGameView?.stopGameLoop()
             showScreen("MAIN_MENU")
@@ -573,7 +587,7 @@ class MainActivity : AppCompatActivity() {
         // Remove the unused separate hero/logo slot; the board artwork already contains the decoration.
         incOverlay.findViewById<android.widget.ImageView>(R.id.ivOverlayCrown).visibility = View.GONE
 
-        // Trigger entrance animation & sparkles
+        // Trigger entrance animation
         boardContainer.scaleX = 0.92f
         boardContainer.scaleY = 0.92f
         boardContainer.animate()
@@ -582,8 +596,6 @@ class MainActivity : AppCompatActivity() {
             .setDuration(220)
             .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
             .start()
-
-        incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay).triggerBurst()
     }
 
     private fun handleGameOver() {
@@ -610,6 +622,9 @@ class MainActivity : AppCompatActivity() {
         incOverlay.visibility = View.VISIBLE
         incOverlay.bringToFront()
 
+        val sparkleOverlay = incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)
+        sparkleOverlay.stopCelebration()
+
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
         customDialog.visibility = View.GONE
 
@@ -628,7 +643,6 @@ class MainActivity : AppCompatActivity() {
         val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
         board.setImageResource(R.drawable.pause_board)
-        // Do not overlay the generic hero/logo icon on the pause board.
         incOverlay.findViewById<android.widget.ImageView>(R.id.ivOverlayCrown).visibility = View.GONE
         curvedTitle.titleText = "GAME PAUSED"
         sub.text = "LEVEL ${saveData.currentLevel}"
@@ -776,19 +790,19 @@ class MainActivity : AppCompatActivity() {
             val actionBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
                 when {
                     isSelected -> {
-                        mainText = "SELECTED"
+                        mainText = "EQUIPPED"
                         subText = ""
-                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
                     }
                     isUnlocked -> {
-                        mainText = "SELECT"
+                        mainText = "EQUIP"
                         subText = ""
                         variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
                     }
                     else -> {
                         mainText = "UNLOCK"
-                        subText = "${item.priceCoins} Coins"
-                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                        subText = "${item.priceCoins} COINS"
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
                     }
                 }
 
@@ -991,7 +1005,7 @@ class MainActivity : AppCompatActivity() {
             val claimBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
                 mainText = "CLAIM"
                 subText = if (isGem) "+$amount GEMS" else "+$amount COINS"
-                variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                variant = if (isGem) com.jumpadventure.game.graphics.GamePrimaryButton.Variant.PURPLE else com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, (46 * density).toInt()
                 )
@@ -1251,13 +1265,13 @@ class MainActivity : AppCompatActivity() {
                     isClaimed -> {
                         mainText = "CLAIMED"
                         subText = ""
-                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GRAY
                         isEnabled = false
                     }
                     isUnlocked -> {
                         mainText = "CLAIM"
                         subText = "+${item.rewardCoins} COINS"
-                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GOLD
                         setOnClickListener {
                             soundManager.playCoin()
                             saveData.coins += item.rewardCoins
@@ -1269,7 +1283,7 @@ class MainActivity : AppCompatActivity() {
                     else -> {
                         mainText = "LOCKED"
                         subText = "+${item.rewardCoins} COINS"
-                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+                        variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GRAY
                         isEnabled = false
                     }
                 }
@@ -1349,7 +1363,7 @@ class MainActivity : AppCompatActivity() {
         val resetBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
             mainText = "RESET ALL PROGRESS"
             subText = "ERASE ALL DATA"
-            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.RED
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
             ).apply { setMargins(0, (20 * density).toInt(), 0, (8 * density).toInt()) }

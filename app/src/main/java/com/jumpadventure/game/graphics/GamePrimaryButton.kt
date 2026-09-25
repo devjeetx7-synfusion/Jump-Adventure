@@ -21,7 +21,7 @@ class GamePrimaryButton @JvmOverloads constructor(
     var variant: Variant = Variant.ORANGE
         set(value) { field = value; invalidate() }
 
-    enum class Variant { ORANGE, GREEN, BLUE, GLASS }
+    enum class Variant { ORANGE, GREEN, BLUE, GOLD, PURPLE, RED, GRAY, GLASS }
     enum class IconType { AUTO, PLAY, RESTART, HOME, SETTINGS, NONE }
 
     var iconType: IconType = IconType.AUTO
@@ -150,12 +150,18 @@ class GamePrimaryButton @JvmOverloads constructor(
         val topColor: Int
         val bottomColor: Int
         val shadowColor: Int
-        when (variant) {
-            Variant.ORANGE -> { topColor = Color.parseColor("#FFC107"); bottomColor = Color.parseColor("#FF8F00"); shadowColor = Color.parseColor("#A34A00") }
-            Variant.GREEN -> { topColor = Color.parseColor("#8BEA3E"); bottomColor = Color.parseColor("#23A63A"); shadowColor = Color.parseColor("#0F6E21") }
-            Variant.BLUE -> { topColor = Color.parseColor("#57D5FF"); bottomColor = Color.parseColor("#0878D8"); shadowColor = Color.parseColor("#07509A") }
-            Variant.GLASS -> { topColor = Color.argb(220, 255, 170, 40); bottomColor = Color.argb(240, 235, 100, 0); shadowColor = Color.argb(255, 120, 40, 0) }
+        val borderColor: Int
+        when (if (!isEnabled) Variant.GRAY else variant) {
+            Variant.ORANGE -> { topColor = Color.parseColor("#FFC107"); bottomColor = Color.parseColor("#FF8F00"); shadowColor = Color.parseColor("#A34A00"); borderColor = Color.parseColor("#FFE599") }
+            Variant.GREEN -> { topColor = Color.parseColor("#8BEA3E"); bottomColor = Color.parseColor("#23A63A"); shadowColor = Color.parseColor("#0F6E21"); borderColor = Color.parseColor("#C8FF8C") }
+            Variant.BLUE -> { topColor = Color.parseColor("#57D5FF"); bottomColor = Color.parseColor("#0878D8"); shadowColor = Color.parseColor("#07509A"); borderColor = Color.parseColor("#B3F0FF") }
+            Variant.GOLD -> { topColor = Color.parseColor("#FFEE58"); bottomColor = Color.parseColor("#F57F17"); shadowColor = Color.parseColor("#8F4C00"); borderColor = Color.parseColor("#FFF9C4") }
+            Variant.PURPLE -> { topColor = Color.parseColor("#E040FB"); bottomColor = Color.parseColor("#7B1FA2"); shadowColor = Color.parseColor("#4A148C"); borderColor = Color.parseColor("#EA80FC") }
+            Variant.RED -> { topColor = Color.parseColor("#FF5252"); bottomColor = Color.parseColor("#D32F2F"); shadowColor = Color.parseColor("#8E0000"); borderColor = Color.parseColor("#FFCDD2") }
+            Variant.GRAY -> { topColor = Color.parseColor("#CFD8DC"); bottomColor = Color.parseColor("#78909C"); shadowColor = Color.parseColor("#37474F"); borderColor = Color.parseColor("#ECEFF1") }
+            Variant.GLASS -> { topColor = Color.argb(220, 255, 170, 40); bottomColor = Color.argb(240, 235, 100, 0); shadowColor = Color.argb(255, 120, 40, 0); borderColor = Color.parseColor("#FFE599") }
         }
+        borderPaint.color = borderColor
         shadowPaint.color = shadowColor
         bodyPaint.shader = LinearGradient(
             buttonRect.left, buttonRect.top, buttonRect.left, buttonRect.bottom,

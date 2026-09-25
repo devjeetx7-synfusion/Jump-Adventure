@@ -26,11 +26,19 @@ class SparkleView @JvmOverloads constructor(
         var shape: Int = 0 // 0: star/diamond, 1: circle
     )
 
-    private val particles = Array(32) { Particle() }
+    private val particles = Array(36) { Particle() }
     private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val starPath = Path()
-    private var isAnimating = false
-    private var animProgress = 0f
+    private var isCelebrationActive = false
+    private val rng = Random(System.currentTimeMillis())
+
+    private val colors = intArrayOf(
+        Color.parseColor("#FFD43B"), // Gold
+        Color.parseColor("#FF9F1C"), // Orange
+        Color.parseColor("#36C96F"), // Green
+        Color.parseColor("#58CFF0"), // Light Blue
+        Color.parseColor("#FFFFFF")  // White
+    )
 
     init {
         // Touch pass-through so particles never block clicks
@@ -38,60 +46,83 @@ class SparkleView @JvmOverloads constructor(
         isFocusable = false
     }
 
+    fun startCelebration() {
+        isCelebrationActive = true
+        for (p in particles) {
+            resetParticle(p, isInitial = true)
+        }
+        invalidate()
+    }
+
     fun triggerBurst() {
+        startCelebration()
+    }
+
+    fun stopCelebration() {
+        isCelebrationActive = false
+        for (p in particles) {
+            p.lifetime = p.maxLifetime
+            p.alpha = 0f
+        }
+        invalidate()
+    }
+
+    private fun resetParticle(p: Particle, isInitial: Boolean = false) {
         val w = width.toFloat().coerceAtLeast(100f)
         val h = height.toFloat().coerceAtLeast(100f)
         val originX = w / 2f
-        // Burst from the center of the modal rather than the overlay's top area.
         val originY = h * 0.50f
 
-        val colors = intArrayOf(
-            Color.parseColor("#FFD43B"), // Gold
-            Color.parseColor("#FF9F1C"), // Orange
-            Color.parseColor("#36C96F"), // Green
-            Color.parseColor("#58CFF0"), // Light Blue
-            Color.parseColor("#FFFFFF")  // White
-        )
+        p.x = originX + (rng.nextFloat() - 0.5f) * (w * 0.35f)
+        p.y = originY + (rng.nextFloat() - 0.5f) * (h * 0.25f)
 
-        val rng = Random(System.currentTimeMillis())
-        for (p in particles) {
-            p.x = originX + (rng.nextFloat() - 0.5f) * (w * 0.2f)
-            p.y = originY + (rng.nextFloat() - 0.5f) * (h * 0.1f)
-            val angle = rng.nextFloat() * 2f * Math.PI.toFloat()
-            val speed = (120f + rng.nextFloat() * 280f)
-            p.vx = Math.cos(angle.toDouble()).toFloat() * speed
-            p.vy = Math.sin(angle.toDouble()).toFloat() * speed - 60f
-            p.size = 8f + rng.nextFloat() * 14f
-            p.maxAlpha = 0.7f + rng.nextFloat() * 0.3f
-            p.alpha = 0f
-            p.color = colors[rng.nextInt(colors.size)]
-            p.maxLifetime = 0.8f + rng.nextFloat() * 0.6f
-            p.lifetime = 0f
-            p.shape = if (rng.nextBoolean()) 0 else 1
+        val angle = rng.nextFloat() * 2f * Math.PI.toFloat()
+        val speed = 80f + rng.nextFloat() * 220f
+        p.vx = Math.cos(angle.toDouble()).toFloat() * speed
+        p.vy = Math.sin(angle.toDouble()).toFloat() * speed - 40f
+        p.size = 8f + rng.nextFloat() * 16f
+        p.maxAlpha = 0.75f + rng.nextFloat() * 0.25f
+        p.alpha = 0f
+        p.color = colors[rng.nextInt(colors.size)]
+        p.maxLifetime = 0.8f + rng.nextFloat() * 0.8f
+        p.lifetime = if (isInitial) rng.nextFloat() * p.maxLifetime else 0f
+        p.shape = if (rng.nextBoolean()) 0 else 1
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        stopCelebration()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (visibility != VISIBLE) {
+            stopCelebration()
         }
-
-        isAnimating = true
-        animProgress = 0f
-        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (!isAnimating) return
+        if (!isCelebrationActive) return
 
         val dt = 0.033f // ~30 FPS frame delta
-        animProgress += dt
         var activeCount = 0
 
         for (p in particles) {
             p.lifetime += dt
-            if (p.lifetime >= p.maxLifetime) continue
+            if (p.lifetime >= p.maxLifetime) {
+                if (isCelebrationActive) {
+                    resetParticle(p, isInitial = false)
+                } else {
+                    continue
+                }
+            }
 
             activeCount++
-            val progress = p.lifetime / p.maxLifetime
+            val progress = (p.lifetime / p.maxLifetime).coerceIn(0f, 1f)
             p.x += p.vx * dt
             p.y += p.vy * dt
-            p.vy += 90f * dt // gentle gravity drag
+            p.vy += 60f * dt // gentle gravity drag
 
             // Fade in quickly, expand, then fade out
             p.alpha = if (progress < 0.2f) {
@@ -123,10 +154,8 @@ class SparkleView @JvmOverloads constructor(
             }
         }
 
-        if (activeCount > 0) {
+        if (isCelebrationActive || activeCount > 0) {
             postInvalidateDelayed(33)
-        } else {
-            isAnimating = false
         }
     }
 }
