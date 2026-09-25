@@ -91,15 +91,87 @@ class SoundManager(context: Context) {
         playVictory()
     }
 
-    fun playVictory() {
+    fun playStarImpact(isCenter: Boolean = false) {
+        if (!soundEnabled) return
         thread {
-            playTone(523.25, 110, 587.33) // C5 -> D5
-            Thread.sleep(115)
-            playTone(659.25, 110, 698.46) // E5 -> F5
-            Thread.sleep(115)
-            playTone(783.99, 130, 880.00) // G5 -> A5
-            Thread.sleep(135)
-            playTone(1046.50, 320, 1318.51) // C6 -> E6 triumphant fanfare
+            try {
+                val sampleRate = 22050
+                val durationMs = if (isCenter) 220 else 160
+                val numSamples = durationMs * sampleRate / 1000
+                val generatedSnd = ByteArray(2 * numSamples)
+
+                val baseFreq = if (isCenter) 200.0 else 300.0
+                val chimeFreq = if (isCenter) 1318.51 else 1046.50
+
+                for (i in 0 until numSamples) {
+                    val t = i.toDouble() / numSamples
+                    val bodyEnv = Math.exp(-6.0 * t)
+                    val chimeEnv = Math.exp(-3.5 * t)
+
+                    val bodyWave = sin(2.0 * Math.PI * (baseFreq + 140.0 * (1.0 - t)) * (i.toDouble() / sampleRate)) * bodyEnv
+                    val chimeWave = sin(2.0 * Math.PI * (chimeFreq + 180.0 * t) * (i.toDouble() / sampleRate)) * chimeEnv * 0.65
+
+                    val sampleVal = ((bodyWave + chimeWave) * 0.7).coerceIn(-1.0, 1.0)
+                    val shortVal = (sampleVal * 32767 * 0.55).toInt().toShort()
+
+                    val idx = i * 2
+                    generatedSnd[idx] = (shortVal.toInt() and 0x00ff).toByte()
+                    generatedSnd[idx + 1] = (shortVal.toInt() and 0xff00 shr 8).toByte()
+                }
+
+                val audioTrack = AudioTrack.Builder()
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_GAME)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    .setAudioFormat(
+                        AudioFormat.Builder()
+                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                            .setSampleRate(sampleRate)
+                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                            .build()
+                    )
+                    .setBufferSizeInBytes(generatedSnd.size)
+                    .setTransferMode(AudioTrack.MODE_STATIC)
+                    .build()
+
+                audioTrack.write(generatedSnd, 0, generatedSnd.size)
+                audioTrack.play()
+
+                Thread.sleep(durationMs.toLong() + 30)
+                audioTrack.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun playVictory() {
+        if (!soundEnabled) return
+        thread {
+            try {
+                // Victory intro -> rising celebratory tones -> strong congratulations finish
+                val notes = arrayOf(
+                    Triple(523.25, 110, 587.33),   // C5 -> D5
+                    Triple(659.25, 110, 698.46),   // E5 -> F5
+                    Triple(783.99, 130, 880.00),   // G5 -> A5
+                    Triple(1046.50, 150, 1174.66), // C6 -> D6
+                    Triple(1318.51, 160, 1396.91), // E6 -> F6
+                    Triple(1567.98, 420, 1567.98)  // G6 triumphant holding tone
+                )
+                val delays = arrayOf(105L, 105L, 125L, 145L, 155L)
+
+                for (i in notes.indices) {
+                    if (!soundEnabled) break
+                    val (fStart, dur, fEnd) = notes[i]
+                    playTone(fStart, dur, fEnd)
+                    if (i < delays.size) Thread.sleep(delays[i])
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

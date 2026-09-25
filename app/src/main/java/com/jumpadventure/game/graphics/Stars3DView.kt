@@ -21,13 +21,23 @@ class Stars3DView @JvmOverloads constructor(
             invalidate()
         }
 
+    var onStarImpactListener: ((index: Int, isCenter: Boolean) -> Unit)? = null
+
     private val starScales = floatArrayOf(1f, 1f, 1f)
+    private val starFlashes = floatArrayOf(0f, 0f, 0f)
     private val shimmerOffsets = floatArrayOf(-1f, -1f, -1f)
-    private val shimmerAnimators = arrayOfNulls<ValueAnimator>(3)
+    private val entranceAnimators = arrayOfNulls<ValueAnimator>(3)
+    private var continuousShimmerAnimator: ValueAnimator? = null
+    private var continuousShimmerProgress = -1f
+
     private val shimmerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         style = Paint.Style.FILL
         alpha = 150
+    }
+    private val flashPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
     }
 
     private val starPath = Path()
@@ -46,41 +56,87 @@ class Stars3DView @JvmOverloads constructor(
         color = Color.argb(220, 255, 255, 255)
     }
 
-    fun startPopAnimation() {
-        for (i in 0 until 3) {
-            shimmerAnimators[i]?.cancel()
-            shimmerAnimators[i] = null
-            shimmerOffsets[i] = -1f
-            if (i < starsEarned) {
-                starScales[i] = 0f
-                val pop = ValueAnimator.ofFloat(0f, 1f).apply {
-                    duration = 280
-                    startDelay = (i * 140).toLong()
-                    interpolator = OvershootInterpolator(2.0f)
-                    addUpdateListener { va ->
-                        starScales[i] = va.animatedValue as Float
-                        invalidate()
-                    }
-                }
-                pop.start()
+    fun stopAllAnimations() {
+        entranceAnimators.forEach { it?.cancel() }
+        entranceAnimators.fill(null)
+        continuousShimmerAnimator?.cancel()
+        continuousShimmerAnimator = null
+        starScales.fill(1f)
+        starFlashes.fill(0f)
+        shimmerOffsets.fill(-1f)
+        continuousShimmerProgress = -1f
+    }
 
-                val shimmer = ValueAnimator.ofFloat(-1f, 1.15f).apply {
-                    duration = 900
-                    startDelay = (i * 140 + 420).toLong()
-                    repeatCount = 1
-                    interpolator = android.view.animation.LinearInterpolator()
+    fun startPopAnimation() {
+        stopAllAnimations()
+
+        val entranceOrder = intArrayOf(0, 1, 2)
+        var maxEntranceTime = 0L
+
+        for (orderIdx in 0 until 3) {
+            val starIdx = entranceOrder[orderIdx]
+            shimmerOffsets[starIdx] = -1f
+
+            if (starIdx < starsEarned) {
+                starScales[starIdx] = 0f
+                starFlashes[starIdx] = 0f
+
+                val delay = (orderIdx * 240).toLong()
+                val duration = 320L
+                val endTime = delay + duration
+                if (endTime > maxEntranceTime) maxEntranceTime = endTime
+
+                val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                    this.duration = duration
+                    startDelay = delay
+                    interpolator = OvershootInterpolator(if (starIdx == 1) 2.6f else 2.0f)
+
+                    var soundTriggered = false
+
                     addUpdateListener { va ->
-                        shimmerOffsets[i] = va.animatedValue as Float
+                        val progress = va.animatedValue as Float
+                        starScales[starIdx] = progress
+
+                        if (!soundTriggered && progress >= 0.25f) {
+                            soundTriggered = true
+                            starFlashes[starIdx] = 1.0f
+                            onStarImpactListener?.invoke(starIdx, starIdx == 1)
+                        }
+
+                        if (starFlashes[starIdx] > 0f) {
+                            starFlashes[starIdx] = (starFlashes[starIdx] - 0.12f).coerceAtLeast(0f)
+                        }
                         invalidate()
                     }
                 }
-                shimmerAnimators[i] = shimmer
-                shimmer.start()
+                entranceAnimators[starIdx] = animator
+                animator.start()
             } else {
-                starScales[i] = 1f
+                starScales[starIdx] = 1f
+                starFlashes[starIdx] = 0f
             }
         }
+
+        if (starsEarned > 0) {
+            startContinuousShimmer(delayStart = maxEntranceTime + 180L)
+        }
         invalidate()
+    }
+
+    private fun startContinuousShimmer(delayStart: Long) {
+        continuousShimmerAnimator?.cancel()
+        continuousShimmerAnimator = ValueAnimator.ofFloat(-0.6f, 1.6f).apply {
+            duration = 1800
+            startDelay = delayStart
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.RESTART
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            addUpdateListener { va ->
+                continuousShimmerProgress = va.animatedValue as Float
+                invalidate()
+            }
+        }
+        continuousShimmerAnimator?.start()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -112,13 +168,10 @@ class Stars3DView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
 
         val count = 3
-        val starSize = (h * 0.34f).coerceIn(16f, 30f)
-        val spacing = starSize * 2.45f
+        val starSize = (h * 0.36f).coerceIn(18f, 34f)
+        val spacing = starSize * 2.55f
         val startX = w / 2f - (count - 1) * spacing / 2f
-        val centerY = h * 0.52f
-
-        starStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2.5f)
-        unearnedStrokePaint.strokeWidth = (starSize * 0.08f).coerceAtLeast(2.5f)
+        val centerY = h * 0.54f
 
         for (i in 0 until count) {
             val cx = startX + i * spacing
@@ -127,9 +180,13 @@ class Stars3DView @JvmOverloads constructor(
 
             if (popScale <= 0f) continue
 
-            val scaleFactor = if (i == 1) 1.38f else 1.0f
+            // Center star is clearly larger (1.48x) and elevated higher
+            val scaleFactor = if (i == 1) 1.48f else 1.0f
             val currentSize = starSize * scaleFactor
-            val starCenterY = if (i == 1) centerY - starSize * 0.18f else centerY + starSize * 0.08f
+            val starCenterY = if (i == 1) centerY - starSize * 0.28f else centerY + starSize * 0.08f
+
+            starStrokePaint.strokeWidth = (currentSize * 0.08f).coerceAtLeast(2.5f)
+            unearnedStrokePaint.strokeWidth = (currentSize * 0.08f).coerceAtLeast(2.5f)
 
             canvas.save()
             canvas.scale(popScale, popScale, cx, starCenterY)
@@ -191,15 +248,22 @@ class Stars3DView @JvmOverloads constructor(
                 }
                 canvas.drawPath(highlightPath, starHighlightPaint)
 
+                // Flash burst on impact
+                val flashAlpha = starFlashes[i]
+                if (flashAlpha > 0f) {
+                    flashPaint.alpha = (flashAlpha * 210).toInt()
+                    canvas.drawCircle(cx, starCenterY, currentSize * 1.25f, flashPaint)
+                }
+
                 // Angled 3D shimmer sweep across earned stars
-                val sweep = shimmerOffsets[i]
-                if (sweep >= -0.5f && sweep <= 1.15f) {
+                val sweep = if (continuousShimmerProgress >= -0.5f) continuousShimmerProgress else shimmerOffsets[i]
+                if (sweep >= -0.5f && sweep <= 1.5f) {
                     canvas.save()
                     canvas.clipPath(starPath)
                     canvas.rotate(-25f, cx, starCenterY)
 
                     val sweepX = cx - currentSize * 1.4f + sweep * currentSize * 2.8f
-                    val sweepWidth = maxOf(4f, currentSize * 0.28f)
+                    val sweepWidth = maxOf(4f, currentSize * 0.32f)
 
                     shimmerPaint.shader = LinearGradient(
                         sweepX - sweepWidth, 0f, sweepX + sweepWidth, 0f,
@@ -231,8 +295,7 @@ class Stars3DView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        shimmerAnimators.forEach { it?.cancel() }
-        shimmerAnimators.fill(null)
+        stopAllAnimations()
         super.onDetachedFromWindow()
     }
 }
