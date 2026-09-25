@@ -40,6 +40,18 @@ class GameDialogBoardView @JvmOverloads constructor(
         isFocusable = false
     }
 
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
+        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+        if (heightMode != MeasureSpec.EXACTLY) {
+            // Prevent MATCH_PARENT child from expanding WRAP_CONTENT parent during AT_MOST pass.
+            setMeasuredDimension(widthSize, 0)
+        } else {
+            val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+            setMeasuredDimension(widthSize, heightSize)
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val w = width.toFloat()

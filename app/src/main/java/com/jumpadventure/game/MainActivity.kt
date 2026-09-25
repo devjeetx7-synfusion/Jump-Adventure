@@ -68,9 +68,7 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (incOverlay.visibility == View.VISIBLE) {
-            incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)?.stopCelebration()
-            incOverlay.visibility = View.GONE
-            overlayHandler.removeCallbacksAndMessages(null)
+            dismissWinnerOverlay()
             return
         }
         if (currentScreenName != "MAIN_MENU") {
@@ -82,7 +80,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        dismissWinnerOverlay()
+    }
+
+    private fun dismissWinnerOverlay() {
         incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)?.stopCelebration()
+        incOverlay.findViewById<com.jumpadventure.game.graphics.Stars3DView>(R.id.vOverlayStars3D)?.stopAllAnimations()
+        incOverlay.visibility = View.GONE
+        overlayHandler.removeCallbacksAndMessages(null)
     }
 
     private fun initViews() {
@@ -560,6 +565,9 @@ class MainActivity : AppCompatActivity() {
         curvedTitle.titleText = "LEVEL COMPLETE!"
         sub.text = "LEVEL ${saveData.currentLevel}"
 
+        stars3D.onStarImpactListener = { _, isCenter ->
+            soundManager.playStarImpact(isCenter)
+        }
         stars3D.starsEarned = starsEarned
         stars3D.startPopAnimation()
         rewardSummary.setRewardData(coinsEarned, starsEarned, timeTakenSec)
@@ -586,24 +594,21 @@ class MainActivity : AppCompatActivity() {
             if (isActionClicked) return@setOnClickListener
             isActionClicked = true
             soundManager.playButtonClick()
-            sparkleOverlay.stopCelebration()
-            incOverlay.visibility = View.GONE
+            dismissWinnerOverlay()
             startLevelGameplay(saveData.currentLevel + 1)
         }
         secondary.setOnClickListener {
             if (isActionClicked) return@setOnClickListener
             isActionClicked = true
             soundManager.playButtonClick()
-            sparkleOverlay.stopCelebration()
-            incOverlay.visibility = View.GONE
+            dismissWinnerOverlay()
             startLevelGameplay(saveData.currentLevel)
         }
         home.setOnClickListener {
             if (isActionClicked) return@setOnClickListener
             isActionClicked = true
             soundManager.playButtonClick()
-            sparkleOverlay.stopCelebration()
-            incOverlay.visibility = View.GONE
+            dismissWinnerOverlay()
             currentGameView?.stopGameLoop()
             showScreen("MAIN_MENU")
         }
