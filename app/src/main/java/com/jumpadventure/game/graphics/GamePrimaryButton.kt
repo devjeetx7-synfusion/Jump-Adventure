@@ -96,11 +96,22 @@ class GamePrimaryButton @JvmOverloads constructor(
                 animate().scaleX(0.96f).scaleY(0.96f).setDuration(60).start()
                 invalidate()
             }
+            MotionEvent.ACTION_MOVE -> {
+                val inBounds = event.x >= 0f && event.x <= width.toFloat() && event.y >= 0f && event.y <= height.toFloat()
+                if (isPressedState != inBounds) {
+                    isPressedState = inBounds
+                    animate().scaleX(if (inBounds) 0.96f else 1f).scaleY(if (inBounds) 0.96f else 1f).setDuration(60).start()
+                    invalidate()
+                }
+            }
             MotionEvent.ACTION_UP -> {
+                val inBounds = event.x >= 0f && event.x <= width.toFloat() && event.y >= 0f && event.y <= height.toFloat()
                 isPressedState = false
                 animate().scaleX(1f).scaleY(1f).setDuration(60).start()
                 invalidate()
-                performClick()
+                if (inBounds) {
+                    performClick()
+                }
             }
             MotionEvent.ACTION_CANCEL -> {
                 isPressedState = false

@@ -145,8 +145,9 @@ class LevelMapView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val w = MeasureSpec.getSize(widthMeasureSpec)
-        val hSpec = MeasureSpec.makeMeasureSpec(mapTotalHeight.toInt(), MeasureSpec.EXACTLY)
+        val parentHeight = MeasureSpec.getSize(heightMeasureSpec)
+        val targetHeight = maxOf(mapTotalHeight.toInt(), parentHeight)
+        val hSpec = MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
         super.onMeasure(widthMeasureSpec, hSpec)
     }
 
@@ -155,7 +156,7 @@ class LevelMapView @JvmOverloads constructor(
         animTime += 0.05f
 
         val w = width.toFloat().coerceAtLeast(1f)
-        val h = mapTotalHeight.coerceAtLeast(1f)
+        val h = maxOf(mapTotalHeight, height.toFloat()).coerceAtLeast(1f)
 
         // 1. Full-viewport continuous world background artwork
         val bg = cachedBgBitmap
