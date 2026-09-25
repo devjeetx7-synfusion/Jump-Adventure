@@ -696,6 +696,7 @@ class MainActivity : AppCompatActivity() {
         title.text = "HEROES"
         secondaryBadgeCoins.visibility = View.VISIBLE
         secondaryBadgeCoins.showPlusButton = false
+        secondaryBadgeCoins.type = GameCurrencyBadge.CurrencyType.COIN
         secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
