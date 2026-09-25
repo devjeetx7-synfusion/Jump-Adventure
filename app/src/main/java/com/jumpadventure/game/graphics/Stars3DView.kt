@@ -190,15 +190,15 @@ class Stars3DView @JvmOverloads constructor(
                     canvas.save()
                     canvas.clipPath(starPath)
                     val sweepX = cx - currentSize + sweep * currentSize * 2.0f
-                    shimmerPaint.alpha = 190
-                    shimmerPaint.strokeWidth = maxOf(2f, currentSize * 0.08f)
-                    canvas.drawLine(
-                        sweepX,
-                        centerY - currentSize * 1.1f,
-                        sweepX + currentSize * 0.55f,
-                        centerY + currentSize * 1.1f,
-                        shimmerPaint
+                    shimmerPaint.alpha = 150
+                    val sweepWidth = maxOf(3f, currentSize * 0.14f)
+                    val sweepRect = RectF(
+                        sweepX - sweepWidth,
+                        centerY - currentSize * 1.15f,
+                        sweepX + sweepWidth,
+                        centerY + currentSize * 1.15f
                     )
+                    canvas.drawRoundRect(sweepRect, sweepWidth, sweepWidth, shimmerPaint)
                     canvas.restore()
                 }
             }
