@@ -121,11 +121,18 @@ class LevelMapView @JvmOverloads constructor(
         val centerX = viewWidth / 2f
         val amplitude = viewWidth * 0.32f
 
+        val effectiveCurrentLevel = when {
+            currentLevelNum in startLvl..worldInfo.endLevel -> currentLevelNum
+            currentHighestLevel in startLvl..worldInfo.endLevel -> currentHighestLevel
+            currentLevelNum > worldInfo.endLevel -> worldInfo.endLevel
+            else -> startLvl
+        }
+
         // Progression ascends upward: level 1 at bottom, higher levels toward top
         for (i in 0 until totalLevels) {
             val lvl = startLvl + i
             val isUnlocked = lvl <= currentHighestLevel
-            val isCurr = lvl == currentLevelNum
+            val isCurr = lvl == effectiveCurrentLevel
             val isBoss = (lvl % 5 == 0) || (lvl == worldInfo.endLevel)
             val stars = currentLevelStars[lvl] ?: 0
 
@@ -262,11 +269,14 @@ class LevelMapView @JvmOverloads constructor(
 
             // Draw Character Marker on Current Level Node
             if (node.isCurrent) {
+                val charW = 80f
+                val charH = 90f
+                val anchorOffsetY = 6f // Feet sit anchored right above the node outline rim
                 val markerBounds = RectF(
-                    node.x - 45f,
-                    node.y - radius - 80f,
-                    node.x + 45f,
-                    node.y - radius - 10f
+                    node.x - charW / 2f,
+                    node.y - radius - charH + anchorOffsetY,
+                    node.x + charW / 2f,
+                    node.y - radius + anchorOffsetY
                 )
                 CharacterRenderer.drawCharacter(
                     canvas = canvas,

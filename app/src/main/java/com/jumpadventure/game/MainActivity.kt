@@ -402,6 +402,92 @@ class MainActivity : AppCompatActivity() {
         showScreen("GAMEPLAY")
     }
 
+    private fun applyOverlayResponsiveSizing(isLevelComplete: Boolean) {
+        val displayMetrics = resources.displayMetrics
+        val windowWidth = displayMetrics.widthPixels
+        val windowHeight = displayMetrics.heightPixels
+
+        val insets = androidx.core.view.ViewCompat.getRootWindowInsets(findViewById(R.id.rootLayout))
+        val topInset = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())?.top ?: 0
+        val bottomInset = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())?.bottom ?: 0
+        val usableHeight = windowHeight - topInset - bottomInset
+
+        val density = displayMetrics.density
+        val targetWidth = (windowWidth * 0.90f).toInt().coerceIn((290 * density).toInt(), (520 * density).toInt())
+        val isCompact = usableHeight < (660 * density).toInt()
+
+        val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
+        boardContainer.layoutParams = (boardContainer.layoutParams as RelativeLayout.LayoutParams).apply {
+            width = targetWidth
+            height = RelativeLayout.LayoutParams.WRAP_CONTENT
+            addRule(RelativeLayout.CENTER_IN_PARENT)
+        }
+
+        val contentLayout = incOverlay.findViewById<LinearLayout>(R.id.overlayContent)
+        val padStartEnd = (20 * density).toInt()
+        val padTop = if (isCompact) (42 * density).toInt() else (54 * density).toInt()
+        val padBottom = if (isCompact) (14 * density).toInt() else (20 * density).toInt()
+        contentLayout.setPadding(padStartEnd, padTop, padStartEnd, padBottom)
+
+        val crownView = incOverlay.findViewById<ImageView>(R.id.ivOverlayCrown)
+        val crownSize = if (isCompact) (52 * density).toInt() else (68 * density).toInt()
+        crownView.layoutParams = (crownView.layoutParams as LinearLayout.LayoutParams).apply {
+            width = crownSize
+            height = crownSize
+        }
+
+        val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
+        val titleH = if (isCompact) (38 * density).toInt() else (46 * density).toInt()
+        curvedTitle.layoutParams = (curvedTitle.layoutParams as LinearLayout.LayoutParams).apply {
+            width = (targetWidth * 0.85f).toInt()
+            height = titleH
+        }
+
+        val stars3D = incOverlay.findViewById<com.jumpadventure.game.graphics.Stars3DView>(R.id.vOverlayStars3D)
+        val starsH = if (isCompact) (42 * density).toInt() else (50 * density).toInt()
+        stars3D.layoutParams = (stars3D.layoutParams as LinearLayout.LayoutParams).apply {
+            width = (targetWidth * 0.65f).toInt()
+            height = starsH
+            setMargins(0, (2 * density).toInt(), 0, (4 * density).toInt())
+        }
+
+        val rewardSummary = incOverlay.findViewById<com.jumpadventure.game.graphics.RewardSummaryView>(R.id.vOverlayRewardSummary)
+        val rewardH = if (isCompact) (52 * density).toInt() else (62 * density).toInt()
+        rewardSummary.layoutParams = (rewardSummary.layoutParams as LinearLayout.LayoutParams).apply {
+            width = LinearLayout.LayoutParams.MATCH_PARENT
+            height = rewardH
+            setMargins(0, 0, 0, if (isCompact) (8 * density).toInt() else (12 * density).toInt())
+        }
+
+        val primaryBtn = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
+        val primaryH = if (isCompact) (44 * density).toInt() else (52 * density).toInt()
+        primaryBtn.layoutParams = (primaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
+            width = LinearLayout.LayoutParams.MATCH_PARENT
+            height = primaryH
+            setMargins(0, 0, 0, if (isCompact) (4 * density).toInt() else (8 * density).toInt())
+        }
+
+        val secondaryBtn = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
+        val homeBtn = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
+        val secH = if (isCompact) (42 * density).toInt() else (48 * density).toInt()
+
+        secondaryBtn.layoutParams = (secondaryBtn.layoutParams as LinearLayout.LayoutParams).apply {
+            width = 0
+            height = secH
+            weight = 1f
+            setMargins(0, 0, (4 * density).toInt(), 0)
+        }
+        homeBtn.layoutParams = (homeBtn.layoutParams as LinearLayout.LayoutParams).apply {
+            width = 0
+            height = secH
+            weight = 1f
+            setMargins((4 * density).toInt(), 0, 0, 0)
+        }
+
+        stars3D.visibility = if (isLevelComplete) View.VISIBLE else View.GONE
+        rewardSummary.visibility = if (isLevelComplete) View.VISIBLE else View.GONE
+    }
+
     private fun handleLevelCompleted(coinsEarned: Int, starsEarned: Int, timeTakenSec: Float) {
         saveData.coins += coinsEarned
         saveData.totalCoinsCollected += coinsEarned
@@ -413,6 +499,7 @@ class MainActivity : AppCompatActivity() {
 
         incOverlay.visibility = View.VISIBLE
         incOverlay.bringToFront()
+
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
         customDialog.visibility = View.GONE
 
@@ -420,50 +507,77 @@ class MainActivity : AppCompatActivity() {
         boardContainer.visibility = View.VISIBLE
         boardContainer.bringToFront()
 
+        applyOverlayResponsiveSizing(isLevelComplete = true)
+
         val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
-        val header = incOverlay.findViewById<TextView>(R.id.tvOverlayHeader)
+        val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
         val sub = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
-        val stars = incOverlay.findViewById<TextView>(R.id.tvOverlayStars)
-        val coins = incOverlay.findViewById<TextView>(R.id.tvOverlayCoins)
-        val time = incOverlay.findViewById<TextView>(R.id.tvOverlayTime)
+        val stars3D = incOverlay.findViewById<com.jumpadventure.game.graphics.Stars3DView>(R.id.vOverlayStars3D)
+        val rewardSummary = incOverlay.findViewById<com.jumpadventure.game.graphics.RewardSummaryView>(R.id.vOverlayRewardSummary)
+
         val primary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
         val secondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
         val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
 
         board.setImageResource(R.drawable.winner_bg)
-        header.text = "LEVEL COMPLETE!"
+        curvedTitle.titleText = "LEVEL COMPLETE!"
         sub.text = "LEVEL ${saveData.currentLevel}"
-        val earnedStars = starsEarned.coerceIn(0, 3)
-        stars.text = "★".repeat(earnedStars) + "☆".repeat(3 - earnedStars)
-        coins.text = "+${coinsEarned} COINS   •   +${starsEarned} STARS"
-        time.text = "TIME  ${String.format("%.1fs", timeTakenSec)}"
+
+        stars3D.starsEarned = starsEarned
+        rewardSummary.setRewardData(coinsEarned, starsEarned, timeTakenSec)
 
         primary.visibility = View.VISIBLE
         secondary.visibility = View.VISIBLE
         home.visibility = View.VISIBLE
+
         primary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
         secondary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
         home.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
+
+        primary.iconType = com.jumpadventure.game.graphics.GamePrimaryButton.IconType.PLAY
+        secondary.iconType = com.jumpadventure.game.graphics.GamePrimaryButton.IconType.RESTART
+        home.iconType = com.jumpadventure.game.graphics.GamePrimaryButton.IconType.HOME
+
         primary.mainText = "NEXT LEVEL"; primary.subText = ""
         secondary.mainText = "RESTART"; secondary.subText = ""
         home.mainText = "HOME"; home.subText = ""
 
+        var isActionClicked = false
+
         primary.setOnClickListener {
+            if (isActionClicked) return@setOnClickListener
+            isActionClicked = true
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             startLevelGameplay(saveData.currentLevel + 1)
         }
         secondary.setOnClickListener {
+            if (isActionClicked) return@setOnClickListener
+            isActionClicked = true
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             startLevelGameplay(saveData.currentLevel)
         }
         home.setOnClickListener {
+            if (isActionClicked) return@setOnClickListener
+            isActionClicked = true
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             currentGameView?.stopGameLoop()
             showScreen("MAIN_MENU")
         }
+
+        // Trigger entrance animation & sparkles
+        boardContainer.scaleX = 0.92f
+        boardContainer.scaleY = 0.92f
+        boardContainer.animate()
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .setDuration(220)
+            .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+            .start()
+
+        incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay).triggerBurst()
     }
 
     private fun handleGameOver() {
@@ -489,21 +603,27 @@ class MainActivity : AppCompatActivity() {
         currentGameView?.pauseGame()
         incOverlay.visibility = View.VISIBLE
         incOverlay.bringToFront()
+
+        val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
+        customDialog.visibility = View.GONE
+
         val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
         boardContainer.visibility = View.VISIBLE
         boardContainer.bringToFront()
-        val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
-        board.setImageResource(R.drawable.pause_board)
 
-        incOverlay.findViewById<TextView>(R.id.tvOverlayHeader).text = "PAUSED"
-        incOverlay.findViewById<TextView>(R.id.tvOverlaySub).text = "LEVEL ${saveData.currentLevel}"
-        incOverlay.findViewById<TextView>(R.id.tvOverlayStars).text = ""
-        incOverlay.findViewById<TextView>(R.id.tvOverlayCoins).text = ""
-        incOverlay.findViewById<TextView>(R.id.tvOverlayTime).text = ""
+        applyOverlayResponsiveSizing(isLevelComplete = false)
+
+        val board = incOverlay.findViewById<ImageView>(R.id.ivPauseBoard)
+        val curvedTitle = incOverlay.findViewById<com.jumpadventure.game.graphics.CurvedTitleView>(R.id.tvOverlayCurvedTitle)
+        val sub = incOverlay.findViewById<TextView>(R.id.tvOverlaySub)
 
         val primary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayPrimary)
         val secondary = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlaySecondary)
         val home = incOverlay.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnOverlayHome)
+
+        board.setImageResource(R.drawable.pause_board)
+        curvedTitle.titleText = "GAME PAUSED"
+        sub.text = "LEVEL ${saveData.currentLevel}"
 
         primary.visibility = View.VISIBLE
         secondary.visibility = View.VISIBLE
@@ -513,26 +633,46 @@ class MainActivity : AppCompatActivity() {
         secondary.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
         home.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.ORANGE
 
+        primary.iconType = com.jumpadventure.game.graphics.GamePrimaryButton.IconType.PLAY
+        secondary.iconType = com.jumpadventure.game.graphics.GamePrimaryButton.IconType.RESTART
+        home.iconType = com.jumpadventure.game.graphics.GamePrimaryButton.IconType.HOME
+
         primary.mainText = "RESUME"; primary.subText = ""
         secondary.mainText = "RESTART"; secondary.subText = ""
         home.mainText = "HOME"; home.subText = ""
 
+        var isActionClicked = false
+
         primary.setOnClickListener {
+            if (isActionClicked) return@setOnClickListener
+            isActionClicked = true
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             currentGameView?.resumeGame()
         }
         secondary.setOnClickListener {
+            if (isActionClicked) return@setOnClickListener
+            isActionClicked = true
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             startLevelGameplay(saveData.currentLevel)
         }
         home.setOnClickListener {
+            if (isActionClicked) return@setOnClickListener
+            isActionClicked = true
             soundManager.playButtonClick()
             incOverlay.visibility = View.GONE
             currentGameView?.stopGameLoop()
             showScreen("MAIN_MENU")
         }
+
+        boardContainer.scaleX = 0.95f
+        boardContainer.scaleY = 0.95f
+        boardContainer.animate()
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .setDuration(160)
+            .start()
     }
 
     /* ------------------------------------------------------------------------

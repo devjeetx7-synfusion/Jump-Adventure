@@ -41,11 +41,14 @@ class GameDialogView @JvmOverloads constructor(
     val messageView: TextView
     val buttonContainer: LinearLayout
 
+    var isCompactMode: Boolean = false
+        private set
+
     init {
         setWillNotDraw(false)
         val density = resources.displayMetrics.density
-        val padding = (24 * density).toInt()
-        setPadding(padding, padding, padding, padding + (8 * density).toInt())
+        val padding = (20 * density).toInt()
+        setPadding(padding, padding, padding, padding + (6 * density).toInt())
 
         val contentLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -72,7 +75,7 @@ class GameDialogView @JvmOverloads constructor(
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { setMargins(0, 0, 0, (16 * density).toInt()) }
+            ).apply { setMargins(0, 0, 0, (14 * density).toInt()) }
         }
 
         buttonContainer = LinearLayout(context).apply {
@@ -88,6 +91,23 @@ class GameDialogView @JvmOverloads constructor(
         contentLayout.addView(messageView)
         contentLayout.addView(buttonContainer)
         addView(contentLayout)
+    }
+
+    fun applyResponsiveConstraints(windowWidth: Int, usableWindowHeight: Int) {
+        val density = resources.displayMetrics.density
+        val targetWidth = (windowWidth * 0.90f).toInt().coerceIn((280 * density).toInt(), (520 * density).toInt())
+        val maxDialogHeight = (usableWindowHeight * 0.84f).toInt()
+
+        isCompactMode = usableWindowHeight < (640 * density).toInt()
+
+        val padding = if (isCompactMode) (14 * density).toInt() else (20 * density).toInt()
+        setPadding(padding, padding, padding, padding + (6 * density).toInt())
+
+        layoutParams = (layoutParams ?: LayoutParams(targetWidth, LayoutParams.WRAP_CONTENT)).apply {
+            width = targetWidth
+            height = LayoutParams.WRAP_CONTENT
+        }
+        requestLayout()
     }
 
     override fun onDraw(canvas: Canvas) {
