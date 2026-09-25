@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
+import kotlin.math.max
 
 class CurvedTitleView @JvmOverloads constructor(
     context: Context,
@@ -17,49 +18,44 @@ class CurvedTitleView @JvmOverloads constructor(
             invalidate()
         }
 
-    private val textPath = Path()
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val path = Path()
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
-    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
         style = Paint.Style.STROKE
-        color = Color.parseColor("#4A1D00")
+        color = Color.parseColor("#6B2700")
     }
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
-        color = Color.parseColor("#3B1200")
+        color = Color.parseColor("#4A1600")
     }
-    private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val glossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
         style = Paint.Style.STROKE
-        color = Color.parseColor("#80FFFFFF")
+        color = Color.argb(110, 255, 255, 255)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val density = resources.displayMetrics.density
-        val desiredWidth = (300 * density).toInt()
-        val desiredHeight = (56 * density).toInt()
-        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
-        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
-        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
-        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
-
-        val w = when (widthMode) {
-            MeasureSpec.EXACTLY -> widthSize
-            MeasureSpec.AT_MOST -> minOf(desiredWidth, widthSize)
-            else -> desiredWidth
+        val desiredW = (300f * density).toInt()
+        val desiredH = (56f * density).toInt()
+        val width = when (MeasureSpec.getMode(widthMeasureSpec)) {
+            MeasureSpec.EXACTLY -> MeasureSpec.getSize(widthMeasureSpec)
+            MeasureSpec.AT_MOST -> minOf(desiredW, MeasureSpec.getSize(widthMeasureSpec))
+            else -> desiredW
         }
-        val h = when (heightMode) {
-            MeasureSpec.EXACTLY -> heightSize
-            MeasureSpec.AT_MOST -> minOf(desiredHeight, heightSize)
-            else -> desiredHeight
+        val height = when (MeasureSpec.getMode(heightMeasureSpec)) {
+            MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec)
+            MeasureSpec.AT_MOST -> minOf(desiredH, MeasureSpec.getSize(heightMeasureSpec))
+            else -> desiredH
         }
-        setMeasuredDimension(w, h)
+        setMeasuredDimension(width, height)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -69,59 +65,50 @@ class CurvedTitleView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f || titleText.isBlank()) return
 
         val density = resources.displayMetrics.density
-        // Dynamic text sizing based on height and width
-        val textSizeSp = (h * 0.48f / density).coerceIn(18f, 26f)
-        val textSizePx = textSizeSp * density
+        val maxText = max(16f, w * 0.82f)
+        var textSize = (h * 0.50f).coerceAtLeast(14f)
+        fillPaint.textSize = textSize
+        while (fillPaint.measureText(titleText) > maxText && textSize > 12f) {
+            textSize -= 0.5f
+            fillPaint.textSize = textSize
+        }
+        outlinePaint.textSize = textSize
+        outlinePaint.strokeWidth = (textSize * 0.15f).coerceIn(2f * density, 5f * density)
+        shadowPaint.textSize = textSize
+        glossPaint.textSize = textSize
+        glossPaint.strokeWidth = (textSize * 0.035f).coerceAtLeast(1f)
 
-        textPaint.textSize = textSizePx
-        strokePaint.textSize = textSizePx
-        strokePaint.strokeWidth = textSizePx * 0.18f
-        shadowPaint.textSize = textSizePx
-        highlightPaint.textSize = textSizePx
-        highlightPaint.strokeWidth = textSizePx * 0.05f
+        // Subtle upward arch that follows the blue ribbon.
+        val left = w * 0.10f
+        val right = w * 0.90f
+        val baseline = h * 0.74f
+        val curve = (h * 0.16f).coerceAtMost(12f * density)
 
-        // Upward arc path: starts left, arches slightly downward/upward to give subtle game logo curve
-        val arcRadius = w * 1.5f
-        val arcHeight = h * 0.22f
+        path.reset()
+        path.moveTo(left, baseline)
+        path.quadTo(w * 0.50f, baseline - curve, right, baseline)
 
-        textPath.reset()
-        // Draw a gentle upward arch path across the center
-        val startX = w * 0.05f
-        val endX = w * 0.95f
-        val startY = h * 0.72f
-        val controlY = h * 0.72f - arcHeight
-        textPath.moveTo(startX, startY)
-        textPath.quadTo(w * 0.5f, controlY, endX, startY)
-
-        // Gradient shader for golden/orange text fill
-        textPaint.shader = LinearGradient(
+        fillPaint.shader = LinearGradient(
             0f, 0f, 0f, h,
-            intArrayOf(
-                Color.parseColor("#FFF7A0"),
-                Color.parseColor("#FFD43B"),
-                Color.parseColor("#FF9F1C"),
-                Color.parseColor("#E65100")
-            ),
-            floatArrayOf(0f, 0.35f, 0.75f, 1f),
+            Color.parseColor("#FFF59D"),
+            Color.parseColor("#FFC107"),
             Shader.TileMode.CLAMP
         )
 
-        // Draw dark shadow/extrusion slightly offset downward
+        // 3D/extruded shadow
         canvas.save()
-        canvas.translate(0f, 4f * density)
-        canvas.drawTextOnPath(titleText, textPath, 0f, 0f, shadowPaint)
+        canvas.translate(0f, 3.5f * density)
+        canvas.drawTextOnPath(titleText, path, 0f, 0f, shadowPaint)
         canvas.restore()
 
-        // Draw dark stroke outline
-        canvas.drawTextOnPath(titleText, textPath, 0f, 0f, strokePaint)
+        canvas.drawTextOnPath(titleText, path, 0f, 0f, outlinePaint)
+        canvas.drawTextOnPath(titleText, path, 0f, 0f, fillPaint)
 
-        // Draw main golden text
-        canvas.drawTextOnPath(titleText, textPath, 0f, 0f, textPaint)
-
-        // Draw top subtle highlight
         canvas.save()
-        canvas.translate(0f, -1.5f * density)
-        canvas.drawTextOnPath(titleText, textPath, 0f, 0f, highlightPaint)
+        canvas.translate(0f, -1f * density)
+        canvas.drawTextOnPath(titleText, path, 0f, 0f, glossPaint)
         canvas.restore()
+
+        fillPaint.shader = null
     }
 }
