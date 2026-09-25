@@ -80,6 +80,7 @@
             android:layout_width="330dp"
             android:layout_height="155dp"
             android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="12dp"
             android:adjustViewBounds="true"
             android:contentDescription="Jump Adventure Logo"
             android:scaleType="fitCenter"
