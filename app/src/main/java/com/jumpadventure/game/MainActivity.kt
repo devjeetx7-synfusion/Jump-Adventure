@@ -512,8 +512,6 @@ class MainActivity : AppCompatActivity() {
         incOverlay.bringToFront()
 
         val sparkleOverlay = incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)
-        sparkleOverlay.startCelebration()
-        soundManager.playVictory()
 
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
         customDialog.visibility = View.GONE
@@ -597,6 +595,14 @@ class MainActivity : AppCompatActivity() {
             .setDuration(220)
             .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
             .start()
+
+        // Start the celebration only after the Winner board is configured and visible.
+        sparkleOverlay.post {
+            if (incOverlay.visibility == View.VISIBLE && boardContainer.visibility == View.VISIBLE) {
+                sparkleOverlay.startCelebration()
+                soundManager.playVictory()
+            }
+        }
     }
 
     private fun handleGameOver() {
