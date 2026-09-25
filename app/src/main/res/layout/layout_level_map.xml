@@ -14,7 +14,8 @@
         android:layout_height="match_parent"
         android:fillViewport="true"
         android:clipToPadding="false"
-        android:fitsSystemWindows="false">
+        android:fitsSystemWindows="false"
+        android:scrollbars="none">
 
         <FrameLayout
             android:id="@+id/mapNodesContainer"
