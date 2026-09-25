@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
-        android:elevation="0dp">
+    android:elevation="0dp">
 
     <!-- MAP IS DRAWN FULL-SCREEN BEHIND THE HUD AND SYSTEM BARS.
          This removes the blue window/action-bar strip and keeps the
@@ -15,7 +15,8 @@
         android:fillViewport="true"
         android:clipToPadding="false"
         android:fitsSystemWindows="false"
-        android:scrollbars="none">
+        android:scrollbars="none"
+        android:overScrollMode="never">
 
         <FrameLayout
             android:id="@+id/mapNodesContainer"

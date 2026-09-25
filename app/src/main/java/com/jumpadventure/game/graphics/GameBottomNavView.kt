@@ -46,19 +46,12 @@ class GameBottomNavView @JvmOverloads constructor(
     }
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#30000000") }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 3f
-        color = Color.parseColor("#33FFFFFF")
     }
-    private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#25FFFFFF") }
-
-    private val activePillBgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val activePillBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeWidth = 2.5f
-        color = Color.parseColor("#80FFFFFF")
+    private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#40FFFFFF")
     }
 
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -73,9 +66,9 @@ class GameBottomNavView @JvmOverloads constructor(
         strokeJoin = Paint.Join.ROUND
     }
 
-    private val containerRect = RectF()
     private val shadowRect = RectF()
-    private val pillRect = RectF()
+    private val buttonRect = RectF()
+    private val highlightRect = RectF()
     private val iconPath = Path()
 
     init {
@@ -104,9 +97,23 @@ class GameBottomNavView @JvmOverloads constructor(
         val w = width.toFloat()
         if (w <= 0f) return super.onTouchEvent(event)
 
-        val itemW = w / NavTab.values().size
+        val tabs = NavTab.values()
+        val density = resources.displayMetrics.density
+        val gap = 8f * density
+        val horizontalPad = 2f * density
+        val itemW = (w - horizontalPad * 2f - gap * (tabs.size - 1)) / tabs.size
         val x = event.x
-        val index = (x / itemW).toInt().coerceIn(0, NavTab.values().size - 1)
+
+        var index = -1
+        for (i in tabs.indices) {
+            val left = horizontalPad + i * (itemW + gap)
+            val right = left + itemW
+            if (x >= left - gap / 2f && x <= right + gap / 2f) {
+                index = i
+                break
+            }
+        }
+        if (index < 0) index = 0
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -122,7 +129,7 @@ class GameBottomNavView @JvmOverloads constructor(
             }
             MotionEvent.ACTION_UP -> {
                 if (pressedTabIndex == index) {
-                    val clickedTab = NavTab.values()[index]
+                    val clickedTab = tabs[index]
                     selectedTabId = clickedTab.id
                     animateSelectedTab()
                     onTabSelectedListener?.invoke(clickedTab.id)
@@ -150,52 +157,87 @@ class GameBottomNavView @JvmOverloads constructor(
 
         val density = resources.displayMetrics.density
         val tabs = NavTab.values()
-        val gap = 6f * density
+        val gap = 8f * density
         val horizontalPad = 2f * density
         val itemW = (w - horizontalPad * 2f - gap * (tabs.size - 1)) / tabs.size
-        val itemH = h - 6f * density
+        val itemH = h - 8f * density
+        val cornerR = 18f * density
 
         tabs.forEachIndexed { i, tab ->
             val left = horizontalPad + i * (itemW + gap)
             val top = 2f * density
-            val isSelected = selectedTabId == tab.id || (selectedTabId.isEmpty() && i == 2)
+            val isSelected = selectedTabId == tab.id || (selectedTabId.isEmpty() && i == 0)
             val isPressed = i == pressedTabIndex
 
-            val scale = if (isPressed) 0.94f else if (isSelected) (1.0f * animSelectedScale) else 1f
+            val scale = if (isPressed) 0.92f else if (isSelected) (1.0f * animSelectedScale) else 1f
             val cx = left + itemW / 2f
             val cy = top + itemH / 2f
 
             canvas.save()
             canvas.scale(scale, scale, cx, cy)
 
-            shadowRect.set(left, top + 5f * density, left + itemW, top + itemH)
-            shadowPaint.color = Color.parseColor(if (isSelected) "#45000000" else "#30000000")
-            canvas.drawRoundRect(shadowRect, 15f * density, 15f * density, shadowPaint)
+            // Bottom Extrusion Shadow
+            val shadowHeight = if (isSelected) 6f * density else 4f * density
+            shadowRect.set(left, top + shadowHeight, left + itemW, top + itemH)
 
-            val (topColor, bottomColor, borderColor) = when (tab) {
-                NavTab.SHOP -> Triple("#FFC928", "#D98200", "#FFE98A")
-                NavTab.HEROES -> Triple("#42D4FF", "#0878D8", "#B8F2FF")
-                NavTab.WORLDS -> Triple("#48E38A", "#049C76", "#B6FFD5")
-                NavTab.TROPHIES -> Triple("#FFD84D", "#8E43D3", "#F4C2FF")
+            // Distinct semantic colors for each button:
+            // SHOP = Gold/Amber, HEROES = Blue/Cyan, WORLDS = Green/Teal, TROPHIES = Purple/Gold
+            val (topColor, botColor, shadowColor, borderColor) = when (tab) {
+                NavTab.SHOP -> if (isSelected)
+                    listOf("#FFD43B", "#FF9F1C", "#B35C00", "#FFE885")
+                else
+                    listOf("#3D2D10", "#241804", "#120B00", "#664B1A")
+
+                NavTab.HEROES -> if (isSelected)
+                    listOf("#38BDF8", "#0284C7", "#0369A1", "#BAE6FD")
+                else
+                    listOf("#0F2D40", "#081B28", "#030C12", "#1D4A68")
+
+                NavTab.WORLDS -> if (isSelected)
+                    listOf("#34D399", "#059669", "#047857", "#A7F3D0")
+                else
+                    listOf("#0C3625", "#062016", "#02100A", "#175B3F")
+
+                NavTab.TROPHIES -> if (isSelected)
+                    listOf("#C084FC", "#7E22CE", "#581C87", "#F3E8FF")
+                else
+                    listOf("#301742", "#1C0A28", "#0D0314", "#52286E")
             }
 
+            shadowPaint.color = Color.parseColor(shadowColor)
+            canvas.drawRoundRect(shadowRect, cornerR, cornerR, shadowPaint)
+
+            buttonRect.set(left, top, left + itemW, top + itemH - shadowHeight)
             bgPaint.shader = LinearGradient(
-                left, top, left, top + itemH,
-                Color.parseColor(if (isSelected) topColor else "#1E3951"),
-                Color.parseColor(if (isSelected) bottomColor else "#14263B"),
+                buttonRect.left, buttonRect.top, buttonRect.left, buttonRect.bottom,
+                Color.parseColor(topColor), Color.parseColor(botColor),
                 Shader.TileMode.CLAMP
             )
-            canvas.drawRoundRect(RectF(left, top, left + itemW, top + itemH - 3f * density), 15f * density, 15f * density, bgPaint)
-            borderPaint.color = Color.parseColor(if (isSelected) borderColor else "#42627D")
-            borderPaint.strokeWidth = if (isSelected) 2.5f * density else 1.5f * density
-            canvas.drawRoundRect(RectF(left, top, left + itemW, top + itemH - 3f * density), 15f * density, 15f * density, borderPaint)
+            canvas.drawRoundRect(buttonRect, cornerR, cornerR, bgPaint)
 
-            val iconY = top + itemH * 0.38f
+            // Top Gloss Highlight
+            highlightRect.set(
+                buttonRect.left + 4f * density,
+                buttonRect.top + 2f * density,
+                buttonRect.right - 4f * density,
+                buttonRect.top + buttonRect.height() * 0.35f
+            )
+            canvas.drawRoundRect(highlightRect, cornerR * 0.7f, cornerR * 0.7f, highlightPaint)
+
+            // Border
+            borderPaint.color = Color.parseColor(borderColor)
+            borderPaint.strokeWidth = if (isSelected) 2.5f * density else 1.5f * density
+            canvas.drawRoundRect(buttonRect, cornerR, cornerR, borderPaint)
+
+            // Icon
+            val iconY = buttonRect.top + buttonRect.height() * 0.38f
             draw3DNavIcon(canvas, tab, cx, iconY, 24f * density, isSelected)
 
-            labelPaint.textSize = (if (isSelected) 12f else 10.5f) * density
-            labelPaint.color = if (isSelected) Color.WHITE else Color.parseColor("#B5C6D8")
-            canvas.drawText(tab.title, cx, top + itemH - 9f * density, labelPaint)
+            // Label
+            labelPaint.textSize = (if (isSelected) 12f else 11f) * density
+            labelPaint.color = if (isSelected) Color.WHITE else Color.parseColor("#94A3B8")
+            val labelY = buttonRect.bottom - 6f * density
+            canvas.drawText(tab.title, cx, labelY, labelPaint)
 
             canvas.restore()
         }
@@ -203,7 +245,6 @@ class GameBottomNavView @JvmOverloads constructor(
     }
 
     private fun draw3DNavIcon(
-
         canvas: Canvas,
         tab: NavTab,
         cx: Float,
