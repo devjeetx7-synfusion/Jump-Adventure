@@ -121,10 +121,13 @@ class LevelMapView @JvmOverloads constructor(
         val centerX = viewWidth / 2f
         val amplitude = viewWidth * 0.32f
 
+        // The marker follows the latest playable/unlocked progression frontier.
+        // currentLevel can temporarily point to a selected level, so highestLevel
+        // is preferred as the persistent progression position on the map.
         val effectiveCurrentLevel = when {
-            currentLevelNum in startLvl..worldInfo.endLevel -> currentLevelNum
             currentHighestLevel in startLvl..worldInfo.endLevel -> currentHighestLevel
-            currentLevelNum > worldInfo.endLevel -> worldInfo.endLevel
+            currentHighestLevel > worldInfo.endLevel -> worldInfo.endLevel
+            currentLevelNum in startLvl..worldInfo.endLevel -> currentLevelNum
             else -> startLvl
         }
 
@@ -267,16 +270,17 @@ class LevelMapView @JvmOverloads constructor(
                 draw3DStars(canvas, node.x, node.y + radius + 26f, starCount, radius)
             }
 
-            // Draw Character Marker on Current Level Node
-            if (node.isCurrent) {
-                val charW = 80f
-                val charH = 90f
-                val anchorOffsetY = 6f // Feet sit anchored right above the node outline rim
+            // Draw exactly one character marker on the current playable level.
+            if (node.levelNumber == effectiveCurrentLevel) {
+                val charW = 76f
+                val charH = 86f
+                val anchorOffsetY = 5f
+                val markerBottom = node.y - radius + anchorOffsetY
                 val markerBounds = RectF(
                     node.x - charW / 2f,
-                    node.y - radius - charH + anchorOffsetY,
+                    markerBottom - charH,
                     node.x + charW / 2f,
-                    node.y - radius + anchorOffsetY
+                    markerBottom
                 )
                 CharacterRenderer.drawCharacter(
                     canvas = canvas,
