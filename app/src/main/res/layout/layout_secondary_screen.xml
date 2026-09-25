@@ -55,23 +55,13 @@
             android:layout_centerVertical="true" />
     </RelativeLayout>
 
-    <!-- BOTTOM NAVIGATION BAR -->
-    <com.jumpadventure.game.graphics.GameBottomNavView
-        android:id="@+id/secondaryBottomNavView"
-        android:layout_width="match_parent"
-        android:layout_height="72dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="14dp"
-        android:layout_marginEnd="14dp"
-        android:layout_marginBottom="8dp" />
-
     <!-- SCROLLABLE CONTENT CONTAINER -->
     <ScrollView
         android:id="@+id/secondaryScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/secondaryTopBar"
-        android:layout_above="@id/secondaryBottomNavView"
+        android:layout_alignParentBottom="true"
         android:layout_marginTop="4dp"
         android:clipToPadding="false"
         android:fillViewport="true"

@@ -129,6 +129,9 @@ class GameView(
     private val leftButtonRect = RectF()
     private val rightButtonRect = RectF()
     private val jumpButtonRect = RectF()
+    private val magnetButtonRect = RectF()
+    private val speedButtonRect = RectF()
+    private val shieldButtonRect = RectF()
 
     init {
         holder.addCallback(this)
@@ -207,31 +210,77 @@ class GameView(
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        val density = resources.displayMetrics.density
-        val sideSize = (width * 0.16f).coerceIn(70f * density, 90f * density)
-        val gap = 16f * density
-        val jumpSize = (width * 0.20f).coerceIn(88f * density, 110f * density)
-        val horizontal = 20f * density
-        val bottom = 44f * density
+        updateControlLayouts(width, height)
+    }
 
-        leftButtonRect.set(
-            horizontal,
-            height - sideSize - bottom,
-            horizontal + sideSize,
-            height - bottom
-        )
-        rightButtonRect.set(
-            horizontal + sideSize + gap,
-            height - sideSize - bottom,
-            horizontal + sideSize + gap + sideSize,
-            height - bottom
-        )
-        jumpButtonRect.set(
-            width - horizontal - jumpSize,
-            height - jumpSize - bottom,
-            width - horizontal,
-            height - bottom
-        )
+    fun updateControlLayouts(width: Int, height: Int) {
+        if (width <= 0 || height <= 0) return
+        val density = resources.displayMetrics.density
+
+        val baseSideSize = (width * 0.16f).coerceIn(68f * density, 88f * density)
+        val baseJumpSize = (width * 0.20f).coerceIn(84f * density, 106f * density)
+        val basePowerSize = (54f * density).coerceIn(46f * density, 62f * density)
+
+        val marginHoriz = 20f * density
+        val marginBottom = 40f * density
+        val gap = 16f * density
+
+        // Default placements
+        val defLeftX = marginHoriz
+        val defLeftY = height - baseSideSize - marginBottom
+        val defRightX = marginHoriz + baseSideSize + gap
+        val defRightY = height - baseSideSize - marginBottom
+        val defJumpX = width - marginHoriz - baseJumpSize
+        val defJumpY = height - baseJumpSize - marginBottom
+
+        val defMagnetX = width - marginHoriz - basePowerSize
+        val defMagnetY = defJumpY - basePowerSize * 3.3f
+        val defSpeedX = width - marginHoriz - basePowerSize
+        val defSpeedY = defJumpY - basePowerSize * 2.2f
+        val defShieldX = width - marginHoriz - basePowerSize
+        val defShieldY = defJumpY - basePowerSize * 1.1f
+
+        // LEFT
+        val leftW = baseSideSize * saveData.leftScale
+        val leftH = baseSideSize * saveData.leftScale
+        val lx = if (saveData.leftX >= 0) saveData.leftX.coerceIn(0f, width - leftW) else defLeftX
+        val ly = if (saveData.leftY >= 0) saveData.leftY.coerceIn(0f, height - leftH) else defLeftY
+        leftButtonRect.set(lx, ly, lx + leftW, ly + leftH)
+
+        // RIGHT
+        val rightW = baseSideSize * saveData.rightScale
+        val rightH = baseSideSize * saveData.rightScale
+        val rx = if (saveData.rightX >= 0) saveData.rightX.coerceIn(0f, width - rightW) else defRightX
+        val ry = if (saveData.rightY >= 0) saveData.rightY.coerceIn(0f, height - rightH) else defRightY
+        rightButtonRect.set(rx, ry, rx + rightW, ry + rightH)
+
+        // JUMP
+        val jumpW = baseJumpSize * saveData.jumpScale
+        val jumpH = baseJumpSize * saveData.jumpScale
+        val jx = if (saveData.jumpX >= 0) saveData.jumpX.coerceIn(0f, width - jumpW) else defJumpX
+        val jy = if (saveData.jumpY >= 0) saveData.jumpY.coerceIn(0f, height - jumpH) else defJumpY
+        jumpButtonRect.set(jx, jy, jx + jumpW, jy + jumpH)
+
+        // MAGNET
+        val magnetW = basePowerSize * saveData.magnetScale
+        val magnetH = basePowerSize * saveData.magnetScale
+        val mx = if (saveData.magnetX >= 0) saveData.magnetX.coerceIn(0f, width - magnetW) else defMagnetX
+        val my = if (saveData.magnetY >= 0) saveData.magnetY.coerceIn(0f, height - magnetH) else defMagnetY
+        magnetButtonRect.set(mx, my, mx + magnetW, my + magnetH)
+
+        // SPEED
+        val speedW = basePowerSize * saveData.speedScale
+        val speedH = basePowerSize * saveData.speedScale
+        val sx = if (saveData.speedX >= 0) saveData.speedX.coerceIn(0f, width - speedW) else defSpeedX
+        val sy = if (saveData.speedY >= 0) saveData.speedY.coerceIn(0f, height - speedH) else defSpeedY
+        speedButtonRect.set(sx, sy, sx + speedW, sy + speedH)
+
+        // SHIELD
+        val shieldW = basePowerSize * saveData.shieldScale
+        val shieldH = basePowerSize * saveData.shieldScale
+        val shx = if (saveData.shieldX >= 0) saveData.shieldX.coerceIn(0f, width - shieldW) else defShieldX
+        val shy = if (saveData.shieldY >= 0) saveData.shieldY.coerceIn(0f, height - shieldH) else defShieldY
+        shieldButtonRect.set(shx, shy, shx + shieldW, shy + shieldH)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
@@ -694,16 +743,23 @@ class GameView(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        // Transparent circular 3D game controls.
+        if (leftButtonRect.isEmpty) {
+            updateControlLayouts(w.toInt(), h.toInt())
+        }
+
+        // Transparent circular 3D game controls without big background panel.
         val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(85, 0, 30, 70)
+            color = Color.argb(85, 0, 20, 50)
         }
         val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 4f
-            color = Color.argb(220, 255, 255, 255)
+            strokeWidth = 3.5f
+            color = Color.argb(230, 255, 255, 255)
         }
         val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(90, 255, 255, 255)
+        }
         val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             style = Paint.Style.FILL
@@ -714,69 +770,135 @@ class GameView(
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        fun drawCircleButton(rect: RectF, pressed: Boolean, hueTop: Int, hueBottom: Int) {
+        fun drawCircleButton(rect: RectF, pressed: Boolean, topColor: Int, bottomColor: Int) {
             val radius = minOf(rect.width(), rect.height()) * 0.5f
-            val offset = if (pressed) 2f else 7f
-            canvas.drawCircle(rect.centerX(), rect.centerY() + offset, radius - 2f, shadowPaint)
+            val offset = if (pressed) 2f else 6f
+            canvas.drawCircle(rect.centerX(), rect.centerY() + offset, radius - 1f, shadowPaint)
 
             glassPaint.shader = LinearGradient(
                 rect.left, rect.top, rect.left, rect.bottom,
-                Color.argb(135, Color.red(hueTop), Color.green(hueTop), Color.blue(hueTop)),
-                Color.argb(170, Color.red(hueBottom), Color.green(hueBottom), Color.blue(hueBottom)),
-                Shader.TileMode.CLAMP
+                topColor, bottomColor, Shader.TileMode.CLAMP
             )
-            canvas.drawCircle(rect.centerX(), rect.centerY() - (if (pressed) 1f else 0f), radius - 3f, glassPaint)
+            val centerY = rect.centerY() - (if (pressed) 1f else 0f)
+            canvas.drawCircle(rect.centerX(), centerY, radius - 2f, glassPaint)
             glassPaint.shader = null
 
-            canvas.drawCircle(rect.centerX(), rect.centerY() - (if (pressed) 1f else 0f), radius - 3f, borderPaint)
+            // Glossy top highlight oval
+            canvas.drawOval(
+                RectF(rect.centerX() - radius * 0.5f, centerY - radius * 0.75f, rect.centerX() + radius * 0.2f, centerY - radius * 0.35f),
+                highlightPaint
+            )
+
+            canvas.drawCircle(rect.centerX(), centerY, radius - 2f, borderPaint)
         }
 
-        // LEFT
+        // 1. LEFT (Blue / Cyan)
         drawCircleButton(
             leftButtonRect,
             moveLeftPressed,
-            Color.rgb(45, 185, 245),
-            Color.rgb(5, 105, 185)
+            Color.parseColor("#42D9FF"),
+            Color.parseColor("#0879D7")
         )
         val leftPath = Path().apply {
             val cx = leftButtonRect.centerX()
             val cy = leftButtonRect.centerY()
-            val s = leftButtonRect.width() * 0.23f
-            moveTo(cx + s, cy - s)
-            lineTo(cx - s, cy)
-            lineTo(cx + s, cy + s)
+            val s = leftButtonRect.width() * 0.22f
+            moveTo(cx + s * 0.8f, cy - s)
+            lineTo(cx - s * 0.9f, cy)
+            lineTo(cx + s * 0.8f, cy + s)
             close()
         }
         canvas.drawPath(leftPath, iconPaint)
 
-        // RIGHT
+        // 2. RIGHT (Blue / Cyan)
         drawCircleButton(
             rightButtonRect,
             moveRightPressed,
-            Color.rgb(45, 185, 245),
-            Color.rgb(5, 105, 185)
+            Color.parseColor("#42D9FF"),
+            Color.parseColor("#0879D7")
         )
         val rightPath = Path().apply {
             val cx = rightButtonRect.centerX()
             val cy = rightButtonRect.centerY()
-            val s = rightButtonRect.width() * 0.23f
-            moveTo(cx - s, cy - s)
-            lineTo(cx + s, cy)
-            lineTo(cx - s, cy + s)
+            val s = rightButtonRect.width() * 0.22f
+            moveTo(cx - s * 0.8f, cy - s)
+            lineTo(cx + s * 0.9f, cy)
+            lineTo(cx - s * 0.8f, cy + s)
             close()
         }
         canvas.drawPath(rightPath, iconPaint)
 
-        // JUMP — intentionally larger.
+        // 3. JUMP (Green / Teal)
         drawCircleButton(
             jumpButtonRect,
             false,
-            Color.rgb(70, 205, 150),
-            Color.rgb(20, 125, 90)
+            Color.parseColor("#4DE3B0"),
+            Color.parseColor("#078D6D")
         )
-        textPaint.textSize = minOf(jumpButtonRect.width() * 0.19f, 28f)
+        textPaint.textSize = minOf(jumpButtonRect.width() * 0.22f, 26f)
         canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + textPaint.textSize * 0.34f, textPaint)
+
+        // 4. MAGNET (Blue)
+        drawCircleButton(
+            magnetButtonRect,
+            isMagnetActive,
+            Color.parseColor("#38BDF8"),
+            Color.parseColor("#0284C7")
+        )
+        val magnetIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = magnetButtonRect.width() * 0.12f
+        }
+        val mcx = magnetButtonRect.centerX()
+        val mcy = magnetButtonRect.centerY()
+        val ms = magnetButtonRect.width() * 0.26f
+        canvas.drawArc(RectF(mcx - ms, mcy - ms, mcx + ms, mcy + ms * 0.5f), 180f, 180f, false, magnetIconPaint)
+        canvas.drawLine(mcx - ms, mcy, mcx - ms, mcy + ms * 0.5f, magnetIconPaint)
+        canvas.drawLine(mcx + ms, mcy, mcx + ms, mcy + ms * 0.5f, magnetIconPaint)
+
+        // 5. SPEED (Orange / Gold)
+        drawCircleButton(
+            speedButtonRect,
+            isSpeedActive,
+            Color.parseColor("#FFD43B"),
+            Color.parseColor("#FF9F1C")
+        )
+        val speedPath = Path().apply {
+            val scx = speedButtonRect.centerX()
+            val scy = speedButtonRect.centerY()
+            val ss = speedButtonRect.width() * 0.28f
+            moveTo(scx - ss * 0.4f, scy + ss * 0.6f)
+            lineTo(scx + ss * 0.1f, scy + ss * 0.05f)
+            lineTo(scx - ss * 0.1f, scy + ss * 0.05f)
+            lineTo(scx + ss * 0.4f, scy - ss * 0.6f)
+            lineTo(scx - ss * 0.1f, scy - ss * 0.05f)
+            lineTo(scx + ss * 0.1f, scy - ss * 0.05f)
+            close()
+        }
+        canvas.drawPath(speedPath, iconPaint)
+
+        // 6. SHIELD (Green / Teal)
+        drawCircleButton(
+            shieldButtonRect,
+            isShieldActive,
+            Color.parseColor("#36C96F"),
+            Color.parseColor("#059669")
+        )
+        val shieldPath = Path().apply {
+            val shcx = shieldButtonRect.centerX()
+            val shcy = shieldButtonRect.centerY()
+            val shs = shieldButtonRect.width() * 0.28f
+            moveTo(shcx, shcy - shs * 0.65f)
+            lineTo(shcx + shs * 0.55f, shcy - shs * 0.35f)
+            lineTo(shcx + shs * 0.45f, shcy + shs * 0.35f)
+            quadTo(shcx, shcy + shs * 0.7f, shcx - shs * 0.45f, shcy + shs * 0.35f)
+            lineTo(shcx - shs * 0.55f, shcy - shs * 0.35f)
+            close()
+        }
+        canvas.drawPath(shieldPath, iconPaint)
     }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val pointerIndex = event.actionIndex
         val x = event.getX(pointerIndex)
@@ -790,6 +912,15 @@ class GameView(
                     moveRightPressed = true
                 } else if (jumpButtonRect.contains(x, y)) {
                     triggerJump()
+                } else if (magnetButtonRect.contains(x, y)) {
+                    soundManager.playButtonClick()
+                    activateMagnetPowerUp()
+                } else if (speedButtonRect.contains(x, y)) {
+                    soundManager.playButtonClick()
+                    activateSpeedPowerUp()
+                } else if (shieldButtonRect.contains(x, y)) {
+                    soundManager.playButtonClick()
+                    activateShieldPowerUp()
                 }
             }
 

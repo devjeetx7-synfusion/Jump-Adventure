@@ -28,6 +28,13 @@ class GameCurrencyBadge @JvmOverloads constructor(
             invalidate()
         }
 
+    var showPlusButton: Boolean = true
+        set(value) {
+            field = value
+            requestLayout()
+            invalidate()
+        }
+
     var onPlusClickListener: (() -> Unit)? = null
 
     private var formattedText = "0"
@@ -98,10 +105,14 @@ class GameCurrencyBadge @JvmOverloads constructor(
         }
 
         val paddingStart = 38f * density
-        val plusW = 32f * density
-        val paddingBetween = 8f * density
 
-        val calculatedW = (paddingStart + textWidth + paddingBetween + plusW + 6f * density).toInt()
+        val calculatedW = if (showPlusButton) {
+            val plusW = 32f * density
+            val paddingBetween = 8f * density
+            (paddingStart + textWidth + paddingBetween + plusW + 6f * density).toInt()
+        } else {
+            (paddingStart + textWidth + 14f * density).toInt()
+        }
 
         val widthMode = MeasureSpec.getMode(widthMeasureSpec)
         val widthSize = MeasureSpec.getSize(widthMeasureSpec)
@@ -124,6 +135,10 @@ class GameCurrencyBadge @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!showPlusButton) {
+            return super.onTouchEvent(event)
+        }
+
         val x = event.x
         val y = event.y
 
@@ -172,7 +187,8 @@ class GameCurrencyBadge @JvmOverloads constructor(
         val pillR = h * 0.48f
 
         // 1. Draw Pill Main Body
-        pillRect.set(2f, 2f, w - 12f * density, h - 2f)
+        val pillRight = if (showPlusButton) w - 12f * density else w - 2f * density
+        pillRect.set(2f, 2f, pillRight, h - 2f)
         shadowPaint.color = Color.parseColor("#15000000")
         canvas.drawRoundRect(RectF(pillRect.left, pillRect.top + 3f, pillRect.right, pillRect.bottom + 3f), pillR, pillR, shadowPaint)
 
@@ -207,52 +223,54 @@ class GameCurrencyBadge @JvmOverloads constructor(
         val textY = h / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
         canvas.drawText(formattedText, textX, textY, textPaint)
 
-        // 4. Draw Attached 3D "+" Action Button at Right End
-        val plusSize = (h * 0.68f).coerceIn(26f * density, 30f * density)
-        val plusX = w - plusSize - 2f * density
-        val plusY = (h - plusSize) / 2f
-        val plusPressOffset = if (isPlusPressed) 2f else 0f
+        // 4. Draw Attached 3D "+" Action Button at Right End (only if showPlusButton is true)
+        if (showPlusButton) {
+            val plusSize = (h * 0.68f).coerceIn(26f * density, 30f * density)
+            val plusX = w - plusSize - 2f * density
+            val plusY = (h - plusSize) / 2f
+            val plusPressOffset = if (isPlusPressed) 2f else 0f
 
-        plusRect.set(plusX, plusY + plusPressOffset, plusX + plusSize, plusY + plusSize + plusPressOffset)
-        plusShadowRect.set(plusX, plusY + 4f, plusX + plusSize, plusY + plusSize + 4f)
+            plusRect.set(plusX, plusY + plusPressOffset, plusX + plusSize, plusY + plusSize + plusPressOffset)
+            plusShadowRect.set(plusX, plusY + 4f, plusX + plusSize, plusY + plusSize + 4f)
 
-        val (topColor, bottomColor, shadowColor, borderColor) = if (type == CurrencyType.COIN) {
-            listOf(
-                Color.parseColor("#FFD43B"),
-                Color.parseColor("#FF9F1C"),
-                Color.parseColor("#B35C00"),
-                Color.parseColor("#FFE885")
+            val (topColor, bottomColor, shadowColor, borderColor) = if (type == CurrencyType.COIN) {
+                listOf(
+                    Color.parseColor("#FFD43B"),
+                    Color.parseColor("#FF9F1C"),
+                    Color.parseColor("#B35C00"),
+                    Color.parseColor("#FFE885")
+                )
+            } else {
+                listOf(
+                    Color.parseColor("#E040FB"),
+                    Color.parseColor("#9C27B0"),
+                    Color.parseColor("#4A148C"),
+                    Color.parseColor("#F38FFF")
+                )
+            }
+
+            // Plus Shadow
+            shadowPaint.color = shadowColor
+            val plusR = plusSize * 0.38f
+            canvas.drawRoundRect(plusShadowRect, plusR, plusR, shadowPaint)
+
+            // Plus Body Gradient
+            plusBgPaint.shader = LinearGradient(
+                plusRect.left, plusRect.top, plusRect.left, plusRect.bottom,
+                topColor, bottomColor, Shader.TileMode.CLAMP
             )
-        } else {
-            listOf(
-                Color.parseColor("#E040FB"),
-                Color.parseColor("#9C27B0"),
-                Color.parseColor("#4A148C"),
-                Color.parseColor("#F38FFF")
-            )
+            canvas.drawRoundRect(plusRect, plusR, plusR, plusBgPaint)
+
+            // Plus Border
+            plusBorderPaint.color = borderColor
+            canvas.drawRoundRect(plusRect, plusR, plusR, plusBorderPaint)
+
+            // Plus Symbol
+            val cx = plusRect.centerX()
+            val cy = plusRect.centerY()
+            val arm = plusSize * 0.26f
+            canvas.drawLine(cx - arm, cy, cx + arm, cy, plusIconPaint)
+            canvas.drawLine(cx, cy - arm, cx, cy + arm, plusIconPaint)
         }
-
-        // Plus Shadow
-        shadowPaint.color = shadowColor
-        val plusR = plusSize * 0.38f
-        canvas.drawRoundRect(plusShadowRect, plusR, plusR, shadowPaint)
-
-        // Plus Body Gradient
-        plusBgPaint.shader = LinearGradient(
-            plusRect.left, plusRect.top, plusRect.left, plusRect.bottom,
-            topColor, bottomColor, Shader.TileMode.CLAMP
-        )
-        canvas.drawRoundRect(plusRect, plusR, plusR, plusBgPaint)
-
-        // Plus Border
-        plusBorderPaint.color = borderColor
-        canvas.drawRoundRect(plusRect, plusR, plusR, plusBorderPaint)
-
-        // Plus Symbol
-        val cx = plusRect.centerX()
-        val cy = plusRect.centerY()
-        val arm = plusSize * 0.26f
-        canvas.drawLine(cx - arm, cy, cx + arm, cy, plusIconPaint)
-        canvas.drawLine(cx, cy - arm, cx, cy + arm, plusIconPaint)
     }
 }

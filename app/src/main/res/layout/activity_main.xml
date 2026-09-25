@@ -24,6 +24,11 @@
         android:visibility="gone" />
 
     <include
+        android:id="@+id/incControlCustomization"
+        layout="@layout/layout_control_customization"
+        android:visibility="gone" />
+
+    <include
         android:id="@+id/incOverlay"
         layout="@layout/layout_overlay"
         android:visibility="gone" />
