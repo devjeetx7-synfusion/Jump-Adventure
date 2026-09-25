@@ -35,6 +35,26 @@ class SaveManager(context: Context) {
         const val KEY_TOTAL_JUMPS = "total_jumps"
         const val KEY_TOTAL_LEVELS = "total_levels_completed"
 
+        const val KEY_HAS_CUSTOM_CONTROLS = "has_custom_controls"
+        const val KEY_LEFT_X = "ctrl_left_x"
+        const val KEY_LEFT_Y = "ctrl_left_y"
+        const val KEY_LEFT_SCALE = "ctrl_left_scale"
+        const val KEY_RIGHT_X = "ctrl_right_x"
+        const val KEY_RIGHT_Y = "ctrl_right_y"
+        const val KEY_RIGHT_SCALE = "ctrl_right_scale"
+        const val KEY_JUMP_X = "ctrl_jump_x"
+        const val KEY_JUMP_Y = "ctrl_jump_y"
+        const val KEY_JUMP_SCALE = "ctrl_jump_scale"
+        const val KEY_MAGNET_X = "ctrl_magnet_x"
+        const val KEY_MAGNET_Y = "ctrl_magnet_y"
+        const val KEY_MAGNET_SCALE = "ctrl_magnet_scale"
+        const val KEY_SPEED_X = "ctrl_speed_x"
+        const val KEY_SPEED_Y = "ctrl_speed_y"
+        const val KEY_SPEED_SCALE = "ctrl_speed_scale"
+        const val KEY_SHIELD_X = "ctrl_shield_x"
+        const val KEY_SHIELD_Y = "ctrl_shield_y"
+        const val KEY_SHIELD_SCALE = "ctrl_shield_scale"
+
         @Volatile
         private var INSTANCE: SaveManager? = null
 
@@ -108,6 +128,26 @@ class SaveManager(context: Context) {
         data.totalJumps = prefs.getInt(KEY_TOTAL_JUMPS, 0)
         data.totalLevelsCompleted = prefs.getInt(KEY_TOTAL_LEVELS, 0)
 
+        data.hasCustomControls = prefs.getBoolean(KEY_HAS_CUSTOM_CONTROLS, false)
+        data.leftX = prefs.getFloat(KEY_LEFT_X, -1f)
+        data.leftY = prefs.getFloat(KEY_LEFT_Y, -1f)
+        data.leftScale = prefs.getFloat(KEY_LEFT_SCALE, 1.0f)
+        data.rightX = prefs.getFloat(KEY_RIGHT_X, -1f)
+        data.rightY = prefs.getFloat(KEY_RIGHT_Y, -1f)
+        data.rightScale = prefs.getFloat(KEY_RIGHT_SCALE, 1.0f)
+        data.jumpX = prefs.getFloat(KEY_JUMP_X, -1f)
+        data.jumpY = prefs.getFloat(KEY_JUMP_Y, -1f)
+        data.jumpScale = prefs.getFloat(KEY_JUMP_SCALE, 1.0f)
+        data.magnetX = prefs.getFloat(KEY_MAGNET_X, -1f)
+        data.magnetY = prefs.getFloat(KEY_MAGNET_Y, -1f)
+        data.magnetScale = prefs.getFloat(KEY_MAGNET_SCALE, 1.0f)
+        data.speedX = prefs.getFloat(KEY_SPEED_X, -1f)
+        data.speedY = prefs.getFloat(KEY_SPEED_Y, -1f)
+        data.speedScale = prefs.getFloat(KEY_SPEED_SCALE, 1.0f)
+        data.shieldX = prefs.getFloat(KEY_SHIELD_X, -1f)
+        data.shieldY = prefs.getFloat(KEY_SHIELD_Y, -1f)
+        data.shieldScale = prefs.getFloat(KEY_SHIELD_SCALE, 1.0f)
+
         return data
     }
 
@@ -153,6 +193,26 @@ class SaveManager(context: Context) {
         editor.putInt(KEY_TOTAL_COINS, data.totalCoinsCollected)
         editor.putInt(KEY_TOTAL_JUMPS, data.totalJumps)
         editor.putInt(KEY_TOTAL_LEVELS, data.totalLevelsCompleted)
+
+        editor.putBoolean(KEY_HAS_CUSTOM_CONTROLS, data.hasCustomControls)
+        editor.putFloat(KEY_LEFT_X, data.leftX)
+        editor.putFloat(KEY_LEFT_Y, data.leftY)
+        editor.putFloat(KEY_LEFT_SCALE, data.leftScale)
+        editor.putFloat(KEY_RIGHT_X, data.rightX)
+        editor.putFloat(KEY_RIGHT_Y, data.rightY)
+        editor.putFloat(KEY_RIGHT_SCALE, data.rightScale)
+        editor.putFloat(KEY_JUMP_X, data.jumpX)
+        editor.putFloat(KEY_JUMP_Y, data.jumpY)
+        editor.putFloat(KEY_JUMP_SCALE, data.jumpScale)
+        editor.putFloat(KEY_MAGNET_X, data.magnetX)
+        editor.putFloat(KEY_MAGNET_Y, data.magnetY)
+        editor.putFloat(KEY_MAGNET_SCALE, data.magnetScale)
+        editor.putFloat(KEY_SPEED_X, data.speedX)
+        editor.putFloat(KEY_SPEED_Y, data.speedY)
+        editor.putFloat(KEY_SPEED_SCALE, data.speedScale)
+        editor.putFloat(KEY_SHIELD_X, data.shieldX)
+        editor.putFloat(KEY_SHIELD_Y, data.shieldY)
+        editor.putFloat(KEY_SHIELD_SCALE, data.shieldScale)
 
         editor.apply()
     }

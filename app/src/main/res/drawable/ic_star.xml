@@ -1,11 +1,26 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+  <!-- Outer Shadow -->
+  <path
+      android:fillColor="#B35C00"
+      android:pathData="M16,1.5 L20.5,10.6 L30.5,12.1 L23.3,19.1 L25,29.1 L16,24.3 L7,29.1 L8.7,19.1 L1.5,12.1 L11.5,10.6 Z"/>
+  <!-- Star Base -->
   <path
       android:fillColor="#FFD43B"
-      android:strokeColor="#B37D00"
-      android:strokeWidth="1.2"
-      android:pathData="M12,17.27L18.18,21l-1.64-7.03L22,9.24l-7.19-.61L12,2 9.19,8.63 2,9.24l5.46,4.73L5.82,21z"/>
+      android:pathData="M16,2.5 L20.1,11 L29.5,12.4 L22.7,19 L24.3,28.3 L16,23.9 L7.7,28.3 L9.3,19 L2.5,12.4 L11.9,11 Z"/>
+  <!-- Inner Bevel Highlight (Top/Left facets) -->
+  <path
+      android:fillColor="#FFE885"
+      android:pathData="M16,2.5 L16,23.9 L7.7,28.3 L9.3,19 L2.5,12.4 L11.9,11 Z"/>
+  <path
+      android:fillColor="#FFFFFF"
+      android:fillAlpha="0.3"
+      android:pathData="M16,2.5 L20.1,11 L16,23.9 Z"/>
+  <!-- Inner Bevel Shadow (Right/Bottom facets) -->
+  <path
+      android:fillColor="#FF9F1C"
+      android:pathData="M16,23.9 L24.3,28.3 L22.7,19 L29.5,12.4 L20.1,11 Z"/>
 </vector>

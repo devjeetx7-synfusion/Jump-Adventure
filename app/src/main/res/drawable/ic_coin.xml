@@ -1,17 +1,34 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+  <!-- Outer Gold Rim Shadow -->
+  <path
+      android:fillColor="#B35C00"
+      android:pathData="M16,2A14,14 0 1,0 30,16 A14,14 0 0,0 16,2Z"/>
+  <!-- Outer Gold Body -->
   <path
       android:fillColor="#FFD43B"
-      android:strokeColor="#C87A00"
-      android:strokeWidth="1.5"
-      android:pathData="M12,2A10,10 0 1,0 22,12 A10,10 0 0,0 12,2Z"/>
+      android:pathData="M16,3A13,13 0 1,0 29,16 A13,13 0 0,0 16,3Z"/>
+  <!-- Inner Rim Gradient Accent -->
+  <path
+      android:fillColor="#FF9F1C"
+      android:pathData="M16,6A10,10 0 1,0 26,16 A10,10 0 0,0 16,6Z"/>
+  <!-- Inner Face Light Gold -->
   <path
       android:fillColor="#FFE885"
-      android:pathData="M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4ZM12,6A6,6 0 1,1 6,12A6,6 0 0,1 12,6Z"/>
+      android:pathData="M16,8A8,8 0 1,0 24,16 A8,8 0 0,0 16,8Z"/>
+  <!-- 3D Coin Center Symbol -->
   <path
-      android:fillColor="#C87A00"
-      android:pathData="M11,8h2v8h-2z"/>
+      android:fillColor="#B35C00"
+      android:pathData="M16,10 L19,16 L16,22 L13,16 Z"/>
+  <path
+      android:fillColor="#FFD43B"
+      android:pathData="M16,11.5 L17.8,16 L16,20.5 L14.2,16 Z"/>
+  <!-- Glossy Sheen Highlight -->
+  <path
+      android:fillColor="#FFFFFF"
+      android:fillAlpha="0.6"
+      android:pathData="M10,6 A10,10 0 0,1 24,8 A8,8 0 0,0 10,6Z"/>
 </vector>

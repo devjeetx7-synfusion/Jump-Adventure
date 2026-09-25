@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var incLevelMap: View
     private lateinit var incGameplay: View
     private lateinit var incSecondary: View
+    private lateinit var incControlCustomization: View
     private lateinit var incOverlay: View
 
     // Main Menu Views
@@ -38,7 +39,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var badgeGems: GameCurrencyBadge
     private lateinit var bottomNavView: GameBottomNavView
     private lateinit var secondaryBadgeCoins: GameCurrencyBadge
-    private lateinit var secondaryBottomNavView: GameBottomNavView
     private lateinit var btnPlay: com.jumpadventure.game.graphics.GamePrimaryButton
     private lateinit var charPreviewView: com.jumpadventure.game.graphics.CharacterPreviewView
 
@@ -90,6 +90,7 @@ class MainActivity : AppCompatActivity() {
         incLevelMap = findViewById(R.id.incLevelMap)
         incGameplay = findViewById(R.id.incGameplay)
         incSecondary = findViewById(R.id.incSecondary)
+        incControlCustomization = findViewById(R.id.incControlCustomization)
         incOverlay = findViewById(R.id.incOverlay)
 
         setupWindowInsets()
@@ -99,7 +100,6 @@ class MainActivity : AppCompatActivity() {
         bottomNavView = incMainMenu.findViewById(R.id.bottomNavView)
 
         secondaryBadgeCoins = incSecondary.findViewById(R.id.secondaryBadgeCoins)
-        secondaryBottomNavView = incSecondary.findViewById(R.id.secondaryBottomNavView)
 
         btnPlay = incMainMenu.findViewById(R.id.btnPlay)
         charPreviewView = incMainMenu.findViewById(R.id.charPreviewView)
@@ -108,9 +108,12 @@ class MainActivity : AppCompatActivity() {
         badgeGems.type = GameCurrencyBadge.CurrencyType.GEM
         secondaryBadgeCoins.type = GameCurrencyBadge.CurrencyType.COIN
 
+        badgeCoins.showPlusButton = true
+        badgeGems.showPlusButton = true
+        secondaryBadgeCoins.showPlusButton = false
+
         badgeCoins.onPlusClickListener = { soundManager.playButtonClick(); openShopScreen() }
         badgeGems.onPlusClickListener = { soundManager.playButtonClick(); openShopScreen() }
-        secondaryBadgeCoins.onPlusClickListener = { soundManager.playButtonClick(); openShopScreen() }
 
         charPreviewView.onCharacterTappedListener = {
             soundManager.playJump()
@@ -220,12 +223,12 @@ class MainActivity : AppCompatActivity() {
             incMainMenu.findViewById<View>(R.id.topBar),
             incLevelMap.findViewById<View>(R.id.mapTopBar),
             incGameplay.findViewById<View>(R.id.hudTopBar),
-            incSecondary.findViewById<View>(R.id.secondaryTopBar)
+            incSecondary.findViewById<View>(R.id.secondaryTopBar),
+            incControlCustomization.findViewById<View>(R.id.customTopBar)
         )
 
         val bottomMarginViews = listOfNotNull(
-            incMainMenu.findViewById<View>(R.id.bottomNavView),
-            incSecondary.findViewById<View>(R.id.secondaryBottomNavView)
+            incMainMenu.findViewById<View>(R.id.bottomNavView)
         )
 
         val bottomPadViews = listOfNotNull(
@@ -265,7 +268,7 @@ class MainActivity : AppCompatActivity() {
             openLevelMapScreen()
         }
 
-        val navListener: (String) -> Unit = { tabId ->
+        bottomNavView.onTabSelectedListener = { tabId ->
             soundManager.playButtonClick()
             when (tabId) {
                 "SHOP" -> openShopScreen()
@@ -274,14 +277,10 @@ class MainActivity : AppCompatActivity() {
                 "ACHIEVEMENTS" -> openAchievementsScreen()
             }
         }
-
-        bottomNavView.onTabSelectedListener = navListener
-        secondaryBottomNavView.onTabSelectedListener = navListener
     }
 
     private fun updateBottomNavSelection(activeTab: String) {
         bottomNavView.selectedTabId = activeTab
-        secondaryBottomNavView.selectedTabId = activeTab
     }
 
     private fun showScreen(screenName: String) {
@@ -290,6 +289,7 @@ class MainActivity : AppCompatActivity() {
         incLevelMap.visibility = View.GONE
         incGameplay.visibility = View.GONE
         incSecondary.visibility = View.GONE
+        incControlCustomization.visibility = View.GONE
         incOverlay.findViewById<com.jumpadventure.game.graphics.SparkleView>(R.id.sparkleOverlay)?.stopCelebration()
         incOverlay.visibility = View.GONE
         overlayHandler.removeCallbacksAndMessages(null)
@@ -303,6 +303,7 @@ class MainActivity : AppCompatActivity() {
             "LEVEL_MAP" -> incLevelMap.visibility = View.VISIBLE
             "GAMEPLAY" -> incGameplay.visibility = View.VISIBLE
             "SECONDARY" -> incSecondary.visibility = View.VISIBLE
+            "CUSTOM_CONTROLS" -> incControlCustomization.visibility = View.VISIBLE
             "OVERLAY" -> incOverlay.visibility = View.VISIBLE
         }
     }
@@ -369,8 +370,6 @@ class MainActivity : AppCompatActivity() {
         tvHudStars.text = "0"
         pbLevelProgress.progress = 0
 
-        val currentWorld = WorldRepository.getWorldForLevel(levelNum)
-
         val newGameView = GameView(
             context = this,
             saveData = saveData,
@@ -405,30 +404,6 @@ class MainActivity : AppCompatActivity() {
         incGameplay.findViewById<ImageButton>(R.id.btnPause).setOnClickListener {
             soundManager.playButtonClick()
             showPauseOverlay()
-        }
-
-        val magnetButton = incGameplay.findViewById<com.jumpadventure.game.graphics.GamePowerUpButton>(R.id.btnPowerUpMagnet)
-        val speedButton = incGameplay.findViewById<com.jumpadventure.game.graphics.GamePowerUpButton>(R.id.btnPowerUpSpeed)
-        val shieldButton = incGameplay.findViewById<com.jumpadventure.game.graphics.GamePowerUpButton>(R.id.btnPowerUpShield)
-
-        magnetButton.type = com.jumpadventure.game.graphics.GamePowerUpButton.Type.MAGNET
-        speedButton.type = com.jumpadventure.game.graphics.GamePowerUpButton.Type.SPEED
-        shieldButton.type = com.jumpadventure.game.graphics.GamePowerUpButton.Type.SHIELD
-
-        magnetButton.setOnClickListener {
-            soundManager.playButtonClick()
-            currentGameView?.activateMagnetPowerUp()
-            magnetButton.active = true
-        }
-        speedButton.setOnClickListener {
-            soundManager.playButtonClick()
-            currentGameView?.activateSpeedPowerUp()
-            speedButton.active = true
-        }
-        shieldButton.setOnClickListener {
-            soundManager.playButtonClick()
-            currentGameView?.activateShieldPowerUp()
-            shieldButton.active = true
         }
 
         showScreen("GAMEPLAY")
@@ -719,6 +694,8 @@ class MainActivity : AppCompatActivity() {
         updateBottomNavSelection("CHARACTERS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "HEROES"
+        secondaryBadgeCoins.visibility = View.VISIBLE
+        secondaryBadgeCoins.showPlusButton = false
         secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
@@ -942,6 +919,8 @@ class MainActivity : AppCompatActivity() {
         updateBottomNavSelection("SHOP")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "SHOP"
+        secondaryBadgeCoins.visibility = View.VISIBLE
+        secondaryBadgeCoins.showPlusButton = false
         secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
@@ -1056,6 +1035,8 @@ class MainActivity : AppCompatActivity() {
         updateBottomNavSelection("WORLDS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "WORLDS"
+        secondaryBadgeCoins.visibility = View.VISIBLE
+        secondaryBadgeCoins.showPlusButton = false
         secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
@@ -1199,6 +1180,8 @@ class MainActivity : AppCompatActivity() {
         updateBottomNavSelection("ACHIEVEMENTS")
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "TROPHIES"
+        secondaryBadgeCoins.visibility = View.VISIBLE
+        secondaryBadgeCoins.showPlusButton = false
         secondaryBadgeCoins.amount = saveData.coins
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
@@ -1323,7 +1306,7 @@ class MainActivity : AppCompatActivity() {
     private fun openSettingsScreen() {
         val title = incSecondary.findViewById<TextView>(R.id.tvSecondaryTitle)
         title.text = "SETTINGS"
-        secondaryBadgeCoins.amount = saveData.coins
+        secondaryBadgeCoins.visibility = View.GONE
 
         incSecondary.findViewById<ImageButton>(R.id.btnSecondaryBack).setOnClickListener {
             soundManager.playButtonClick()
@@ -1373,6 +1356,22 @@ class MainActivity : AppCompatActivity() {
         }
         container.addView(musicBtn)
 
+        // Customize Controls
+        val controlsBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
+            mainText = "CUSTOMIZE CONTROLS"
+            subText = "DRAG & RESIZE GAMEPLAY BUTTONS"
+            variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (54 * density).toInt()
+            ).apply { setMargins(0, (12 * density).toInt(), 0, (8 * density).toInt()) }
+
+            setOnClickListener {
+                soundManager.playButtonClick()
+                openControlCustomizationScreen()
+            }
+        }
+        container.addView(controlsBtn)
+
         // Reset Progress
         val resetBtn = com.jumpadventure.game.graphics.GamePrimaryButton(this).apply {
             mainText = "RESET ALL PROGRESS"
@@ -1401,5 +1400,90 @@ class MainActivity : AppCompatActivity() {
         container.addView(resetBtn)
 
         showScreen("SECONDARY")
+    }
+
+    /* ------------------------------------------------------------------------
+     * CONTROL CUSTOMIZATION SCREEN
+     * ------------------------------------------------------------------------ */
+    private fun openControlCustomizationScreen() {
+        val customView = incControlCustomization.findViewById<com.jumpadventure.game.graphics.ControlCustomizationView>(R.id.controlCustomView)
+        val tvSelectedName = incControlCustomization.findViewById<TextView>(R.id.tvSelectedControlName)
+        val tvScale = incControlCustomization.findViewById<TextView>(R.id.tvSizeScale)
+
+        val btnMinus = incControlCustomization.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnSizeMinus)
+        val btnPlus = incControlCustomization.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnSizePlus)
+
+        val btnSave = incControlCustomization.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnSaveLayout)
+        val btnReset = incControlCustomization.findViewById<com.jumpadventure.game.graphics.GamePrimaryButton>(R.id.btnResetLayout)
+        val btnBack = incControlCustomization.findViewById<ImageButton>(R.id.btnCustomBack)
+
+        btnMinus.mainText = "-"; btnMinus.subText = ""; btnMinus.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+        btnPlus.mainText = "+"; btnPlus.subText = ""; btnPlus.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.BLUE
+
+        btnSave.mainText = "SAVE LAYOUT"; btnSave.subText = ""; btnSave.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.GREEN
+        btnReset.mainText = "RESET DEFAULT"; btnReset.subText = ""; btnReset.variant = com.jumpadventure.game.graphics.GamePrimaryButton.Variant.RED
+
+        fun updateControlInfo(item: com.jumpadventure.game.graphics.ControlCustomizationView.ControlItem?) {
+            if (item != null) {
+                tvSelectedName.text = "${item.type.label} SIZE:"
+                tvScale.text = "${(item.scale * 100).toInt()}%"
+            } else {
+                tvSelectedName.text = "SELECT BUTTON"
+                tvScale.text = "100%"
+            }
+        }
+
+        customView.onSelectedControlChangedListener = { item ->
+            updateControlInfo(item)
+        }
+
+        customView.post {
+            customView.setupControls(saveData, customView.width, customView.height)
+            updateControlInfo(customView.selectedControl)
+        }
+
+        btnMinus.setOnClickListener {
+            soundManager.playButtonClick()
+            customView.updateSelectedScale(-0.1f)
+        }
+
+        btnPlus.setOnClickListener {
+            soundManager.playButtonClick()
+            customView.updateSelectedScale(+0.1f)
+        }
+
+        btnSave.setOnClickListener {
+            soundManager.playButtonClick()
+            customView.saveToSaveData(saveData)
+            saveManager.saveData(saveData)
+            showCustomGameDialog(
+                title = "LAYOUT SAVED",
+                message = "Your custom gameplay controls layout has been saved!",
+                primaryBtnText = "OK",
+                onConfirm = { openSettingsScreen() }
+            )
+        }
+
+        btnReset.setOnClickListener {
+            soundManager.playButtonClick()
+            showCustomGameDialog(
+                title = "RESET CONTROLS?",
+                message = "Reset all gameplay buttons to default positions and sizes?",
+                primaryBtnText = "RESET",
+                secondaryBtnText = "CANCEL",
+                onConfirm = {
+                    customView.resetToDefault(saveData)
+                    saveManager.saveData(saveData)
+                    updateControlInfo(customView.selectedControl)
+                }
+            )
+        }
+
+        btnBack.setOnClickListener {
+            soundManager.playButtonClick()
+            openSettingsScreen()
+        }
+
+        showScreen("CUSTOM_CONTROLS")
     }
 }

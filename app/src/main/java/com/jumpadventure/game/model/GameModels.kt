@@ -24,7 +24,26 @@ data class GameSaveData(
     var language: String = "en",
     var totalCoinsCollected: Int = 0,
     var totalJumps: Int = 0,
-    var totalLevelsCompleted: Int = 0
+    var totalLevelsCompleted: Int = 0,
+    var hasCustomControls: Boolean = false,
+    var leftX: Float = -1f,
+    var leftY: Float = -1f,
+    var leftScale: Float = 1.0f,
+    var rightX: Float = -1f,
+    var rightY: Float = -1f,
+    var rightScale: Float = 1.0f,
+    var jumpX: Float = -1f,
+    var jumpY: Float = -1f,
+    var jumpScale: Float = 1.0f,
+    var magnetX: Float = -1f,
+    var magnetY: Float = -1f,
+    var magnetScale: Float = 1.0f,
+    var speedX: Float = -1f,
+    var speedY: Float = -1f,
+    var speedScale: Float = 1.0f,
+    var shieldX: Float = -1f,
+    var shieldY: Float = -1f,
+    var shieldScale: Float = 1.0f
 )
 
 data class CharacterItem(

@@ -21,13 +21,13 @@
         <!-- Pause Button -->
         <ImageButton
             android:id="@+id/btnPause"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_button_game_secondary"
             android:contentDescription="Pause"
-            android:padding="11dp"
+            android:padding="10dp"
             android:src="@drawable/ic_pause" />
 
         <!-- Center Level Title & Progress Bar -->
@@ -73,90 +73,59 @@
             <!-- Coins Badge -->
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="38dp"
+                android:layout_height="44dp"
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_pill_badge"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="10dp">
+                android:paddingStart="8dp"
+                android:paddingEnd="12dp">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:contentDescription="Coin Icon"
                     android:src="@drawable/ic_coin" />
 
                 <TextView
                     android:id="@+id/tvHudCoins"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
+                    android:layout_marginStart="6dp"
                     android:text="0"
                     android:textColor="@color/game_text_dark"
-                    android:textSize="13sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Stars Badge -->
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="38dp"
+                android:layout_height="44dp"
                 android:background="@drawable/bg_pill_badge"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="10dp">
+                android:paddingStart="8dp"
+                android:paddingEnd="12dp">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:contentDescription="Star Icon"
                     android:src="@drawable/ic_star" />
 
                 <TextView
                     android:id="@+id/tvHudStars"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
+                    android:layout_marginStart="6dp"
                     android:text="0"
                     android:textColor="@color/game_text_dark"
-                    android:textSize="13sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
     </RelativeLayout>
 
-    <!-- POWER-UP ACTION BAR: fixed above the bottom JUMP control, never under the top HUD -->
-    <LinearLayout
-        android:id="@+id/powerUpBar"
-        android:layout_width="72dp"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginEnd="14dp"
-        android:layout_marginBottom="158dp"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:elevation="12dp">
-
-        <com.jumpadventure.game.graphics.GamePowerUpButton
-            android:id="@+id/btnPowerUpMagnet"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
-            android:layout_marginBottom="9dp"
-            android:contentDescription="Magnet power-up" />
-
-        <com.jumpadventure.game.graphics.GamePowerUpButton
-            android:id="@+id/btnPowerUpSpeed"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
-            android:layout_marginBottom="9dp"
-            android:contentDescription="Speed power-up" />
-
-        <com.jumpadventure.game.graphics.GamePowerUpButton
-            android:id="@+id/btnPowerUpShield"
-            android:layout_width="68dp"
-            android:layout_height="68dp"
-            android:contentDescription="Shield power-up" />
-    </LinearLayout>
 
 </RelativeLayout>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controlCustomizationRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Gameplay Preview Background -->
+    <ImageView
+        android:id="@+id/ivCustomBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="Custom Background"
+        android:scaleType="centerCrop"
+        android:src="@drawable/home_bg" />
+
+    <!-- Control Customization Interactive View Surface -->
+    <com.jumpadventure.game.graphics.ControlCustomizationView
+        android:id="@+id/controlCustomView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- TOP BAR -->
+    <RelativeLayout
+        android:id="@+id/customTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="8dp">
+
+        <ImageButton
+            android:id="@+id/btnCustomBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_button_game_secondary"
+            android:contentDescription="Back"
+            android:padding="10dp"
+            android:src="@drawable/ic_back" />
+
+        <TextView
+            android:id="@+id/tvCustomTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:shadowColor="#0F172A"
+            android:shadowDx="0"
+            android:shadowDy="4"
+            android:shadowRadius="2"
+            android:text="CUSTOMIZE CONTROLS"
+            android:textColor="#FFD43B"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </RelativeLayout>
+
+    <!-- SIZE ADJUSTMENT OVERLAY TOOLBAR -->
+    <LinearLayout
+        android:id="@+id/sizeToolbar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottomActionToolbar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_game_panel"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp"
+        android:elevation="12dp">
+
+        <TextView
+            android:id="@+id/tvSelectedControlName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:text="LEFT SIZE:"
+            android:textColor="#1F3045"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.jumpadventure.game.graphics.GamePrimaryButton
+            android:id="@+id/btnSizeMinus"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/tvSizeScale"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="100%"
+            android:textColor="#1F3045"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <com.jumpadventure.game.graphics.GamePrimaryButton
+            android:id="@+id/btnSizePlus"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="6dp" />
+    </LinearLayout>
+
+    <!-- BOTTOM ACTION TOOLBAR -->
+    <LinearLayout
+        android:id="@+id/bottomActionToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="16dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.jumpadventure.game.graphics.GamePrimaryButton
+            android:id="@+id/btnSaveLayout"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp" />
+
+        <com.jumpadventure.game.graphics.GamePrimaryButton
+            android:id="@+id/btnResetLayout"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+</RelativeLayout>

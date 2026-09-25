@@ -28,6 +28,22 @@ class GameBottomNavView @JvmOverloads constructor(
     var onTabSelectedListener: ((tabId: String) -> Unit)? = null
 
     private var pressedTabIndex = -1
+    private var animSelectedScale = 1.0f
+
+    fun animateSelectedTab() {
+        animSelectedScale = 0.85f
+        invalidate()
+        animate().cancel()
+        val animator = android.animation.ValueAnimator.ofFloat(0.85f, 1.16f, 1.0f).apply {
+            duration = 260
+            interpolator = android.view.animation.OvershootInterpolator(2.0f)
+            addUpdateListener { va ->
+                animSelectedScale = va.animatedValue as Float
+                invalidate()
+            }
+        }
+        animator.start()
+    }
 
     private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#30000000") }
@@ -108,7 +124,7 @@ class GameBottomNavView @JvmOverloads constructor(
                 if (pressedTabIndex == index) {
                     val clickedTab = NavTab.values()[index]
                     selectedTabId = clickedTab.id
-                    invalidate()
+                    animateSelectedTab()
                     onTabSelectedListener?.invoke(clickedTab.id)
                     performClick()
                 }
@@ -189,8 +205,8 @@ class GameBottomNavView @JvmOverloads constructor(
 
             // Draw Icon
             canvas.save()
-            val scale = if (isPressed) 0.92f else if (isSelected) 1.08f else 1.0f
-            val iconCenterY = h * 0.36f
+            val scale = if (isPressed) 0.90f else if (isSelected) (1.08f * animSelectedScale) else 1.0f
+            val iconCenterY = (h * 0.36f) - (if (isSelected) 3f * density else 0f)
             canvas.scale(scale, scale, itemCenterX, iconCenterY)
 
             draw3DNavIcon(canvas, tab, itemCenterX, iconCenterY, 26f * density, isSelected)
