@@ -1,7 +1,18 @@
 package com.jumpadventure.game.engine
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RadialGradient
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -10,12 +21,14 @@ import com.jumpadventure.game.graphics.CharacterRenderer
 import com.jumpadventure.game.level.ElementType
 import com.jumpadventure.game.level.LevelElement
 import com.jumpadventure.game.level.LevelGenerator
+import com.jumpadventure.game.level.LevelLayout
 import com.jumpadventure.game.level.WorldRepository
 import com.jumpadventure.game.model.GameSaveData
 import com.jumpadventure.game.model.WorldInfo
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.random.Random
 
 class GameView(
     context: Context,
@@ -29,14 +42,17 @@ class GameView(
 
     @Volatile
     private var isRunning = false
+
+    @Volatile
+    private var isPaused = false
+
     private var gameThread: Thread? = null
 
-    // World & Level Layout
     var currentLevelNumber = saveData.currentLevel
     private lateinit var worldInfo: WorldInfo
-    private lateinit var levelLayout: com.jumpadventure.game.level.LevelLayout
+    private lateinit var levelLayout: LevelLayout
 
-    // Player Physics State & Logical Collider vs Visual Drawing Sizes
+    // Logical player collider is intentionally narrower than the visual character.
     private var playerX = 50f
     private var playerY = 700f
     private val visualWidth = 92f
@@ -49,62 +65,80 @@ class GameView(
     private var velocityX = 0f
     private var velocityY = 0f
     private val baseMoveSpeed = 11f
-    private val jumpStrength = -17f
-    private val gravity = 0.75f
+    private val baseJumpStrength = -17f
+    private val gravityPerFrame = 0.75f
+    private val maxFallVelocity = 25f
     private var isGrounded = false
     private var lives = 3
     private var checkpointX = 50f
     private var checkpointY = 676f
 
-    // Character Gameplay Skill States
+    // Platformer feel helpers.
+    private var coyoteTimeRemaining = 0f
+    private var jumpBufferRemaining = 0f
+    private var damageInvulnerabilityRemaining = 0f
+    private val coyoteTimeSeconds = 0.10f
+    private val jumpBufferSeconds = 0.12f
+    private val damageInvulnerabilitySeconds = 1.0f
+
+    // Character gameplay skill state.
     private var maxMidAirJumps = 0
     private var midAirJumpsDone = 0
     private var isPassiveMagnet = false
     private var isFireResistant = false
     private var isCoinBonusActive = false
-    private var isSpeedBurstActive = false
+    private var characterSpeedMultiplier = 1.0f
+    private var characterJumpMultiplier = 1.0f
     private var enemySpeedMultiplier = 1.0f
 
     @Volatile
     private var levelCompletionHandled = false
+
     @Volatile
     private var gameOverHandled = false
 
-    // State-Driven Power-Up System
+    // Power-up state. Pickups for HUD power-ups become charges instead of granting
+    // unlimited activation from the touch buttons.
     var isMagnetActive = false
+        private set
     var magnetTimeRemaining = 0f
-    val maxMagnetDuration = 8.0f
+        private set
+    private var magnetCharges = 0
 
     var isShieldActive = false
+        private set
     var shieldTimeRemaining = 0f
-    val maxShieldDuration = 10.0f
+        private set
+    private var shieldCharges = 0
+    private var shieldHitsRemaining = 0
 
     var isSpeedActive = false
+        private set
     var speedTimeRemaining = 0f
-    val maxSpeedDuration = 8.0f
+        private set
+    private var speedCharges = 0
 
     var isHighJumpActive = false
+        private set
     var highJumpTimeRemaining = 0f
-    val maxHighJumpDuration = 8.0f
+        private set
 
     var isPowerActive = false
+        private set
     var powerTimeRemaining = 0f
-    val maxPowerDuration = 8.0f
+        private set
 
-    // Touch Controls
     private var moveLeftPressed = false
     private var moveRightPressed = false
     private var isFacingRight = true
     private var animTick = 0f
-
-    // Camera
     private var cameraX = 0f
 
-    // Gameplay Statistics
     private var coinsCollectedInLevel = 0
     private var starsCollectedInLevel = 0
     private var gemsCollectedInLevel = 0
     private var levelStartTime = System.currentTimeMillis()
+    private var hudUpdateAccumulator = 0f
 
     private class ActiveElement(
         val original: LevelElement,
@@ -115,8 +149,6 @@ class GameView(
         var isActivated: Boolean = false
     )
 
-    private val activeElements = mutableListOf<ActiveElement>()
-
     private class TrailParticle(
         var x: Float,
         var y: Float,
@@ -126,7 +158,10 @@ class GameView(
         val color: Int,
         val size: Float
     )
+
+    private val activeElements = mutableListOf<ActiveElement>()
     private val trailParticles = mutableListOf<TrailParticle>()
+    private val random = Random.Default
 
     private var cachedBgBitmap: Bitmap? = null
     private val bgSrcRect = Rect()
@@ -149,6 +184,7 @@ class GameView(
         color = Color.parseColor("#FFEB3B")
         style = Paint.Style.FILL
     }
+    private val reusableRect = RectF()
 
     private val leftButtonRect = RectF()
     private val rightButtonRect = RectF()
@@ -156,16 +192,31 @@ class GameView(
     private val magnetButtonRect = RectF()
     private val speedButtonRect = RectF()
     private val shieldButtonRect = RectF()
+    private val activeJumpPointers = mutableSetOf<Int>()
 
     init {
         holder.addCallback(this)
+        isFocusable = true
         loadLevel(currentLevelNumber)
     }
 
+    private fun upgradeLevel(id: String): Int = (saveData.powerUpLevels[id] ?: 1).coerceIn(1, 5)
+
+    private fun magnetDuration(): Float = 8f + (upgradeLevel("MAGNET") - 1) * 1.5f
+    private fun magnetRadius(): Double = 420.0 + (upgradeLevel("MAGNET") - 1) * 45.0
+    private fun shieldDuration(): Float = 10f + (upgradeLevel("SHIELD") - 1) * 1.5f
+    private fun shieldHitCapacity(): Int = 1 + (upgradeLevel("SHIELD") - 1) / 2
+    private fun speedDuration(): Float = 8f + (upgradeLevel("SPEED") - 1)
+    private fun speedPowerMultiplier(): Float = 1.50f + (upgradeLevel("SPEED") - 1) * 0.05f
+    private fun highJumpDuration(): Float = 8f + (upgradeLevel("JUMP_BOOST") - 1)
+    private fun jumpUpgradeMultiplier(): Float = 1f + (upgradeLevel("JUMP_BOOST") - 1) * 0.08f
+    private fun coinUpgradeMultiplier(): Float = 1f + (upgradeLevel("DOUBLE_COIN") - 1) * 0.15f
+    private fun starAssistRadius(): Double = (upgradeLevel("STAR_BOOST") - 1) * 70.0
+
     fun loadLevel(levelNum: Int) {
-        currentLevelNumber = levelNum
-        worldInfo = WorldRepository.getWorldForLevel(levelNum)
-        levelLayout = LevelGenerator.generateLevel(levelNum)
+        currentLevelNumber = levelNum.coerceAtLeast(1)
+        worldInfo = WorldRepository.getWorldForLevel(currentLevelNumber)
+        levelLayout = LevelGenerator.generateLevel(currentLevelNumber)
 
         playerX = 50f
         playerY = findSafeSpawnY(playerX)
@@ -179,16 +230,17 @@ class GameView(
         isGrounded = true
         moveLeftPressed = false
         moveRightPressed = false
+        coyoteTimeRemaining = coyoteTimeSeconds
+        jumpBufferRemaining = 0f
+        damageInvulnerabilityRemaining = 0f
 
-        // Configure Character Gameplay Skills
-        val charId = saveData.selectedCharacter
-        maxMidAirJumps = if (charId in listOf("GALAXY_HERO", "GALAXY", "SPACE_RUNNER", "CRYSTAL_MAGE", "VOID_WALKER")) 1 else 0
-        midAirJumpsDone = 0
+        configureCharacterSkills(saveData.selectedCharacter)
 
+        magnetCharges = 0
+        shieldCharges = 0
+        speedCharges = 0
         isMagnetActive = false
         magnetTimeRemaining = 0f
-        isShieldActive = charId in listOf("ROBOT", "ROBOT_X", "CYBER_BOT")
-        shieldTimeRemaining = if (isShieldActive) maxShieldDuration else 0f
         isSpeedActive = false
         speedTimeRemaining = 0f
         isHighJumpActive = false
@@ -196,63 +248,106 @@ class GameView(
         isPowerActive = false
         powerTimeRemaining = 0f
 
-        isPassiveMagnet = charId in listOf("FOREST_GUARDIAN", "FOREST", "JUNGLE_FIGHTER")
-        isFireResistant = charId in listOf("LAVA_KNIGHT", "LAVA")
-        isCoinBonusActive = charId in listOf("GOLDEN_WARRIOR", "PIRATE", "EXPLORER")
-        isSpeedBurstActive = charId in listOf("STORM_RIDER", "THUNDER_HERO", "NEON_RUNNER", "NEON")
-        enemySpeedMultiplier = if (charId in listOf("ICE_WARRIOR", "ICE", "ARCTIC_RANGER")) 0.5f else 1.0f
+        val startsWithShield = saveData.selectedCharacter in setOf("ROBOT", "ROBOT_X", "CYBER_BOT", "SAMURAI")
+        isShieldActive = startsWithShield
+        shieldTimeRemaining = if (startsWithShield) shieldDuration() else 0f
+        shieldHitsRemaining = if (startsWithShield) shieldHitCapacity() else 0
 
         coinsCollectedInLevel = 0
         starsCollectedInLevel = 0
         gemsCollectedInLevel = 0
+        hudUpdateAccumulator = 0f
         levelStartTime = System.currentTimeMillis()
 
         activeElements.clear()
         levelLayout.elements.forEach { elem ->
             activeElements.add(ActiveElement(elem, elem.x, elem.y))
         }
+        trailParticles.clear()
 
         skyPaint.color = Color.parseColor(worldInfo.skyColorHex)
         platformPaint.color = Color.parseColor(worldInfo.platformColorHex)
 
+        val oldBackground = cachedBgBitmap
         val bgResId = WorldRepository.getWorldBackgroundRes(worldInfo.id)
         cachedBgBitmap = BitmapFactory.decodeResource(resources, bgResId)
+        if (oldBackground != null && oldBackground !== cachedBgBitmap && !oldBackground.isRecycled) {
+            oldBackground.recycle()
+        }
+
+        // Make gameplay music follow the selected world instead of always world 1.
+        if (soundManager.musicEnabled) soundManager.startMusic(worldInfo.id)
+    }
+
+    private fun configureCharacterSkills(charId: String) {
+        maxMidAirJumps = if (charId in setOf("GALAXY_HERO", "GALAXY", "SPACE_RUNNER", "CRYSTAL_MAGE", "VOID_WALKER")) 1 else 0
+        midAirJumpsDone = 0
+
+        isPassiveMagnet = charId in setOf("FOREST_GUARDIAN", "FOREST", "JUNGLE_FIGHTER")
+        isFireResistant = charId in setOf("LAVA_KNIGHT", "LAVA")
+        isCoinBonusActive = charId in setOf("GOLDEN_WARRIOR", "PIRATE", "EXPLORER")
+        enemySpeedMultiplier = if (charId in setOf("ICE_WARRIOR", "ICE", "ARCTIC_RANGER")) 0.5f else 1.0f
+
+        characterSpeedMultiplier = when (charId) {
+            "STORM_RIDER", "THUNDER_HERO", "NEON_RUNNER", "NEON" -> 1.20f
+            "NINJA", "CYBER_NINJA", "SHADOW_HUNTER", "DESERT_RUNNER", "DESERT" -> 1.15f
+            "GIRL", "COWBOY" -> 1.08f
+            else -> 1.0f
+        }
+
+        characterJumpMultiplier = when (charId) {
+            "GIRL" -> 1.08f
+            "COWBOY" -> 1.04f
+            else -> 1.0f
+        }
     }
 
     fun stopGameLoop() {
         isRunning = false
-        gameThread?.let {
-            var retry = true
-            while (retry) {
-                try {
-                    it.join(500)
-                    retry = false
-                } catch (e: InterruptedException) {
-                    retry = false
-                }
+        isPaused = false
+        gameThread?.interrupt()
+        gameThread?.let { thread ->
+            if (thread !== Thread.currentThread()) {
+                runCatching { thread.join(600) }
             }
         }
         gameThread = null
     }
 
     fun pauseGame() {
-        isRunning = false
+        isPaused = true
+        moveLeftPressed = false
+        moveRightPressed = false
     }
 
     fun resumeGame() {
-        if (!isRunning && holder.surface.isValid) {
+        isPaused = false
+        if (holder.surface.isValid && (gameThread == null || gameThread?.isAlive != true)) {
             isRunning = true
-            gameThread = Thread(this).apply { start() }
+            gameThread = Thread(this, "JumpAdventure-GameLoop").apply { start() }
         }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
+        if (gameThread?.isAlive == true) return
         isRunning = true
-        gameThread = Thread(this).apply { start() }
+        isPaused = false
+        gameThread = Thread(this, "JumpAdventure-GameLoop").apply { start() }
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         updateControlLayouts(width, height)
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        stopGameLoop()
+    }
+
+    override fun onDetachedFromWindow() {
+        stopGameLoop()
+        cachedBgBitmap?.let { if (!it.isRecycled) it.recycle() }
+        cachedBgBitmap = null
+        super.onDetachedFromWindow()
     }
 
     fun updateControlLayouts(width: Int, height: Int) {
@@ -262,7 +357,6 @@ class GameView(
         val baseSideSize = (width * 0.16f).coerceIn(68f * density, 88f * density)
         val baseJumpSize = (width * 0.20f).coerceIn(84f * density, 106f * density)
         val basePowerSize = (54f * density).coerceIn(46f * density, 62f * density)
-
         val marginHoriz = 20f * density
         val marginBottom = 40f * density
         val gap = 16f * density
@@ -270,91 +364,80 @@ class GameView(
         val defLeftX = marginHoriz
         val defLeftY = height - baseSideSize - marginBottom
         val defRightX = marginHoriz + baseSideSize + gap
-        val defRightY = height - baseSideSize - marginBottom
+        val defRightY = defLeftY
         val defJumpX = width - marginHoriz - baseJumpSize
         val defJumpY = height - baseJumpSize - marginBottom
-
         val defMagnetX = width - marginHoriz - basePowerSize
         val defMagnetY = defJumpY - basePowerSize * 3.3f
-        val defSpeedX = width - marginHoriz - basePowerSize
+        val defSpeedX = defMagnetX
         val defSpeedY = defJumpY - basePowerSize * 2.2f
-        val defShieldX = width - marginHoriz - basePowerSize
+        val defShieldX = defMagnetX
         val defShieldY = defJumpY - basePowerSize * 1.1f
 
-        val leftW = baseSideSize * saveData.leftScale
-        val leftH = baseSideSize * saveData.leftScale
-        val lx = if (saveData.leftX >= 0) saveData.leftX.coerceIn(0f, width - leftW) else defLeftX
-        val ly = if (saveData.leftY >= 0) saveData.leftY.coerceIn(0f, height - leftH) else defLeftY
-        leftButtonRect.set(lx, ly, lx + leftW, ly + leftH)
-
-        val rightW = baseSideSize * saveData.rightScale
-        val rightH = baseSideSize * saveData.rightScale
-        val rx = if (saveData.rightX >= 0) saveData.rightX.coerceIn(0f, width - rightW) else defRightX
-        val ry = if (saveData.rightY >= 0) saveData.rightY.coerceIn(0f, height - rightH) else defRightY
-        rightButtonRect.set(rx, ry, rx + rightW, ry + rightH)
-
-        val jumpW = baseJumpSize * saveData.jumpScale
-        val jumpH = baseJumpSize * saveData.jumpScale
-        val jx = if (saveData.jumpX >= 0) saveData.jumpX.coerceIn(0f, width - jumpW) else defJumpX
-        val jy = if (saveData.jumpY >= 0) saveData.jumpY.coerceIn(0f, height - jumpH) else defJumpY
-        jumpButtonRect.set(jx, jy, jx + jumpW, jy + jumpH)
-
-        val magnetW = basePowerSize * saveData.magnetScale
-        val magnetH = basePowerSize * saveData.magnetScale
-        val mx = if (saveData.magnetX >= 0) saveData.magnetX.coerceIn(0f, width - magnetW) else defMagnetX
-        val my = if (saveData.magnetY >= 0) saveData.magnetY.coerceIn(0f, height - magnetH) else defMagnetY
-        magnetButtonRect.set(mx, my, mx + magnetW, my + magnetH)
-
-        val speedW = basePowerSize * saveData.speedScale
-        val speedH = basePowerSize * saveData.speedScale
-        val sx = if (saveData.speedX >= 0) saveData.speedX.coerceIn(0f, width - speedW) else defSpeedX
-        val sy = if (saveData.speedY >= 0) saveData.speedY.coerceIn(0f, height - speedH) else defSpeedY
-        speedButtonRect.set(sx, sy, sx + speedW, sy + speedH)
-
-        val shieldW = basePowerSize * saveData.shieldScale
-        val shieldH = basePowerSize * saveData.shieldScale
-        val shx = if (saveData.shieldX >= 0) saveData.shieldX.coerceIn(0f, width - shieldW) else defShieldX
-        val shy = if (saveData.shieldY >= 0) saveData.shieldY.coerceIn(0f, height - shieldH) else defShieldY
-        shieldButtonRect.set(shx, shy, shx + shieldW, shy + shieldH)
+        setControlRect(leftButtonRect, saveData.leftX, saveData.leftY, baseSideSize * saveData.leftScale, defLeftX, defLeftY, width, height)
+        setControlRect(rightButtonRect, saveData.rightX, saveData.rightY, baseSideSize * saveData.rightScale, defRightX, defRightY, width, height)
+        setControlRect(jumpButtonRect, saveData.jumpX, saveData.jumpY, baseJumpSize * saveData.jumpScale, defJumpX, defJumpY, width, height)
+        setControlRect(magnetButtonRect, saveData.magnetX, saveData.magnetY, basePowerSize * saveData.magnetScale, defMagnetX, defMagnetY, width, height)
+        setControlRect(speedButtonRect, saveData.speedX, saveData.speedY, basePowerSize * saveData.speedScale, defSpeedX, defSpeedY, width, height)
+        setControlRect(shieldButtonRect, saveData.shieldX, saveData.shieldY, basePowerSize * saveData.shieldScale, defShieldX, defShieldY, width, height)
     }
 
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
-        isRunning = false
-        var retry = true
-        while (retry) {
-            try {
-                gameThread?.join(500)
-                retry = false
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }
-        }
+    private fun setControlRect(
+        rect: RectF,
+        savedX: Float,
+        savedY: Float,
+        size: Float,
+        defaultX: Float,
+        defaultY: Float,
+        width: Int,
+        height: Int
+    ) {
+        val safeSize = size.coerceAtLeast(1f)
+        val x = if (savedX >= 0f) savedX.coerceIn(0f, (width - safeSize).coerceAtLeast(0f)) else defaultX
+        val y = if (savedY >= 0f) savedY.coerceIn(0f, (height - safeSize).coerceAtLeast(0f)) else defaultY
+        rect.set(x, y, x + safeSize, y + safeSize)
     }
 
     override fun run() {
-        val targetFPS = 60
-        val targetTimeMs = 1000L / targetFPS
-        var lastTimeNanos = System.nanoTime()
+        val fixedStep = 1f / 60f
+        val maxCatchUpSteps = 5
+        var previous = System.nanoTime()
+        var accumulator = 0f
 
-        while (isRunning) {
-            val nowNanos = System.nanoTime()
-            val elapsedSec = ((nowNanos - lastTimeNanos) / 1_000_000_000f).coerceIn(0.005f, 0.05f)
-            lastTimeNanos = nowNanos
+        while (isRunning && !Thread.currentThread().isInterrupted) {
+            val frameStart = System.nanoTime()
+            val elapsed = ((frameStart - previous) / 1_000_000_000f).coerceIn(0f, 0.10f)
+            previous = frameStart
 
             try {
-                update(elapsedSec)
-                drawFrame()
-            } catch (e: Throwable) {
-                android.util.Log.e("JUMP_DEBUG", "Error in game loop iteration", e)
+                if (!isPaused) {
+                    accumulator += elapsed
+                    var steps = 0
+                    while (accumulator >= fixedStep && steps < maxCatchUpSteps) {
+                        update(fixedStep)
+                        accumulator -= fixedStep
+                        steps++
+                    }
+                    if (steps == maxCatchUpSteps) accumulator = 0f
+                    drawFrame()
+                } else {
+                    Thread.sleep(16L)
+                }
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                break
+            } catch (t: Throwable) {
+                android.util.Log.e("JUMP_DEBUG", "Error in game loop iteration", t)
             }
 
-            val elapsedFrameMs = (System.nanoTime() - nowNanos) / 1_000_000L
-            val sleepTimeMs = targetTimeMs - elapsedFrameMs
-            if (sleepTimeMs > 0) {
+            val frameMs = (System.nanoTime() - frameStart) / 1_000_000L
+            val sleepMs = 16L - frameMs
+            if (sleepMs > 0 && !isPaused) {
                 try {
-                    Thread.sleep(sleepTimeMs)
-                } catch (e: InterruptedException) {
-                    e.printStackTrace()
+                    Thread.sleep(sleepMs)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    break
                 }
             }
         }
@@ -362,6 +445,62 @@ class GameView(
 
     private fun update(deltaTime: Float) {
         val dtFactor = deltaTime * 60f
+        animTick += deltaTime * if (moveLeftPressed || moveRightPressed) 2.5f else 1.5f
+
+        updateTimers(deltaTime)
+
+        val settingsSpeed = saveData.playerSpeedMultiplier.coerceIn(0.75f, 1.50f)
+        val activeSpeed = if (isSpeedActive) speedPowerMultiplier() else 1.0f
+        val effectiveSpeed = baseMoveSpeed * settingsSpeed * characterSpeedMultiplier * activeSpeed
+        val targetVelocityX = when {
+            moveLeftPressed && !moveRightPressed -> -effectiveSpeed
+            moveRightPressed && !moveLeftPressed -> effectiveSpeed
+            else -> 0f
+        }
+        if (targetVelocityX < 0f) isFacingRight = false
+        if (targetVelocityX > 0f) isFacingRight = true
+
+        val response = if (targetVelocityX == 0f) 0.24f else 0.32f
+        velocityX += (targetVelocityX - velocityX) * (response * dtFactor).coerceIn(0f, 1f)
+        if (abs(velocityX) < 0.05f) velocityX = 0f
+
+        velocityY = (velocityY + gravityPerFrame * dtFactor).coerceAtMost(maxFallVelocity)
+
+        if (isGrounded) {
+            coyoteTimeRemaining = coyoteTimeSeconds
+        } else {
+            coyoteTimeRemaining = (coyoteTimeRemaining - deltaTime).coerceAtLeast(0f)
+        }
+
+        if (jumpBufferRemaining > 0f) {
+            jumpBufferRemaining = (jumpBufferRemaining - deltaTime).coerceAtLeast(0f)
+            if (isGrounded || coyoteTimeRemaining > 0f) performGroundJump()
+        }
+
+        updateParticles(dtFactor)
+        updateMovingElements(dtFactor)
+        applyAttraction(dtFactor)
+        moveAndCollide(dtFactor)
+        handleCollectiblesAndHazards()
+
+        if (playerY > 1200f) handlePlayerHit()
+
+        val screenWidth = width.toFloat().takeIf { it > 0f } ?: 1080f
+        val targetCameraX = (playerX - screenWidth * 0.35f).coerceAtLeast(0f)
+        cameraX += (targetCameraX - cameraX) * (0.18f * dtFactor).coerceAtMost(1f)
+
+        hudUpdateAccumulator += deltaTime
+        if (hudUpdateAccumulator >= 0.10f) {
+            hudUpdateAccumulator = 0f
+            val progress = (playerX / levelLayout.totalWidth.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            onProgressUpdated(coinsCollectedInLevel, starsCollectedInLevel, progress)
+        }
+    }
+
+    private fun updateTimers(deltaTime: Float) {
+        if (damageInvulnerabilityRemaining > 0f) {
+            damageInvulnerabilityRemaining = (damageInvulnerabilityRemaining - deltaTime).coerceAtLeast(0f)
+        }
 
         if (isMagnetActive) {
             magnetTimeRemaining -= deltaTime
@@ -372,8 +511,9 @@ class GameView(
         }
         if (isShieldActive) {
             shieldTimeRemaining -= deltaTime
-            if (shieldTimeRemaining <= 0f) {
+            if (shieldTimeRemaining <= 0f || shieldHitsRemaining <= 0) {
                 shieldTimeRemaining = 0f
+                shieldHitsRemaining = 0
                 isShieldActive = false
             }
         }
@@ -398,98 +538,99 @@ class GameView(
                 isPowerActive = false
             }
         }
+    }
 
-        val speedMult = saveData.playerSpeedMultiplier.coerceIn(0.75f, 1.50f)
-        val skillSpeed = if (isSpeedBurstActive) 1.20f else 1.0f
-        val powerupSpeed = if (isSpeedActive) 1.5f else 1.0f
-        val effectiveSpeed = baseMoveSpeed * speedMult * skillSpeed * powerupSpeed
-
-        if (moveLeftPressed || moveRightPressed) {
-            animTick += deltaTime * (effectiveSpeed / baseMoveSpeed) * 2.5f
-        } else {
-            animTick += deltaTime * 1.5f
-        }
-
-        if (moveLeftPressed) {
-            velocityX = -effectiveSpeed
-            isFacingRight = false
-        } else if (moveRightPressed) {
-            velocityX = effectiveSpeed
-            isFacingRight = true
-        } else {
-            velocityX = 0f
-        }
-
-        velocityY += gravity * dtFactor
-
-        // Particle Trails
-        if ((velocityX != 0f || velocityY != 0f) && saveData.selectedTrail != "NONE") {
+    private fun updateParticles(dtFactor: Float) {
+        if ((abs(velocityX) > 0.3f || abs(velocityY) > 0.3f) && saveData.selectedTrail != "NONE" && trailParticles.size < 90) {
             val px = playerX + visualWidth / 2f
             val py = playerY + visualHeight * 0.7f
-            val trailColor = when (saveData.selectedTrail) {
-                "FIRE" -> listOf(Color.YELLOW, Color.RED, Color.parseColor("#FF9F1C")).random()
-                "ICE" -> listOf(Color.CYAN, Color.WHITE, Color.parseColor("#00E5FF")).random()
-                "LIGHTNING" -> listOf(Color.YELLOW, Color.CYAN, Color.WHITE).random()
-                "RAINBOW" -> Color.HSVToColor(floatArrayOf((animTick * 180f) % 360f, 1f, 1f))
-                "SHADOW" -> listOf(Color.parseColor("#2D3748"), Color.BLACK, Color.parseColor("#4A5568")).random()
-                "GOLD" -> listOf(Color.parseColor("#FFD700"), Color.parseColor("#FFD43B"), Color.WHITE).random()
-                "NEON" -> listOf(Color.parseColor("#00E676"), Color.parseColor("#E040FB"), Color.CYAN).random()
-                "GALAXY" -> listOf(Color.parseColor("#9C27B0"), Color.parseColor("#3F51B5"), Color.WHITE).random()
-                "LEAVES" -> listOf(Color.parseColor("#4CAF50"), Color.parseColor("#81C784")).random()
-                "SNOW" -> Color.WHITE
-                "LAVA" -> listOf(Color.parseColor("#FF3D00"), Color.parseColor("#D84315")).random()
-                else -> Color.YELLOW
-            }
+            val trailColor = trailColor(saveData.selectedTrail)
             trailParticles.add(
                 TrailParticle(
-                    x = px + (Math.random().toFloat() - 0.5f) * 20f,
-                    y = py + (Math.random().toFloat() - 0.5f) * 10f,
-                    vx = -velocityX * 0.2f + (Math.random().toFloat() - 0.5f) * 1.5f,
-                    vy = (Math.random().toFloat() - 0.5f) * 1.5f,
+                    x = px + (random.nextFloat() - 0.5f) * 20f,
+                    y = py + (random.nextFloat() - 0.5f) * 10f,
+                    vx = -velocityX * 0.2f + (random.nextFloat() - 0.5f) * 1.5f,
+                    vy = (random.nextFloat() - 0.5f) * 1.5f,
                     alpha = 230,
                     color = trailColor,
-                    size = 10f + Math.random().toFloat() * 12f
+                    size = 10f + random.nextFloat() * 12f
                 )
             )
         }
 
-        val trailIter = trailParticles.iterator()
-        while (trailIter.hasNext()) {
-            val p = trailIter.next()
+        val iterator = trailParticles.iterator()
+        while (iterator.hasNext()) {
+            val p = iterator.next()
             p.x += p.vx * dtFactor
             p.y += p.vy * dtFactor
             p.alpha -= (14f * dtFactor).toInt().coerceAtLeast(1)
-            if (p.alpha <= 0) trailIter.remove()
+            if (p.alpha <= 0) iterator.remove()
         }
+    }
 
-        // Update moving elements (platforms & enemies)
+    private fun trailColor(type: String): Int = when (type) {
+        "FIRE" -> intArrayOf(Color.YELLOW, Color.RED, Color.parseColor("#FF9F1C"))[random.nextInt(3)]
+        "ICE" -> intArrayOf(Color.CYAN, Color.WHITE, Color.parseColor("#00E5FF"))[random.nextInt(3)]
+        "LIGHTNING" -> intArrayOf(Color.YELLOW, Color.CYAN, Color.WHITE)[random.nextInt(3)]
+        "RAINBOW" -> Color.HSVToColor(floatArrayOf((animTick * 180f) % 360f, 1f, 1f))
+        "SHADOW" -> intArrayOf(Color.parseColor("#2D3748"), Color.BLACK, Color.parseColor("#4A5568"))[random.nextInt(3)]
+        "GOLD" -> intArrayOf(Color.parseColor("#FFD700"), Color.parseColor("#FFD43B"), Color.WHITE)[random.nextInt(3)]
+        "NEON" -> intArrayOf(Color.parseColor("#00E676"), Color.parseColor("#E040FB"), Color.CYAN)[random.nextInt(3)]
+        "GALAXY" -> intArrayOf(Color.parseColor("#9C27B0"), Color.parseColor("#3F51B5"), Color.WHITE)[random.nextInt(3)]
+        "LEAVES" -> intArrayOf(Color.parseColor("#4CAF50"), Color.parseColor("#81C784"))[random.nextInt(2)]
+        "SNOW" -> Color.WHITE
+        "LAVA" -> intArrayOf(Color.parseColor("#FF3D00"), Color.parseColor("#D84315"))[random.nextInt(2)]
+        else -> Color.YELLOW
+    }
+
+    private fun updateMovingElements(dtFactor: Float) {
         activeElements.forEach { active ->
             if (active.isCollected) return@forEach
             val elem = active.original
-
-            if (elem.type == ElementType.MOVING_PLATFORM) {
-                active.currentX += elem.speed * active.direction * dtFactor
-                if (abs(active.currentX - elem.x) > elem.moveDistanceX) {
-                    active.direction *= -1f
-                }
-            } else if (elem.type == ElementType.ENEMY) {
-                active.currentX += elem.speed * enemySpeedMultiplier * active.direction * dtFactor
-                if (abs(active.currentX - elem.x) > elem.moveDistanceX) {
-                    active.direction *= -1f
-                }
-            }
-
-            // Magnet attraction towards collectibles
-            if ((isMagnetActive || isPassiveMagnet) && (elem.type == ElementType.COIN || elem.type == ElementType.STAR || elem.type == ElementType.GEM || elem.type.name.startsWith("POWERUP_"))) {
-                val dist = hypot((active.currentX - playerX).toDouble(), (active.currentY - playerY).toDouble())
-                if (dist < 420) {
-                    active.currentX += (playerX - active.currentX) * (0.18f * dtFactor).coerceAtMost(0.5f)
-                    active.currentY += (playerY - active.currentY) * (0.18f * dtFactor).coerceAtMost(0.5f)
+            if (elem.type == ElementType.MOVING_PLATFORM || elem.type == ElementType.ENEMY) {
+                val speed = if (elem.type == ElementType.ENEMY) elem.speed * enemySpeedMultiplier else elem.speed
+                active.currentX += speed * active.direction * dtFactor
+                val minX = elem.x - elem.moveDistanceX
+                val maxX = elem.x + elem.moveDistanceX
+                if (active.currentX < minX) {
+                    active.currentX = minX
+                    active.direction = 1f
+                } else if (active.currentX > maxX) {
+                    active.currentX = maxX
+                    active.direction = -1f
                 }
             }
         }
+    }
 
-        // --- HORIZONTAL MOVEMENT & WALL COLLISION ---
+    private fun applyAttraction(dtFactor: Float) {
+        val magnetOn = isMagnetActive || isPassiveMagnet
+        val magnetRange = magnetRadius()
+        val starRange = starAssistRadius()
+
+        activeElements.forEach { active ->
+            if (active.isCollected) return@forEach
+            val type = active.original.type
+            val isCollectible = type == ElementType.COIN || type == ElementType.STAR || type == ElementType.GEM || type.name.startsWith("POWERUP_")
+            if (!isCollectible) return@forEach
+
+            val allowedRange = when {
+                magnetOn -> magnetRange
+                type == ElementType.STAR && starRange > 0.0 -> starRange
+                else -> 0.0
+            }
+            if (allowedRange <= 0.0) return@forEach
+
+            val dist = hypot((active.currentX - playerX).toDouble(), (active.currentY - playerY).toDouble())
+            if (dist < allowedRange) {
+                val pull = (0.18f * dtFactor).coerceAtMost(0.5f)
+                active.currentX += (playerX - active.currentX) * pull
+                active.currentY += (playerY - active.currentY) * pull
+            }
+        }
+    }
+
+    private fun moveAndCollide(dtFactor: Float) {
         playerX += velocityX * dtFactor
         playerX = playerX.coerceAtLeast(0f)
 
@@ -499,186 +640,156 @@ class GameView(
         var curBottom = curTop + colliderHeight
 
         activeElements.forEach { active ->
-            if (active.isCollected) return@forEach
+            if (active.isCollected || !isSolid(active.original.type)) return@forEach
             val elem = active.original
-            if (elem.type == ElementType.PLATFORM || elem.type == ElementType.MOVING_PLATFORM || elem.type == ElementType.BOX) {
-                val elemRect = RectF(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
-
-                // Check side collision if player intersects platform vertically
-                if (curBottom > elemRect.top + 8f && curTop < elemRect.bottom - 8f) {
-                    if (velocityX > 0f && curRight > elemRect.left && curLeft < elemRect.left) {
-                        playerX = elemRect.left - colliderOffsetX - colliderWidth
-                        curLeft = playerX + colliderOffsetX
-                        curRight = curLeft + colliderWidth
-                    } else if (velocityX < 0f && curLeft < elemRect.right && curRight > elemRect.right) {
-                        playerX = elemRect.right - colliderOffsetX
-                        curLeft = playerX + colliderOffsetX
-                        curRight = curLeft + colliderWidth
-                    }
+            reusableRect.set(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
+            if (curBottom > reusableRect.top + 8f && curTop < reusableRect.bottom - 8f) {
+                if (velocityX > 0f && curRight > reusableRect.left && curLeft < reusableRect.left) {
+                    playerX = reusableRect.left - colliderOffsetX - colliderWidth
+                    velocityX = 0f
+                    curLeft = playerX + colliderOffsetX
+                    curRight = curLeft + colliderWidth
+                } else if (velocityX < 0f && curLeft < reusableRect.right && curRight > reusableRect.right) {
+                    playerX = reusableRect.right - colliderOffsetX
+                    velocityX = 0f
+                    curLeft = playerX + colliderOffsetX
+                    curRight = curLeft + colliderWidth
                 }
             }
         }
 
-        // --- VERTICAL MOVEMENT & LANDING / CEILING COLLISION ---
         val prevColliderTop = playerY + colliderOffsetY
         playerY += velocityY * dtFactor
         curTop = playerY + colliderOffsetY
         curBottom = curTop + colliderHeight
-
         isGrounded = false
 
         activeElements.forEach { active ->
-            if (active.isCollected) return@forEach
+            if (active.isCollected || !isSolid(active.original.type)) return@forEach
             val elem = active.original
-            if (elem.type == ElementType.PLATFORM || elem.type == ElementType.MOVING_PLATFORM || elem.type == ElementType.BOX) {
-                val elemLeft = active.currentX
-                val elemRight = active.currentX + elem.width
-                val elemTop = active.currentY
-                val elemBottom = active.currentY + elem.height
+            val elemLeft = active.currentX
+            val elemRight = active.currentX + elem.width
+            val elemTop = active.currentY
+            val elemBottom = active.currentY + elem.height
 
-                // Horizontally overlapping platform
-                if (curRight > elemLeft + 4f && curLeft < elemRight - 4f) {
-                    if (velocityY >= 0f) {
-                        // Falling / Landing
-                        val prevFeet = prevColliderTop + colliderHeight
-                        if (prevFeet <= elemTop + 20f * dtFactor.coerceAtLeast(1f) && curBottom >= elemTop - 4f) {
-                            playerY = elemTop - visualHeight
-                            velocityY = 0f
-                            isGrounded = true
-                            midAirJumpsDone = 0
+            if (curRight > elemLeft + 4f && curLeft < elemRight - 4f) {
+                if (velocityY >= 0f) {
+                    val prevFeet = prevColliderTop + colliderHeight
+                    if (prevFeet <= elemTop + 20f && curBottom >= elemTop - 4f) {
+                        playerY = elemTop - visualHeight
+                        velocityY = 0f
+                        isGrounded = true
+                        midAirJumpsDone = 0
+                        coyoteTimeRemaining = coyoteTimeSeconds
 
-                            if (elem.type == ElementType.MOVING_PLATFORM) {
-                                playerX += elem.speed * active.direction * dtFactor
-                            }
+                        if (elem.type == ElementType.MOVING_PLATFORM) {
+                            playerX += elem.speed * active.direction * dtFactor
                         }
-                    } else {
-                        // Jumping / Ceiling Collision
-                        if (prevColliderTop >= elemBottom - 16f * dtFactor.coerceAtLeast(1f) && curTop <= elemBottom + 4f) {
-                            playerY = elemBottom - colliderOffsetY
-                            velocityY = 0f
-                        }
+                        if (jumpBufferRemaining > 0f) performGroundJump()
                     }
+                } else if (prevColliderTop >= elemBottom - 16f && curTop <= elemBottom + 4f) {
+                    playerY = elemBottom - colliderOffsetY
+                    velocityY = 0f
                 }
             }
         }
+    }
 
-        // --- CAMERA FOLLOWING ---
-        val screenWidth = width.toFloat().takeIf { it > 0 } ?: 1080f
-        val targetCameraX = (playerX - screenWidth * 0.35f).coerceAtLeast(0f)
-        cameraX += (targetCameraX - cameraX) * (0.18f * dtFactor).coerceAtMost(1.0f)
+    private fun isSolid(type: ElementType): Boolean =
+        type == ElementType.PLATFORM || type == ElementType.MOVING_PLATFORM || type == ElementType.BOX
 
-        // --- COLLECTIBLES & HAZARDS ---
-        val finalColliderTop = playerY + colliderOffsetY
-        val finalPlayerRect = RectF(playerX + colliderOffsetX, finalColliderTop, playerX + colliderOffsetX + colliderWidth, finalColliderTop + colliderHeight)
+    private fun handleCollectiblesAndHazards() {
+        val top = playerY + colliderOffsetY
+        val playerRect = RectF(playerX + colliderOffsetX, top, playerX + colliderOffsetX + colliderWidth, top + colliderHeight)
 
         activeElements.forEach { active ->
             if (active.isCollected) return@forEach
             val elem = active.original
-            val elemRect = RectF(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
+            reusableRect.set(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
+            if (!RectF.intersects(playerRect, reusableRect)) return@forEach
 
-            if (RectF.intersects(finalPlayerRect, elemRect)) {
-                when (elem.type) {
-
-                    ElementType.COIN -> {
-                        active.isCollected = true
-                        coinsCollectedInLevel += if (isCoinBonusActive) 15 else 10
-                        soundManager.playCoin()
-                    }
-
-                    ElementType.STAR -> {
-                        active.isCollected = true
-                        starsCollectedInLevel += 1
-                        soundManager.playStar()
-                    }
-
-                    ElementType.GEM -> {
-                        active.isCollected = true
-                        gemsCollectedInLevel += 1
-                        soundManager.playStar()
-                    }
-
-                    ElementType.POWERUP_MAGNET -> {
-                        active.isCollected = true
-                        activateMagnetPowerUp()
-                    }
-
-                    ElementType.POWERUP_SHIELD -> {
-                        active.isCollected = true
-                        activateShieldPowerUp()
-                    }
-
-                    ElementType.POWERUP_SPEED -> {
-                        active.isCollected = true
-                        activateSpeedPowerUp()
-                    }
-
-                    ElementType.POWERUP_HIGH_JUMP -> {
-                        active.isCollected = true
-                        activateHighJumpPowerUp()
-                    }
-
-                    ElementType.POWERUP_POWER -> {
-                        active.isCollected = true
-                        activatePowerPowerUp()
-                    }
-
-                    ElementType.CHECKPOINT -> {
-                        if (!active.isActivated) {
-                            active.isActivated = true
-                            checkpointX = active.currentX
-                            checkpointY = findSafeSpawnY(checkpointX)
-                        }
-                    }
-
-                    ElementType.SPIKE -> {
-                        if (isPowerActive) {
-                            active.isCollected = true
-                            soundManager.playHit()
-                        } else if (isFireResistant) {
-                            // Immune to spikes via Fire Resistance skill
-                        } else if (isShieldActive) {
-                            isShieldActive = false
-                            shieldTimeRemaining = 0f
-                            active.isCollected = true
-                            soundManager.playShieldBreak()
-                        } else {
-                            handlePlayerHit()
-                        }
-                    }
-
-                    ElementType.ENEMY -> {
-                        if (isPowerActive) {
-                            active.isCollected = true
-                            soundManager.playHit()
-                        } else if (isShieldActive) {
-                            isShieldActive = false
-                            shieldTimeRemaining = 0f
-                            active.isCollected = true
-                            soundManager.playShieldBreak()
-                        } else {
-                            handlePlayerHit()
-                        }
-                    }
-
-                    ElementType.FINISH_DOOR -> {
-                        completeLevel()
-                    }
-
-                    else -> {}
+            when (elem.type) {
+                ElementType.COIN -> {
+                    active.isCollected = true
+                    val characterBonus = if (isCoinBonusActive) 1.5f else 1f
+                    coinsCollectedInLevel += (10f * characterBonus * coinUpgradeMultiplier()).toInt().coerceAtLeast(1)
+                    soundManager.playCoin()
                 }
+                ElementType.STAR -> {
+                    active.isCollected = true
+                    starsCollectedInLevel++
+                    soundManager.playStar()
+                }
+                ElementType.GEM -> {
+                    active.isCollected = true
+                    gemsCollectedInLevel++
+                    soundManager.playStar()
+                }
+                ElementType.POWERUP_MAGNET -> {
+                    active.isCollected = true
+                    magnetCharges = (magnetCharges + 1).coerceAtMost(9)
+                    soundManager.playPowerUp()
+                }
+                ElementType.POWERUP_SHIELD -> {
+                    active.isCollected = true
+                    shieldCharges = (shieldCharges + 1).coerceAtMost(9)
+                    soundManager.playPowerUp()
+                }
+                ElementType.POWERUP_SPEED -> {
+                    active.isCollected = true
+                    speedCharges = (speedCharges + 1).coerceAtMost(9)
+                    soundManager.playPowerUp()
+                }
+                ElementType.POWERUP_HIGH_JUMP -> {
+                    active.isCollected = true
+                    activateHighJumpPowerUp()
+                }
+                ElementType.POWERUP_POWER -> {
+                    active.isCollected = true
+                    activatePowerPowerUp()
+                }
+                ElementType.CHECKPOINT -> {
+                    if (!active.isActivated) {
+                        active.isActivated = true
+                        checkpointX = active.currentX
+                        checkpointY = findSafeSpawnY(checkpointX)
+                    }
+                }
+                ElementType.SPIKE -> handleHazard(active, spike = true)
+                ElementType.ENEMY -> handleHazard(active, spike = false)
+                ElementType.FINISH_DOOR -> completeLevel()
+                else -> Unit
             }
         }
+    }
 
-        if (playerY > 1200f) {
-            handlePlayerHit()
+    private fun handleHazard(active: ActiveElement, spike: Boolean) {
+        if (damageInvulnerabilityRemaining > 0f) return
+
+        if (isPowerActive) {
+            active.isCollected = true
+            soundManager.playHit()
+            return
+        }
+        if (spike && isFireResistant) return
+
+        if (isShieldActive && shieldHitsRemaining > 0) {
+            shieldHitsRemaining--
+            damageInvulnerabilityRemaining = 0.25f
+            soundManager.playShieldBreak()
+            if (shieldHitsRemaining <= 0) {
+                isShieldActive = false
+                shieldTimeRemaining = 0f
+            }
+            if (!spike) active.isCollected = true
+            return
         }
 
-        val progress = (playerX / levelLayout.totalWidth).coerceIn(0f, 1f)
-        onProgressUpdated(coinsCollectedInLevel, starsCollectedInLevel, progress)
+        handlePlayerHit()
     }
 
     private fun handlePlayerHit() {
-        if (gameOverHandled || levelCompletionHandled) return
+        if (gameOverHandled || levelCompletionHandled || damageInvulnerabilityRemaining > 0f) return
 
         soundManager.playHit()
         lives--
@@ -700,301 +811,347 @@ class GameView(
         velocityY = 0f
         isGrounded = true
         midAirJumpsDone = 0
+        coyoteTimeRemaining = coyoteTimeSeconds
+        damageInvulnerabilityRemaining = damageInvulnerabilitySeconds
     }
 
     private fun findSafeSpawnY(x: Float): Float {
         val support = levelLayout.elements
             .asSequence()
             .filter {
-                (it.type == ElementType.PLATFORM ||
-                 it.type == ElementType.MOVING_PLATFORM ||
-                 it.type == ElementType.BOX) &&
-                x + colliderOffsetX + colliderWidth > it.x &&
-                x + colliderOffsetX < it.x + it.width
+                isSolid(it.type) &&
+                    x + colliderOffsetX + colliderWidth > it.x &&
+                    x + colliderOffsetX < it.x + it.width
             }
             .minByOrNull { it.y }
-
         return support?.y?.minus(visualHeight) ?: (800f - visualHeight)
     }
 
     private fun completeLevel() {
         if (levelCompletionHandled) return
         levelCompletionHandled = true
-        isRunning = false
-
+        isPaused = true
+        moveLeftPressed = false
+        moveRightPressed = false
         soundManager.playLevelComplete()
+
+        // MainActivity persists saveData in its completion callback, so commit level gems here.
+        saveData.gems += gemsCollectedInLevel
         val timeSec = (System.currentTimeMillis() - levelStartTime) / 1000f
+        onProgressUpdated(coinsCollectedInLevel, starsCollectedInLevel, 1f)
         onLevelCompleted(coinsCollectedInLevel, starsCollectedInLevel, timeSec)
     }
 
     fun triggerJump() {
-        val currentJumpStrength = jumpStrength * (if (isHighJumpActive) 1.35f else 1.0f)
-        if (isGrounded) {
-            velocityY = currentJumpStrength
-            isGrounded = false
-            midAirJumpsDone = 0
-            soundManager.playJump()
-            saveData.totalJumps++
-        } else if (midAirJumpsDone < maxMidAirJumps) {
-            // Double jump skill
-            velocityY = currentJumpStrength * 0.92f
-            midAirJumpsDone++
-            soundManager.playJump()
-            saveData.totalJumps++
+        when {
+            isGrounded || coyoteTimeRemaining > 0f -> performGroundJump()
+            midAirJumpsDone < maxMidAirJumps -> {
+                velocityY = currentJumpStrength() * 0.92f
+                midAirJumpsDone++
+                jumpBufferRemaining = 0f
+                soundManager.playJump()
+                saveData.totalJumps++
+            }
+            else -> jumpBufferRemaining = jumpBufferSeconds
         }
+    }
+
+    private fun performGroundJump() {
+        velocityY = currentJumpStrength()
+        isGrounded = false
+        coyoteTimeRemaining = 0f
+        jumpBufferRemaining = 0f
+        midAirJumpsDone = 0
+        soundManager.playJump()
+        saveData.totalJumps++
+    }
+
+    private fun currentJumpStrength(): Float {
+        val activeHighJump = if (isHighJumpActive) 1.35f else 1f
+        return baseJumpStrength * activeHighJump * jumpUpgradeMultiplier() * characterJumpMultiplier
+    }
+
+    private fun cutJumpShort() {
+        if (velocityY < -5f) velocityY *= 0.55f
     }
 
     fun activateMagnetPowerUp() {
         isMagnetActive = true
-        magnetTimeRemaining = maxMagnetDuration
+        magnetTimeRemaining = magnetDuration()
         soundManager.playPowerUpActivation("MAGNET")
     }
 
     fun activateShieldPowerUp() {
         isShieldActive = true
-        shieldTimeRemaining = maxShieldDuration
+        shieldTimeRemaining = shieldDuration()
+        shieldHitsRemaining = shieldHitCapacity()
         soundManager.playPowerUpActivation("SHIELD")
     }
 
     fun activateSpeedPowerUp() {
         isSpeedActive = true
-        speedTimeRemaining = maxSpeedDuration
+        speedTimeRemaining = speedDuration()
         soundManager.playPowerUpActivation("SPEED")
     }
 
     fun activateHighJumpPowerUp() {
         isHighJumpActive = true
-        highJumpTimeRemaining = maxHighJumpDuration
+        highJumpTimeRemaining = highJumpDuration()
         soundManager.playPowerUpActivation("HIGH_JUMP")
     }
 
     fun activatePowerPowerUp() {
         isPowerActive = true
-        powerTimeRemaining = maxPowerDuration
+        powerTimeRemaining = 8f
         soundManager.playPowerUpActivation("POWER")
+    }
+
+    private fun tryUseMagnetCharge() {
+        if (isMagnetActive || isPassiveMagnet || magnetCharges <= 0) return
+        magnetCharges--
+        activateMagnetPowerUp()
+    }
+
+    private fun tryUseSpeedCharge() {
+        if (isSpeedActive || speedCharges <= 0) return
+        speedCharges--
+        activateSpeedPowerUp()
+    }
+
+    private fun tryUseShieldCharge() {
+        if (isShieldActive || shieldCharges <= 0) return
+        shieldCharges--
+        activateShieldPowerUp()
     }
 
     private fun drawFrame() {
         if (!holder.surface.isValid) return
         val canvas = holder.lockCanvas() ?: return
-
         try {
-            val w = width.toFloat()
-            val h = height.toFloat()
-
-            val bg = cachedBgBitmap
-            if (bg != null && !bg.isRecycled && w > 0f && h > 0f) {
-                val bgW = bg.width.toFloat()
-                val bgH = bg.height.toFloat()
-
-                if (bgW > 0f && bgH > 0f) {
-                    val scale = maxOf(w / bgW, h / bgH)
-                    val scaledW = bgW * scale
-
-                    val maxOffset = (scaledW - w).coerceAtLeast(0f)
-                    val parallaxDistance = maxOffset * 0.35f
-                    val progress = (cameraX / levelLayout.totalWidth.coerceAtLeast(1f)).coerceIn(0f, 1f)
-                    val parallaxX = -(progress * parallaxDistance)
-
-                    bgSrcRect.set(0, 0, bg.width, bg.height)
-                    bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
-                    canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
-
-                    if (parallaxX > 0f) {
-                        bgEdgePaint.color = bg.getPixel(0, bg.height / 2)
-                        canvas.drawRect(0f, 0f, parallaxX, h, bgEdgePaint)
-                    }
-                    if (parallaxX + scaledW < w) {
-                        bgEdgePaint.color = bg.getPixel(bg.width - 1, bg.height / 2)
-                        canvas.drawRect(parallaxX + scaledW, 0f, w, h, bgEdgePaint)
-                    }
-                }
-            } else {
-                skyPaint.shader = LinearGradient(0f, 0f, 0f, h.coerceAtLeast(1f), Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
-                canvas.drawRect(0f, 0f, w.coerceAtLeast(1f), h.coerceAtLeast(1f), skyPaint)
-                skyPaint.shader = null
-            }
-
+            drawBackground(canvas)
             canvas.save()
             canvas.translate(-cameraX, 0f)
-
-            activeElements.forEach { active ->
-                if (active.isCollected) return@forEach
-                val elem = active.original
-                val rect = RectF(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
-
-                when (elem.type) {
-                    ElementType.PLATFORM, ElementType.MOVING_PLATFORM -> {
-                        platformPaint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.bottom, platformPaint.color, Color.parseColor("#4E342E"), Shader.TileMode.CLAMP)
-                        canvas.drawRoundRect(rect, 12f, 12f, platformPaint)
-                        canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
-                        platformPaint.shader = null
-                        val capHeight = (elem.height * 0.28f).coerceAtMost(16f)
-                        val capRect = RectF(rect.left, rect.top, rect.right, rect.top + capHeight)
-                        val capPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = LinearGradient(capRect.left, capRect.top, capRect.left, capRect.bottom, Color.parseColor("#81C784"), Color.parseColor("#388E3C"), Shader.TileMode.CLAMP) }
-                        canvas.drawRoundRect(capRect, 8f, 8f, capPaint)
-                    }
-
-                    ElementType.BOX -> {
-                        val boxPaint = Paint().apply { color = Color.parseColor("#8D6E63") }
-                        canvas.drawRoundRect(rect, 12f, 12f, boxPaint)
-                        canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
-                    }
-
-                    ElementType.COIN -> {
-                        val cx = active.currentX + elem.width / 2f
-                        val cy = active.currentY + elem.height / 2f + (sin(animTick * 6.0) * 6.0).toFloat()
-                        coinPaint.shader = RadialGradient(cx - elem.width * 0.1f, cy - elem.height * 0.1f, elem.width * 0.8f, Color.parseColor("#FFF59D"), Color.parseColor("#F57F17"), Shader.TileMode.CLAMP)
-                        canvas.drawCircle(cx, cy, elem.width / 2f, coinPaint)
-                        canvas.drawCircle(cx, cy, elem.width / 2f, darkOutlinePaint)
-                        coinPaint.shader = null
-                        val shinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; alpha = 180 }
-                        canvas.drawCircle(cx - 4f, cy - 4f, elem.width / 6f, shinePaint)
-                    }
-
-                    ElementType.STAR -> {
-                        val cx = active.currentX + elem.width / 2f
-                        val cy = active.currentY + elem.height / 2f + (sin(animTick * 5.0) * 8.0).toFloat()
-                        val starPath = Path().apply {
-                            val rOut = elem.width / 2f
-                            val rIn = elem.width / 4f
-                            for (s in 0..9) {
-                                val r = if (s % 2 == 0) rOut else rIn
-                                val angle = s * (Math.PI / 5) - Math.PI / 2
-                                if (s == 0) moveTo(cx + (Math.cos(angle) * r).toFloat(), cy + (Math.sin(angle) * r).toFloat())
-                                else lineTo(cx + (Math.cos(angle) * r).toFloat(), cy + (Math.sin(angle) * r).toFloat())
-                            }
-                            close()
-                        }
-                        starPaint.shader = RadialGradient(cx, cy, elem.width / 2f, Color.parseColor("#FFF59D"), Color.parseColor("#F57F17"), Shader.TileMode.CLAMP)
-                        canvas.drawPath(starPath, starPaint)
-                        canvas.drawPath(starPath, darkOutlinePaint)
-                        starPaint.shader = null
-                    }
-
-                    ElementType.GEM -> {
-                        val cx = active.currentX + elem.width / 2f
-                        val cy = active.currentY + elem.height / 2f + (sin(animTick * 6.0) * 5.0).toFloat()
-                        val r = elem.width * 0.5f
-                        val gemPath = Path().apply {
-                            moveTo(cx, cy - r)
-                            lineTo(cx + r, cy - r * 0.2f)
-                            lineTo(cx, cy + r)
-                            lineTo(cx - r, cy - r * 0.2f)
-                            close()
-                        }
-                        val gemPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            shader = RadialGradient(cx, cy, r, Color.parseColor("#E040FB"), Color.parseColor("#7B1FA2"), Shader.TileMode.CLAMP)
-                        }
-                        canvas.drawPath(gemPath, gemPaint)
-                        canvas.drawPath(gemPath, darkOutlinePaint)
-                    }
-
-                    ElementType.POWERUP_MAGNET, ElementType.POWERUP_SHIELD, ElementType.POWERUP_SPEED, ElementType.POWERUP_HIGH_JUMP, ElementType.POWERUP_POWER -> {
-                        val cx = active.currentX + elem.width / 2f
-                        val cy = active.currentY + elem.height / 2f + (sin(animTick * 7.0) * 6.0).toFloat()
-                        val r = elem.width * 0.5f
-
-                        val (topColor, botColor) = when (elem.type) {
-                            ElementType.POWERUP_MAGNET -> Pair("#38BDF8", "#0284C7")
-                            ElementType.POWERUP_SHIELD -> Pair("#36C96F", "#059669")
-                            ElementType.POWERUP_SPEED -> Pair("#FFD43B", "#FF9F1C")
-                            ElementType.POWERUP_HIGH_JUMP -> Pair("#A855F7", "#7E22CE")
-                            else -> Pair("#EC407A", "#C2185B")
-                        }
-
-                        val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            shader = LinearGradient(cx, cy - r, cx, cy + r, Color.parseColor(topColor), Color.parseColor(botColor), Shader.TileMode.CLAMP)
-                        }
-                        canvas.drawCircle(cx, cy, r, badgePaint)
-                        canvas.drawCircle(cx, cy, r, darkOutlinePaint)
-
-                        val pIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            color = Color.WHITE
-                            textAlign = Paint.Align.CENTER
-                            textSize = r * 1.1f
-                            typeface = Typeface.DEFAULT_BOLD
-                        }
-                        val label = when (elem.type) {
-                            ElementType.POWERUP_MAGNET -> "M"
-                            ElementType.POWERUP_SHIELD -> "S"
-                            ElementType.POWERUP_SPEED -> "⚡"
-                            ElementType.POWERUP_HIGH_JUMP -> "J"
-                            else -> "P"
-                        }
-                        canvas.drawText(label, cx, cy + pIconPaint.textSize * 0.35f, pIconPaint)
-                    }
-
-                    ElementType.SPIKE -> {
-                        val path = Path().apply {
-                            moveTo(rect.left, rect.bottom)
-                            lineTo(rect.centerX(), rect.top)
-                            lineTo(rect.right, rect.bottom)
-                            close()
-                        }
-                        val spikePaint = Paint().apply { color = Color.parseColor("#78909C") }
-                        canvas.drawPath(path, spikePaint)
-                        canvas.drawPath(path, darkOutlinePaint)
-                    }
-
-                    ElementType.ENEMY -> {
-                        val enemyPaint = Paint().apply { color = Color.parseColor("#E53935") }
-                        canvas.drawRoundRect(rect, 12f, 12f, enemyPaint)
-                        canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
-                    }
-
-                    ElementType.CHECKPOINT -> {
-                        val flagColor = if (active.isActivated) Color.GREEN else Color.GRAY
-                        val flagPaint = Paint().apply { color = flagColor }
-                        canvas.drawRect(rect.left, rect.top, rect.left + 8f, rect.bottom, darkOutlinePaint)
-                        canvas.drawRect(rect.left + 8f, rect.top, rect.right, rect.top + 25f, flagPaint)
-                    }
-
-                    ElementType.FINISH_DOOR -> {
-                        val doorPaint = Paint().apply { color = Color.parseColor("#8D6E63") }
-                        canvas.drawRoundRect(rect, 20f, 20f, doorPaint)
-                        canvas.drawRoundRect(rect, 20f, 20f, darkOutlinePaint)
-                        val archPaint = Paint().apply { color = Color.YELLOW; style = Paint.Style.STROKE; strokeWidth = 8f }
-                        canvas.drawRoundRect(rect, 20f, 20f, archPaint)
-                    }
-                }
-            }
-
-            trailParticles.forEach { p ->
-                val pPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = p.color
-                    alpha = p.alpha.coerceIn(0, 255)
-                    style = Paint.Style.FILL
-                }
-                canvas.drawCircle(p.x, p.y, p.size, pPaint)
-            }
-
+            drawWorld(canvas)
+            drawParticles(canvas)
             drawPlayer(canvas)
-
             canvas.restore()
-
             drawControls(canvas)
-
         } finally {
             holder.unlockCanvasAndPost(canvas)
         }
     }
 
-    private fun drawPlayer(canvas: Canvas) {
-        val playerBounds = RectF(playerX, playerY, playerX + visualWidth, playerY + visualHeight)
+    private fun drawBackground(canvas: Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val bg = cachedBgBitmap
+        if (bg != null && !bg.isRecycled && w > 0f && h > 0f && bg.width > 0 && bg.height > 0) {
+            val bgW = bg.width.toFloat()
+            val bgH = bg.height.toFloat()
+            val scale = maxOf(w / bgW, h / bgH)
+            val scaledW = bgW * scale
+            val maxOffset = (scaledW - w).coerceAtLeast(0f)
+            val progress = (cameraX / levelLayout.totalWidth.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            val parallaxX = -(progress * maxOffset * 0.35f)
+            bgSrcRect.set(0, 0, bg.width, bg.height)
+            bgDstRect.set(parallaxX, 0f, parallaxX + scaledW, h)
+            canvas.drawBitmap(bg, bgSrcRect, bgDstRect, bgPaint)
 
+            if (parallaxX > 0f) {
+                bgEdgePaint.color = bg.getPixel(0, bg.height / 2)
+                canvas.drawRect(0f, 0f, parallaxX, h, bgEdgePaint)
+            }
+            if (parallaxX + scaledW < w) {
+                bgEdgePaint.color = bg.getPixel(bg.width - 1, bg.height / 2)
+                canvas.drawRect(parallaxX + scaledW, 0f, w, h, bgEdgePaint)
+            }
+        } else {
+            skyPaint.shader = LinearGradient(0f, 0f, 0f, h.coerceAtLeast(1f), Color.parseColor("#1A237E"), Color.parseColor("#4FC3F7"), Shader.TileMode.CLAMP)
+            canvas.drawRect(0f, 0f, w.coerceAtLeast(1f), h.coerceAtLeast(1f), skyPaint)
+            skyPaint.shader = null
+        }
+    }
+
+    private fun drawWorld(canvas: Canvas) {
+        val viewLeft = cameraX - 140f
+        val viewRight = cameraX + width + 140f
+
+        activeElements.forEach { active ->
+            if (active.isCollected) return@forEach
+            val elem = active.original
+            if (active.currentX + elem.width < viewLeft || active.currentX > viewRight) return@forEach
+            val rect = RectF(active.currentX, active.currentY, active.currentX + elem.width, active.currentY + elem.height)
+
+            when (elem.type) {
+                ElementType.PLATFORM, ElementType.MOVING_PLATFORM -> drawPlatform(canvas, rect, elem.height)
+                ElementType.BOX -> {
+                    val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#8D6E63") }
+                    canvas.drawRoundRect(rect, 12f, 12f, p)
+                    canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
+                }
+                ElementType.COIN -> drawCoin(canvas, active, elem)
+                ElementType.STAR -> drawStar(canvas, active, elem)
+                ElementType.GEM -> drawGem(canvas, active, elem)
+                ElementType.POWERUP_MAGNET,
+                ElementType.POWERUP_SHIELD,
+                ElementType.POWERUP_SPEED,
+                ElementType.POWERUP_HIGH_JUMP,
+                ElementType.POWERUP_POWER -> drawPowerUp(canvas, active, elem)
+                ElementType.SPIKE -> {
+                    val path = Path().apply {
+                        moveTo(rect.left, rect.bottom)
+                        lineTo(rect.centerX(), rect.top)
+                        lineTo(rect.right, rect.bottom)
+                        close()
+                    }
+                    val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#78909C") }
+                    canvas.drawPath(path, p)
+                    canvas.drawPath(path, darkOutlinePaint)
+                }
+                ElementType.ENEMY -> {
+                    val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E53935") }
+                    canvas.drawRoundRect(rect, 12f, 12f, p)
+                    canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
+                }
+                ElementType.CHECKPOINT -> {
+                    val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (active.isActivated) Color.GREEN else Color.GRAY }
+                    canvas.drawRect(rect.left, rect.top, rect.left + 8f, rect.bottom, darkOutlinePaint)
+                    canvas.drawRect(rect.left + 8f, rect.top, rect.right, rect.top + 25f, p)
+                }
+                ElementType.FINISH_DOOR -> {
+                    val door = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#8D6E63") }
+                    val arch = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = Color.YELLOW
+                        style = Paint.Style.STROKE
+                        strokeWidth = 8f
+                    }
+                    canvas.drawRoundRect(rect, 20f, 20f, door)
+                    canvas.drawRoundRect(rect, 20f, 20f, darkOutlinePaint)
+                    canvas.drawRoundRect(rect, 20f, 20f, arch)
+                }
+            }
+        }
+    }
+
+    private fun drawPlatform(canvas: Canvas, rect: RectF, height: Float) {
+        platformPaint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.bottom, platformPaint.color, Color.parseColor("#4E342E"), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(rect, 12f, 12f, platformPaint)
+        canvas.drawRoundRect(rect, 12f, 12f, darkOutlinePaint)
+        platformPaint.shader = null
+        val capHeight = (height * 0.28f).coerceAtMost(16f)
+        val cap = RectF(rect.left, rect.top, rect.right, rect.top + capHeight)
+        val capPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(cap.left, cap.top, cap.left, cap.bottom, Color.parseColor("#81C784"), Color.parseColor("#388E3C"), Shader.TileMode.CLAMP)
+        }
+        canvas.drawRoundRect(cap, 8f, 8f, capPaint)
+    }
+
+    private fun drawCoin(canvas: Canvas, active: ActiveElement, elem: LevelElement) {
+        val cx = active.currentX + elem.width / 2f
+        val cy = active.currentY + elem.height / 2f + (sin(animTick * 6.0) * 6.0).toFloat()
+        coinPaint.shader = RadialGradient(cx, cy, elem.width * 0.7f, Color.parseColor("#FFF59D"), Color.parseColor("#F57F17"), Shader.TileMode.CLAMP)
+        canvas.drawCircle(cx, cy, elem.width / 2f, coinPaint)
+        canvas.drawCircle(cx, cy, elem.width / 2f, darkOutlinePaint)
+        coinPaint.shader = null
+    }
+
+    private fun drawStar(canvas: Canvas, active: ActiveElement, elem: LevelElement) {
+        val cx = active.currentX + elem.width / 2f
+        val cy = active.currentY + elem.height / 2f + (sin(animTick * 5.0) * 8.0).toFloat()
+        val path = Path()
+        val outer = elem.width / 2f
+        val inner = elem.width / 4f
+        for (i in 0..9) {
+            val r = if (i % 2 == 0) outer else inner
+            val angle = i * (Math.PI / 5) - Math.PI / 2
+            val x = cx + (Math.cos(angle) * r).toFloat()
+            val y = cy + (Math.sin(angle) * r).toFloat()
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        path.close()
+        starPaint.shader = RadialGradient(cx, cy, outer, Color.parseColor("#FFF59D"), Color.parseColor("#F57F17"), Shader.TileMode.CLAMP)
+        canvas.drawPath(path, starPaint)
+        canvas.drawPath(path, darkOutlinePaint)
+        starPaint.shader = null
+    }
+
+    private fun drawGem(canvas: Canvas, active: ActiveElement, elem: LevelElement) {
+        val cx = active.currentX + elem.width / 2f
+        val cy = active.currentY + elem.height / 2f + (sin(animTick * 6.0) * 5.0).toFloat()
+        val r = elem.width * 0.5f
+        val path = Path().apply {
+            moveTo(cx, cy - r)
+            lineTo(cx + r, cy - r * 0.2f)
+            lineTo(cx, cy + r)
+            lineTo(cx - r, cy - r * 0.2f)
+            close()
+        }
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = RadialGradient(cx, cy, r, Color.parseColor("#E040FB"), Color.parseColor("#7B1FA2"), Shader.TileMode.CLAMP)
+        }
+        canvas.drawPath(path, p)
+        canvas.drawPath(path, darkOutlinePaint)
+    }
+
+    private fun drawPowerUp(canvas: Canvas, active: ActiveElement, elem: LevelElement) {
+        val cx = active.currentX + elem.width / 2f
+        val cy = active.currentY + elem.height / 2f + (sin(animTick * 7.0) * 6.0).toFloat()
+        val r = elem.width * 0.5f
+        val colors = when (elem.type) {
+            ElementType.POWERUP_MAGNET -> "#38BDF8" to "#0284C7"
+            ElementType.POWERUP_SHIELD -> "#36C96F" to "#059669"
+            ElementType.POWERUP_SPEED -> "#FFD43B" to "#FF9F1C"
+            ElementType.POWERUP_HIGH_JUMP -> "#A855F7" to "#7E22CE"
+            else -> "#EC407A" to "#C2185B"
+        }
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(cx, cy - r, cx, cy + r, Color.parseColor(colors.first), Color.parseColor(colors.second), Shader.TileMode.CLAMP)
+        }
+        canvas.drawCircle(cx, cy, r, p)
+        canvas.drawCircle(cx, cy, r, darkOutlinePaint)
+
+        val label = when (elem.type) {
+            ElementType.POWERUP_MAGNET -> "M"
+            ElementType.POWERUP_SHIELD -> "S"
+            ElementType.POWERUP_SPEED -> "⚡"
+            ElementType.POWERUP_HIGH_JUMP -> "J"
+            else -> "P"
+        }
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            textSize = r * 1.1f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        canvas.drawText(label, cx, cy + text.textSize * 0.35f, text)
+    }
+
+    private fun drawParticles(canvas: Canvas) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        trailParticles.forEach { particle ->
+            p.color = particle.color
+            p.alpha = particle.alpha.coerceIn(0, 255)
+            canvas.drawCircle(particle.x, particle.y, particle.size, p)
+        }
+    }
+
+    private fun drawPlayer(canvas: Canvas) {
+        // Blink while invulnerable after respawn.
+        if (damageInvulnerabilityRemaining > 0f && ((damageInvulnerabilityRemaining * 12f).toInt() and 1) == 0) return
+
+        val bounds = RectF(playerX, playerY, playerX + visualWidth, playerY + visualHeight)
         val animState = when {
-            !isGrounded && velocityY < 0 -> CharacterRenderer.AnimState.JUMP
-            !isGrounded && velocityY >= 0 -> CharacterRenderer.AnimState.FALL
-            moveLeftPressed || moveRightPressed -> CharacterRenderer.AnimState.RUN
+            !isGrounded && velocityY < 0f -> CharacterRenderer.AnimState.JUMP
+            !isGrounded -> CharacterRenderer.AnimState.FALL
+            abs(velocityX) > 0.4f -> CharacterRenderer.AnimState.RUN
             else -> CharacterRenderer.AnimState.IDLE
         }
 
         canvas.save()
-        canvas.scale(1.28f, 1.28f, playerBounds.centerX(), playerBounds.bottom)
+        canvas.scale(1.28f, 1.28f, bounds.centerX(), bounds.bottom)
         CharacterRenderer.drawCharacter(
             canvas = canvas,
-            bounds = playerBounds,
+            bounds = bounds,
             characterId = saveData.selectedCharacter,
             skinId = saveData.selectedSkin,
             facingRight = isFacingRight,
@@ -1004,26 +1161,19 @@ class GameView(
         canvas.restore()
 
         if (isPowerActive) {
-            val auraPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor("#60FFD700")
-                style = Paint.Style.FILL
-            }
-            val pulse = (sin(animTick * 12.0) * 8.0).toFloat()
-            canvas.drawCircle(playerBounds.centerX(), playerBounds.centerY(), visualHeight * 0.82f + pulse, auraPaint)
+            val aura = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#60FFD700") }
+            canvas.drawCircle(bounds.centerX(), bounds.centerY(), visualHeight * 0.82f + (sin(animTick * 12.0) * 8.0).toFloat(), aura)
         }
 
         if (isShieldActive) {
-            val shieldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = Color.parseColor("#4000E6FF")
-                style = Paint.Style.FILL
-            }
-            val shieldBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#4000E6FF") }
+            val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = Color.parseColor("#CC00E5FF")
                 style = Paint.Style.STROKE
                 strokeWidth = 4f
             }
-            canvas.drawCircle(playerBounds.centerX(), playerBounds.centerY(), visualHeight * 0.75f, shieldPaint)
-            canvas.drawCircle(playerBounds.centerX(), playerBounds.centerY(), visualHeight * 0.75f, shieldBorder)
+            canvas.drawCircle(bounds.centerX(), bounds.centerY(), visualHeight * 0.75f, fill)
+            canvas.drawCircle(bounds.centerX(), bounds.centerY(), visualHeight * 0.75f, border)
         }
     }
 
@@ -1031,238 +1181,174 @@ class GameView(
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
+        if (leftButtonRect.isEmpty) updateControlLayouts(w.toInt(), h.toInt())
 
-        if (leftButtonRect.isEmpty) {
-            updateControlLayouts(w.toInt(), h.toInt())
-        }
-
-        val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(85, 0, 20, 50)
-        }
-        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 3.5f
-            color = Color.argb(230, 255, 255, 255)
-        }
-        val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(90, 255, 255, 255)
-        }
-        val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.FILL
-        }
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
 
-        fun drawCircleButton(
-            rect: RectF,
-            pressed: Boolean,
-            active: Boolean,
-            topColor: Int,
-            bottomColor: Int,
-            timerText: String? = null
-        ) {
-            val radius = minOf(rect.width(), rect.height()) * 0.5f
-            val offset = if (pressed) 2f else 6f
-            val cx = rect.centerX()
-            val cy = rect.centerY() - (if (pressed) 1f else 0f)
+        drawControlCircle(canvas, leftButtonRect, moveLeftPressed, false, Color.parseColor("#42D9FF"), Color.parseColor("#0879D7"), null)
+        drawArrow(canvas, leftButtonRect, right = false)
 
-            // Outer drop shadow
-            canvas.drawCircle(cx, rect.centerY() + offset, radius - 1f, shadowPaint)
+        drawControlCircle(canvas, rightButtonRect, moveRightPressed, false, Color.parseColor("#42D9FF"), Color.parseColor("#0879D7"), null)
+        drawArrow(canvas, rightButtonRect, right = true)
 
-            // Active Pulsing Ring & Halo
-            if (active) {
-                val pulse = (sin(animTick * 8.0) * 3.0).toFloat()
-                val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = topColor
-                    alpha = 110
-                    style = Paint.Style.STROKE
-                    strokeWidth = 6f
-                }
-                canvas.drawCircle(cx, cy, radius + 4f + pulse, glowPaint)
-
-                val activeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.WHITE
-                    style = Paint.Style.STROKE
-                    strokeWidth = 5f
-                }
-                canvas.drawCircle(cx, cy, radius, activeBorder)
-            }
-
-            glassPaint.shader = LinearGradient(
-                rect.left, rect.top, rect.left, rect.bottom,
-                if (active) Color.WHITE else topColor,
-                bottomColor,
-                Shader.TileMode.CLAMP
-            )
-            canvas.drawCircle(cx, cy, radius - 2f, glassPaint)
-            glassPaint.shader = null
-
-            canvas.drawOval(
-                RectF(cx - radius * 0.5f, cy - radius * 0.75f, cx + radius * 0.2f, cy - radius * 0.35f),
-                highlightPaint
-            )
-
-            if (!active) {
-                canvas.drawCircle(cx, cy, radius - 2f, borderPaint)
-            }
-
-            // Compact timer / active count badge
-            if (!timerText.isNullOrEmpty()) {
-                val badgeW = radius * 1.5f
-                val badgeH = radius * 0.55f
-                val badgeRect = RectF(
-                    cx - badgeW / 2f,
-                    cy + radius * 0.42f,
-                    cx + badgeW / 2f,
-                    cy + radius * 0.97f
-                )
-                val badgeBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.parseColor("#E60F172A")
-                }
-                val badgeBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
-                    style = Paint.Style.STROKE
-                    strokeWidth = 2f
-                }
-                val badgeTextP = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
-                    textSize = badgeH * 0.75f
-                    typeface = Typeface.DEFAULT_BOLD
-                    textAlign = Paint.Align.CENTER
-                }
-                canvas.drawRoundRect(badgeRect, 8f, 8f, badgeBg)
-                canvas.drawRoundRect(badgeRect, 8f, 8f, badgeBorder)
-                canvas.drawText(timerText, cx, badgeRect.centerY() + badgeTextP.textSize * 0.35f, badgeTextP)
-            }
-        }
-
-        drawCircleButton(
-            leftButtonRect,
-            moveLeftPressed,
-            false,
-            Color.parseColor("#42D9FF"),
-            Color.parseColor("#0879D7")
-        )
-        val leftPath = Path().apply {
-            val cx = leftButtonRect.centerX()
-            val cy = leftButtonRect.centerY()
-            val s = leftButtonRect.width() * 0.22f
-            moveTo(cx + s * 0.8f, cy - s)
-            lineTo(cx - s * 0.9f, cy)
-            lineTo(cx + s * 0.8f, cy + s)
-            close()
-        }
-        canvas.drawPath(leftPath, iconPaint)
-
-        drawCircleButton(
-            rightButtonRect,
-            moveRightPressed,
-            false,
-            Color.parseColor("#42D9FF"),
-            Color.parseColor("#0879D7")
-        )
-        val rightPath = Path().apply {
-            val cx = rightButtonRect.centerX()
-            val cy = rightButtonRect.centerY()
-            val s = rightButtonRect.width() * 0.22f
-            moveTo(cx - s * 0.8f, cy - s)
-            lineTo(cx + s * 0.9f, cy)
-            lineTo(cx - s * 0.8f, cy + s)
-            close()
-        }
-        canvas.drawPath(rightPath, iconPaint)
-
-        drawCircleButton(
-            jumpButtonRect,
-            false,
-            false,
-            Color.parseColor("#4DE3B0"),
-            Color.parseColor("#078D6D")
-        )
+        drawControlCircle(canvas, jumpButtonRect, false, false, Color.parseColor("#4DE3B0"), Color.parseColor("#078D6D"), null)
         textPaint.textSize = minOf(jumpButtonRect.width() * 0.22f, 26f)
         canvas.drawText("JUMP", jumpButtonRect.centerX(), jumpButtonRect.centerY() + textPaint.textSize * 0.34f, textPaint)
 
-        val magnetText = when {
+        val magnetBadge = when {
             isMagnetActive -> String.format("%.1fs", magnetTimeRemaining)
             isPassiveMagnet -> "PASSIVE"
-            else -> null
+            magnetCharges > 0 -> "x$magnetCharges"
+            else -> "0"
         }
-        drawCircleButton(
-            magnetButtonRect,
-            false,
-            isMagnetActive || isPassiveMagnet,
-            if (isMagnetActive || isPassiveMagnet) Color.parseColor("#38BDF8") else Color.parseColor("#64748B"),
-            Color.parseColor("#0284C7"),
-            magnetText
-        )
-        val magnetIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val magnetUsable = isMagnetActive || isPassiveMagnet || magnetCharges > 0
+        drawControlCircle(canvas, magnetButtonRect, false, isMagnetActive || isPassiveMagnet, if (magnetUsable) Color.parseColor("#38BDF8") else Color.parseColor("#64748B"), Color.parseColor("#0284C7"), magnetBadge)
+        drawMagnetIcon(canvas)
+
+        val speedBadge = when {
+            isSpeedActive -> String.format("%.1fs", speedTimeRemaining)
+            characterSpeedMultiplier > 1.15f -> "PASSIVE"
+            speedCharges > 0 -> "x$speedCharges"
+            else -> "0"
+        }
+        val speedUsable = isSpeedActive || speedCharges > 0 || characterSpeedMultiplier > 1.15f
+        drawControlCircle(canvas, speedButtonRect, false, isSpeedActive, if (speedUsable) Color.parseColor("#FFD43B") else Color.parseColor("#64748B"), Color.parseColor("#FF9F1C"), speedBadge)
+        drawSpeedIcon(canvas)
+
+        val shieldBadge = when {
+            isShieldActive -> if (shieldHitsRemaining > 1) "${shieldHitsRemaining}x ${shieldTimeRemaining.toInt()}s" else String.format("%.1fs", shieldTimeRemaining)
+            shieldCharges > 0 -> "x$shieldCharges"
+            else -> "0"
+        }
+        val shieldUsable = isShieldActive || shieldCharges > 0
+        drawControlCircle(canvas, shieldButtonRect, false, isShieldActive, if (shieldUsable) Color.parseColor("#36C96F") else Color.parseColor("#64748B"), Color.parseColor("#059669"), shieldBadge)
+        drawShieldIcon(canvas)
+    }
+
+    private fun drawControlCircle(
+        canvas: Canvas,
+        rect: RectF,
+        pressed: Boolean,
+        active: Boolean,
+        topColor: Int,
+        bottomColor: Int,
+        badge: String?
+    ) {
+        val radius = minOf(rect.width(), rect.height()) * 0.5f
+        val cx = rect.centerX()
+        val cy = rect.centerY() - if (pressed) 1f else 0f
+        val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(85, 0, 20, 50) }
+        canvas.drawCircle(cx, rect.centerY() + if (pressed) 2f else 6f, radius - 1f, shadow)
+
+        if (active) {
+            val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = topColor
+                alpha = 105
+                style = Paint.Style.STROKE
+                strokeWidth = 6f
+            }
+            canvas.drawCircle(cx, cy, radius + 4f + (sin(animTick * 8.0) * 3.0).toFloat(), glow)
+        }
+
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(rect.left, rect.top, rect.left, rect.bottom, if (active) Color.WHITE else topColor, bottomColor, Shader.TileMode.CLAMP)
+        }
+        canvas.drawCircle(cx, cy, radius - 2f, fill)
+
+        val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            alpha = 230
+            style = Paint.Style.STROKE
+            strokeWidth = if (active) 5f else 3.5f
+        }
+        canvas.drawCircle(cx, cy, radius - 2f, border)
+
+        if (!badge.isNullOrEmpty()) {
+            val badgeW = radius * 1.55f
+            val badgeH = radius * 0.55f
+            val badgeRect = RectF(cx - badgeW / 2f, cy + radius * 0.42f, cx + badgeW / 2f, cy + radius * 0.97f)
+            val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E60F172A") }
+            val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
+                textSize = badgeH * 0.70f
+                typeface = Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+            }
+            canvas.drawRoundRect(badgeRect, 8f, 8f, bg)
+            canvas.drawText(badge, cx, badgeRect.centerY() + text.textSize * 0.35f, text)
+        }
+    }
+
+    private fun drawArrow(canvas: Canvas, rect: RectF, right: Boolean) {
+        val icon = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        val cx = rect.centerX()
+        val cy = rect.centerY()
+        val s = rect.width() * 0.22f
+        val path = Path().apply {
+            if (right) {
+                moveTo(cx - s * 0.8f, cy - s)
+                lineTo(cx + s * 0.9f, cy)
+                lineTo(cx - s * 0.8f, cy + s)
+            } else {
+                moveTo(cx + s * 0.8f, cy - s)
+                lineTo(cx - s * 0.9f, cy)
+                lineTo(cx + s * 0.8f, cy + s)
+            }
+            close()
+        }
+        canvas.drawPath(path, icon)
+    }
+
+    private fun drawMagnetIcon(canvas: Canvas) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             style = Paint.Style.STROKE
             strokeWidth = magnetButtonRect.width() * 0.12f
         }
-        val mcx = magnetButtonRect.centerX()
-        val mcy = magnetButtonRect.centerY()
-        val ms = magnetButtonRect.width() * 0.26f
-        canvas.drawArc(RectF(mcx - ms, mcy - ms, mcx + ms, mcy + ms * 0.5f), 180f, 180f, false, magnetIconPaint)
-        canvas.drawLine(mcx - ms, mcy, mcx - ms, mcy + ms * 0.5f, magnetIconPaint)
-        canvas.drawLine(mcx + ms, mcy, mcx + ms, mcy + ms * 0.5f, magnetIconPaint)
-
-        val speedText = when {
-            isSpeedActive -> String.format("%.1fs", speedTimeRemaining)
-            isSpeedBurstActive -> "PASSIVE"
-            else -> null
-        }
-        drawCircleButton(
-            speedButtonRect,
-            false,
-            isSpeedActive || isSpeedBurstActive,
-            if (isSpeedActive || isSpeedBurstActive) Color.parseColor("#FFD43B") else Color.parseColor("#64748B"),
-            Color.parseColor("#FF9F1C"),
-            speedText
-        )
-        val speedPath = Path().apply {
-            val scx = speedButtonRect.centerX()
-            val scy = speedButtonRect.centerY()
-            val ss = speedButtonRect.width() * 0.28f
-            moveTo(scx - ss * 0.4f, scy + ss * 0.6f)
-            lineTo(scx + ss * 0.1f, scy + ss * 0.05f)
-            lineTo(scx - ss * 0.1f, scy + ss * 0.05f)
-            lineTo(scx + ss * 0.4f, scy - ss * 0.6f)
-            lineTo(scx - ss * 0.1f, scy - ss * 0.05f)
-            lineTo(scx + ss * 0.1f, scy - ss * 0.05f)
-            close()
-        }
-        canvas.drawPath(speedPath, iconPaint)
-
-        val shieldText = if (isShieldActive) String.format("%.1fs", shieldTimeRemaining) else null
-        drawCircleButton(
-            shieldButtonRect,
-            false,
-            isShieldActive,
-            if (isShieldActive) Color.parseColor("#36C96F") else Color.parseColor("#64748B"),
-            Color.parseColor("#059669"),
-            shieldText
-        )
-        val shieldPath = Path().apply {
-            val shcx = shieldButtonRect.centerX()
-            val shcy = shieldButtonRect.centerY()
-            val shs = shieldButtonRect.width() * 0.28f
-            moveTo(shcx, shcy - shs * 0.65f)
-            lineTo(shcx + shs * 0.55f, shcy - shs * 0.35f)
-            lineTo(shcx + shs * 0.45f, shcy + shs * 0.35f)
-            quadTo(shcx, shcy + shs * 0.7f, shcx - shs * 0.45f, shcy + shs * 0.35f)
-            lineTo(shcx - shs * 0.55f, shcy - shs * 0.35f)
-            close()
-        }
-        canvas.drawPath(shieldPath, iconPaint)
+        val cx = magnetButtonRect.centerX()
+        val cy = magnetButtonRect.centerY()
+        val s = magnetButtonRect.width() * 0.26f
+        canvas.drawArc(RectF(cx - s, cy - s, cx + s, cy + s * 0.5f), 180f, 180f, false, p)
+        canvas.drawLine(cx - s, cy, cx - s, cy + s * 0.5f, p)
+        canvas.drawLine(cx + s, cy, cx + s, cy + s * 0.5f, p)
     }
 
-    private val activeJumpPointers = mutableSetOf<Int>()
+    private fun drawSpeedIcon(canvas: Canvas) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        val cx = speedButtonRect.centerX()
+        val cy = speedButtonRect.centerY()
+        val s = speedButtonRect.width() * 0.28f
+        val path = Path().apply {
+            moveTo(cx - s * 0.4f, cy + s * 0.6f)
+            lineTo(cx + s * 0.1f, cy + s * 0.05f)
+            lineTo(cx - s * 0.1f, cy + s * 0.05f)
+            lineTo(cx + s * 0.4f, cy - s * 0.6f)
+            lineTo(cx - s * 0.1f, cy - s * 0.05f)
+            lineTo(cx + s * 0.1f, cy - s * 0.05f)
+            close()
+        }
+        canvas.drawPath(path, p)
+    }
+
+    private fun drawShieldIcon(canvas: Canvas) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        val cx = shieldButtonRect.centerX()
+        val cy = shieldButtonRect.centerY()
+        val s = shieldButtonRect.width() * 0.28f
+        val path = Path().apply {
+            moveTo(cx, cy - s * 0.65f)
+            lineTo(cx + s * 0.55f, cy - s * 0.35f)
+            lineTo(cx + s * 0.45f, cy + s * 0.35f)
+            quadTo(cx, cy + s * 0.7f, cx - s * 0.45f, cy + s * 0.35f)
+            lineTo(cx - s * 0.55f, cy - s * 0.35f)
+            close()
+        }
+        canvas.drawPath(path, p)
+    }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val actionIndex = event.actionIndex
@@ -1270,59 +1356,46 @@ class GameView(
 
         when (actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-                val pid = event.getPointerId(actionIndex)
-                val px = event.getX(actionIndex)
-                val py = event.getY(actionIndex)
+                val pointerId = event.getPointerId(actionIndex)
+                val x = event.getX(actionIndex)
+                val y = event.getY(actionIndex)
 
-                if (jumpButtonRect.contains(px, py)) {
-                    if (!activeJumpPointers.contains(pid)) {
-                        activeJumpPointers.add(pid)
-                        triggerJump()
+                when {
+                    jumpButtonRect.contains(x, y) -> {
+                        if (activeJumpPointers.add(pointerId)) triggerJump()
                     }
-                } else if (magnetButtonRect.contains(px, py)) {
-                    soundManager.playButtonClick()
-                    activateMagnetPowerUp()
-                } else if (speedButtonRect.contains(px, py)) {
-                    soundManager.playButtonClick()
-                    activateSpeedPowerUp()
-                } else if (shieldButtonRect.contains(px, py)) {
-                    soundManager.playButtonClick()
-                    activateShieldPowerUp()
+                    magnetButtonRect.contains(x, y) -> tryUseMagnetCharge()
+                    speedButtonRect.contains(x, y) -> tryUseSpeedCharge()
+                    shieldButtonRect.contains(x, y) -> tryUseShieldCharge()
                 }
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                val pid = event.getPointerId(actionIndex)
-                activeJumpPointers.remove(pid)
+                val pointerId = event.getPointerId(actionIndex)
+                val wasJumpPointer = activeJumpPointers.remove(pointerId)
+                if (wasJumpPointer && activeJumpPointers.isEmpty()) cutJumpShort()
             }
 
             MotionEvent.ACTION_CANCEL -> {
                 activeJumpPointers.clear()
+                moveLeftPressed = false
+                moveRightPressed = false
+                cutJumpShort()
+                return true
             }
-        }
-
-        if (actionMasked == MotionEvent.ACTION_CANCEL) {
-            moveLeftPressed = false
-            moveRightPressed = false
-            return true
         }
 
         var left = false
         var right = false
-
         for (i in 0 until event.pointerCount) {
-            if (actionMasked == MotionEvent.ACTION_POINTER_UP || actionMasked == MotionEvent.ACTION_UP) {
-                if (i == actionIndex) continue
-            }
-            val px = event.getX(i)
-            val py = event.getY(i)
-            if (leftButtonRect.contains(px, py)) left = true
-            if (rightButtonRect.contains(px, py)) right = true
+            if ((actionMasked == MotionEvent.ACTION_POINTER_UP || actionMasked == MotionEvent.ACTION_UP) && i == actionIndex) continue
+            val x = event.getX(i)
+            val y = event.getY(i)
+            if (leftButtonRect.contains(x, y)) left = true
+            if (rightButtonRect.contains(x, y)) right = true
         }
-
         moveLeftPressed = left
         moveRightPressed = right
-
         return true
     }
 }
