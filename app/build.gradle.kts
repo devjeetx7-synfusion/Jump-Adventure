@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+val keystoreFile = System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
+val keystorePassword = System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() }
+val keyAliasEnv = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() }
+val keyPasswordEnv = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+val hasReleaseSigning = listOf(keystoreFile, keystorePassword, keyAliasEnv, keyPasswordEnv).all { it != null }
+
 android {
     namespace = "com.jumpadventure.game"
     compileSdk = 34
@@ -16,28 +22,34 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() } ?: "jump-adventure-test.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")?.takeIf { it.isNotBlank() } ?: "JumpAdventureTest2026!"
-            keyAlias = System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() } ?: "jump_adventure_test"
-            keyPassword = System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() } ?: "JumpAdventureTest2026!"
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(keystoreFile))
+                storePassword = requireNotNull(keystorePassword)
+                keyAlias = requireNotNull(keyAliasEnv)
+                keyPassword = requireNotNull(keyPasswordEnv)
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
