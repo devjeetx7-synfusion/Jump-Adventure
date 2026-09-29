@@ -1,6 +1,7 @@
 package com.jumpadventure.game.level
 
 import java.util.Random
+import kotlin.math.abs
 
 enum class ElementType {
     PLATFORM,
@@ -69,7 +70,6 @@ object LevelGenerator {
         addPlatform(ElementType.PLATFORM, 0f, groundY, 300f, 40f)
         currentX += 300f
 
-        // Length grows monotonically after level 100 instead of shrinking every modulo cycle.
         val numSections = when {
             safeLevel <= 5 -> 4
             safeLevel <= 10 -> 6
@@ -209,8 +209,6 @@ object LevelGenerator {
             }
         }
 
-        // Fill missing stars only above verified static support platforms. This replaces the old
-        // arbitrary X/Y fallback that could place stars over gaps with no reachable support.
         if (totalStarsPlaced < 3) {
             val candidates = starSafePlatforms
                 .filter { it.x >= 250f }
@@ -223,9 +221,8 @@ object LevelGenerator {
                 var index = (desiredFraction * (candidates.size - 1)).toInt().coerceIn(0, candidates.lastIndex)
                 var platform = candidates[index]
 
-                // Avoid stacking a fallback star on top of an existing star when possible.
                 if (usedX.any { abs(it - (platform.x + platform.width * 0.5f)) < 70f }) {
-                    index = candidates.indices.minByOrNull { i ->
+                    index = candidates.indices.maxByOrNull { i ->
                         val x = candidates[i].x + candidates[i].width * 0.5f
                         usedX.minOfOrNull { abs(it - x) } ?: Float.MAX_VALUE
                     } ?: index
