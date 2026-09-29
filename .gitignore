@@ -10,11 +10,11 @@
 .cxx
 local.properties
 
-# Signing keys
+# Signing keys must never be committed.
 *.jks
 *.keystore
-!app/jump-adventure-test.jks
 
 # Build artifacts
 *.apk
+*.aab
 *.idsig

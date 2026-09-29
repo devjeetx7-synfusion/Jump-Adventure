@@ -1,6 +1,7 @@
 package com.jumpadventure.game.level
 
 import java.util.Random
+import kotlin.math.abs
 
 enum class ElementType {
     PLATFORM,
@@ -22,8 +23,8 @@ enum class ElementType {
 
 data class LevelElement(
     val type: ElementType,
-    val x: Float, // Relative X in world units
-    val y: Float, // Relative Y in world units
+    val x: Float,
+    val y: Float,
     val width: Float = 100f,
     val height: Float = 30f,
     val moveDistanceX: Float = 0f,
@@ -39,70 +40,73 @@ data class LevelLayout(
 
 object LevelGenerator {
 
-    /**
-     * Deterministic level generation using seed derived from levelNumber.
-     */
+    /** Deterministic procedural generation: the same level number always produces the same map. */
     fun generateLevel(levelNumber: Int): LevelLayout {
-        val world = WorldRepository.getWorldForLevel(levelNumber)
-        val seed = (levelNumber * 31337L) xor 0x5DEECE66DL
+        val safeLevel = levelNumber.coerceAtLeast(1)
+        val world = WorldRepository.getWorldForLevel(safeLevel)
+        val seed = (safeLevel * 31337L) xor 0x5DEECE66DL
         val random = Random(seed)
-
         val elements = mutableListOf<LevelElement>()
+        val starSafePlatforms = mutableListOf<LevelElement>()
 
-        // Starting ground platform
+        fun addPlatform(
+            type: ElementType,
+            x: Float,
+            y: Float,
+            width: Float,
+            height: Float,
+            moveDistanceX: Float = 0f,
+            speed: Float = 0f,
+            starSafe: Boolean = true
+        ): LevelElement {
+            val platform = LevelElement(type, x, y, width, height, moveDistanceX, speed)
+            elements.add(platform)
+            if (starSafe && width >= 90f) starSafePlatforms.add(platform)
+            return platform
+        }
+
         var currentX = 0f
         val groundY = 800f
-        elements.add(LevelElement(ElementType.PLATFORM, x = 0f, y = groundY, width = 300f, height = 40f))
-
+        addPlatform(ElementType.PLATFORM, 0f, groundY, 300f, 40f)
         currentX += 300f
 
-        // Determine section count based on level progression
         val numSections = when {
-            levelNumber <= 5 -> 4
-            levelNumber <= 10 -> 6
-            levelNumber <= 25 -> 8
-            levelNumber <= 50 -> 12
-            levelNumber <= 100 -> 16
-            else -> (18 + (levelNumber % 8)).coerceAtMost(28)
+            safeLevel <= 5 -> 4
+            safeLevel <= 10 -> 6
+            safeLevel <= 25 -> 8
+            safeLevel <= 50 -> 12
+            safeLevel <= 100 -> 16
+            else -> (18 + ((safeLevel - 100) / 50)).coerceAtMost(28)
         }
 
         var totalStarsPlaced = 0
-
-        // Speed/difficulty scale factor with a reasonable cap
-        val diffScale = (1.0f + (levelNumber / 100f) * 0.15f).coerceAtMost(1.8f)
+        val diffScale = (1.0f + (safeLevel / 100f) * 0.15f).coerceAtMost(1.8f)
 
         for (sectionIdx in 0 until numSections) {
-            // Pick section template based on level difficulty
-            val sectionType = selectSectionType(levelNumber, random)
-
+            val sectionType = selectSectionType(safeLevel, random)
             val gap = when {
-                levelNumber <= 10 -> 80f + random.nextFloat() * 40f
-                levelNumber <= 50 -> 100f + random.nextFloat() * 60f
-                else -> (110f + random.nextFloat() * 70f).coerceAtMost(200f)
+                safeLevel <= 10 -> 80f + random.nextFloat() * 40f
+                safeLevel <= 50 -> 100f + random.nextFloat() * 60f
+                else -> (110f + random.nextFloat() * 70f + ((safeLevel - 50) / 250f).coerceAtMost(20f)).coerceAtMost(200f)
             }
-
             currentX += gap
 
             when (sectionType) {
-                // SECTION_A: 3 platforms + coins
                 "SECTION_A" -> {
                     for (i in 0..2) {
                         val platY = groundY - (i % 2) * 60f
                         val platW = 120f
-                        elements.add(LevelElement(ElementType.PLATFORM, currentX, platY, platW, 35f))
-                        // Coins on platform
+                        addPlatform(ElementType.PLATFORM, currentX, platY, platW, 35f)
                         elements.add(LevelElement(ElementType.COIN, currentX + 30f, platY - 40f, 30f, 30f))
                         elements.add(LevelElement(ElementType.COIN, currentX + 70f, platY - 40f, 30f, 30f))
                         currentX += platW + 40f
                     }
                 }
 
-                // SECTION_B: Gap + high platform + coins & power-ups
                 "SECTION_B" -> {
                     val platY = groundY - 100f
                     val platW = 180f
-                    elements.add(LevelElement(ElementType.PLATFORM, currentX, platY, platW, 35f))
-                    // Coins arc
+                    addPlatform(ElementType.PLATFORM, currentX, platY, platW, 35f)
                     for (c in 0..2) {
                         elements.add(LevelElement(ElementType.COIN, currentX + 30f + c * 40f, platY - 45f, 30f, 30f))
                     }
@@ -115,68 +119,66 @@ object LevelGenerator {
                     currentX += platW
                 }
 
-                // SECTION_C: Spikes + safe platform
                 "SECTION_C" -> {
                     val platW = 220f
-                    elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY, platW, 35f))
-                    // Wooden box in middle
+                    addPlatform(ElementType.PLATFORM, currentX, groundY, platW, 35f)
                     elements.add(LevelElement(ElementType.BOX, currentX + 30f, groundY - 40f, 40f, 40f))
-                    // Spike hazard
                     elements.add(LevelElement(ElementType.SPIKE, currentX + 110f, groundY - 30f, 40f, 30f))
-                    // Coins
                     elements.add(LevelElement(ElementType.COIN, currentX + 170f, groundY - 40f, 30f, 30f))
                     currentX += platW
                 }
 
-                // SECTION_D: Moving platform + Shield / Magnet
                 "SECTION_D" -> {
                     val platY = groundY - 50f
                     val platW = 140f
                     val moveDist = 120f + random.nextInt(80)
-                    val platSpeed = (2f + random.nextFloat() * 1.5f) * diffScale
-                    elements.add(LevelElement(
+                    val platSpeed = ((2f + random.nextFloat() * 1.5f) * diffScale).coerceAtMost(5.0f)
+                    addPlatform(
                         ElementType.MOVING_PLATFORM,
-                        currentX, platY, platW, 35f,
+                        currentX,
+                        platY,
+                        platW,
+                        35f,
                         moveDistanceX = moveDist,
-                        speed = platSpeed.coerceAtMost(5.0f)
-                    ))
-                    // Coins & Power-up above moving platform
+                        speed = platSpeed,
+                        starSafe = false
+                    )
                     elements.add(LevelElement(ElementType.COIN, currentX + 30f, platY - 40f, 30f, 30f))
                     elements.add(LevelElement(ElementType.COIN, currentX + 70f, platY - 40f, 30f, 30f))
                     if (random.nextFloat() < 0.4f) {
                         val pool = listOf(ElementType.POWERUP_SHIELD, ElementType.POWERUP_MAGNET)
-                        val pType = pool[random.nextInt(pool.size)]
-                        elements.add(LevelElement(pType, currentX + 105f, platY - 45f, 32f, 32f))
+                        elements.add(LevelElement(pool[random.nextInt(pool.size)], currentX + 105f, platY - 45f, 32f, 32f))
                     }
                     currentX += platW + moveDist
                 }
 
-                // SECTION_E: Enemy + platform + Power / Gem
                 "SECTION_E" -> {
                     val platW = 200f
-                    elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY, platW, 35f))
-                    // Enemy walking on platform
+                    addPlatform(ElementType.PLATFORM, currentX, groundY, platW, 35f)
                     val enemySpeed = (1.5f * diffScale).coerceAtMost(3.5f)
-                    elements.add(LevelElement(
-                        ElementType.ENEMY,
-                        currentX + 80f, groundY - 35f, 35f, 35f,
-                        moveDistanceX = 70f,
-                        speed = enemySpeed
-                    ))
+                    elements.add(
+                        LevelElement(
+                            ElementType.ENEMY,
+                            currentX + 80f,
+                            groundY - 35f,
+                            35f,
+                            35f,
+                            moveDistanceX = 70f,
+                            speed = enemySpeed
+                        )
+                    )
                     if (random.nextFloat() < 0.35f) {
                         val pool = listOf(ElementType.POWERUP_POWER, ElementType.GEM)
-                        val pType = pool[random.nextInt(pool.size)]
-                        elements.add(LevelElement(pType, currentX + 150f, groundY - 75f, 32f, 32f))
+                        elements.add(LevelElement(pool[random.nextInt(pool.size)], currentX + 150f, groundY - 75f, 32f, 32f))
                     }
                     currentX += platW
                 }
 
-                // SECTION_F: Vertical platform steps
                 "SECTION_F" -> {
                     var stepY = groundY
                     for (i in 0..2) {
                         stepY -= 70f
-                        elements.add(LevelElement(ElementType.PLATFORM, currentX, stepY, 110f, 35f))
+                        addPlatform(ElementType.PLATFORM, currentX, stepY, 110f, 35f)
                         elements.add(LevelElement(ElementType.COIN, currentX + 40f, stepY - 40f, 30f, 30f))
                         currentX += 90f
                     }
@@ -186,10 +188,9 @@ object LevelGenerator {
                     }
                 }
 
-                // SECTION_G: Bonus coin & speed section
                 "SECTION_G" -> {
                     val platW = 250f
-                    elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY - 30f, platW, 35f))
+                    addPlatform(ElementType.PLATFORM, currentX, groundY - 30f, platW, 35f)
                     for (c in 0..4) {
                         elements.add(LevelElement(ElementType.COIN, currentX + 20f + c * 45f, groundY - 75f, 30f, 30f))
                     }
@@ -199,56 +200,62 @@ object LevelGenerator {
                     currentX += platW
                 }
 
-                // SECTION_H: Checkpoint / Rest platform
                 "SECTION_H" -> {
                     val platW = 180f
-                    elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY, platW, 35f))
+                    addPlatform(ElementType.PLATFORM, currentX, groundY, platW, 35f)
                     elements.add(LevelElement(ElementType.CHECKPOINT, currentX + 70f, groundY - 50f, 30f, 50f))
                     currentX += platW
                 }
             }
         }
 
-        // Ensure exactly 3 stars are placed in every level if not placed already
-        while (totalStarsPlaced < 3) {
-            val targetX = 200f + totalStarsPlaced * (currentX / 3.5f)
-            elements.add(LevelElement(ElementType.STAR, targetX, groundY - 90f, 35f, 35f))
-            totalStarsPlaced++
+        if (totalStarsPlaced < 3) {
+            val candidates = starSafePlatforms
+                .filter { it.x >= 250f }
+                .sortedBy { it.x }
+                .ifEmpty { starSafePlatforms.sortedBy { it.x } }
+            val usedX = elements.filter { it.type == ElementType.STAR }.map { it.x }.toMutableList()
+
+            while (totalStarsPlaced < 3 && candidates.isNotEmpty()) {
+                val desiredFraction = (totalStarsPlaced + 1f) / 4f
+                var index = (desiredFraction * (candidates.size - 1)).toInt().coerceIn(0, candidates.lastIndex)
+                var platform = candidates[index]
+
+                if (usedX.any { abs(it - (platform.x + platform.width * 0.5f)) < 70f }) {
+                    index = candidates.indices.maxByOrNull { i ->
+                        val x = candidates[i].x + candidates[i].width * 0.5f
+                        usedX.minOfOrNull { abs(it - x) } ?: Float.MAX_VALUE
+                    } ?: index
+                    platform = candidates[index]
+                }
+
+                val starX = platform.x + (platform.width - 35f) * 0.5f
+                val starY = platform.y - 72f
+                elements.add(LevelElement(ElementType.STAR, starX, starY, 35f, 35f))
+                usedX.add(starX)
+                totalStarsPlaced++
+            }
         }
 
-        // Final finish platform and finish door
         currentX += 80f
-        elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY, 250f, 40f))
+        addPlatform(ElementType.PLATFORM, currentX, groundY, 250f, 40f)
         elements.add(LevelElement(ElementType.FINISH_DOOR, currentX + 120f, groundY - 70f, 50f, 70f))
 
-        val totalWidth = currentX + 250f
-
         return LevelLayout(
-            levelNumber = levelNumber,
+            levelNumber = safeLevel,
             worldId = world.id,
-            totalWidth = totalWidth,
+            totalWidth = currentX + 250f,
             elements = elements
         )
     }
 
     private fun selectSectionType(levelNumber: Int, random: Random): String {
-        return when {
-            levelNumber <= 5 -> {
-                val pool = listOf("SECTION_A", "SECTION_B", "SECTION_G")
-                pool[random.nextInt(pool.size)]
-            }
-            levelNumber <= 25 -> {
-                val pool = listOf("SECTION_A", "SECTION_B", "SECTION_C", "SECTION_G")
-                pool[random.nextInt(pool.size)]
-            }
-            levelNumber <= 50 -> {
-                val pool = listOf("SECTION_A", "SECTION_B", "SECTION_C", "SECTION_D", "SECTION_G", "SECTION_H")
-                pool[random.nextInt(pool.size)]
-            }
-            else -> {
-                val pool = listOf("SECTION_A", "SECTION_B", "SECTION_C", "SECTION_D", "SECTION_E", "SECTION_F", "SECTION_G", "SECTION_H")
-                pool[random.nextInt(pool.size)]
-            }
+        val pool = when {
+            levelNumber <= 5 -> listOf("SECTION_A", "SECTION_B", "SECTION_G")
+            levelNumber <= 25 -> listOf("SECTION_A", "SECTION_B", "SECTION_C", "SECTION_G")
+            levelNumber <= 50 -> listOf("SECTION_A", "SECTION_B", "SECTION_C", "SECTION_D", "SECTION_G", "SECTION_H")
+            else -> listOf("SECTION_A", "SECTION_B", "SECTION_C", "SECTION_D", "SECTION_E", "SECTION_F", "SECTION_G", "SECTION_H")
         }
+        return pool[random.nextInt(pool.size)]
     }
 }
