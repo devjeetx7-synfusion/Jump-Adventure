@@ -18,8 +18,13 @@ class SoundManager(val context: Context) {
     @Volatile
     var musicEnabled: Boolean = true
         set(value) {
+            val changed = field != value
             field = value
-            if (!value) stopMusic()
+            if (!value) {
+                stopMusic()
+            } else if (changed && !released.get()) {
+                startMusic(lastRequestedWorldId)
+            }
         }
 
     private val released = AtomicBoolean(false)
@@ -32,6 +37,9 @@ class SoundManager(val context: Context) {
 
     @Volatile
     private var currentMusicWorldId = -1
+
+    @Volatile
+    private var lastRequestedWorldId = 1
 
     @Volatile
     private var musicThread: Thread? = null
@@ -67,12 +75,9 @@ class SoundManager(val context: Context) {
         var phase = 0.0
         for (i in 0 until numSamples) {
             if (Thread.currentThread().isInterrupted) return
-
             val t = i.toDouble() / numSamples.toDouble()
             val currentFreq = freq + (freqEnd - freq) * t
             phase += 2.0 * PI * currentFreq / sampleRate.toDouble()
-
-            // Short attack/release envelope prevents the clicks caused by abrupt PCM edges.
             val attack = (t / 0.08).coerceIn(0.0, 1.0)
             val release = ((1.0 - t) / 0.10).coerceIn(0.0, 1.0)
             val envelope = minOf(attack, release)
@@ -114,15 +119,10 @@ class SoundManager(val context: Context) {
     }
 
     fun playJump() = playSfxTone(300.0, 120, 600.0)
-
     fun playCoin() = playSfxTone(987.77, 100, 1318.51)
-
     fun playStar() = playSfxTone(523.25, 180, 1046.50)
-
     fun playButtonClick() = playSfxTone(400.0, 50, 200.0)
-
     fun playHit() = playSfxTone(180.0, 200, 80.0)
-
     fun playPowerUp() = playSfxTone(440.0, 160, 880.0)
 
     fun playPowerUpActivation(type: String) {
@@ -138,11 +138,7 @@ class SoundManager(val context: Context) {
 
     fun playShieldBreak() = playSfxTone(250.0, 140, 120.0)
 
-    /**
-     * Keep this short because MainActivity owns the full winner fanfare/celebration.
-     * The old implementation called playVictory() here and MainActivity called it again,
-     * which produced overlapping duplicate fanfares.
-     */
+    /** MainActivity owns the full winner fanfare; keep the engine completion cue short. */
     fun playLevelComplete() = playSfxTone(784.0, 140, 1046.5)
 
     fun playStarImpact(isCenter: Boolean = false) {
@@ -217,23 +213,33 @@ class SoundManager(val context: Context) {
         }
     }
 
+    private fun resolveRequestedWorld(worldId: Int): Int {
+        if (worldId > 1) return worldId
+        val savedLevel = context
+            .getSharedPreferences("jump_adventure_save", Context.MODE_PRIVATE)
+            .getInt("current_level", 1)
+            .coerceAtLeast(1)
+        return ((savedLevel - 1) / 25) + 1
+    }
+
     @Synchronized
     fun startMusic(worldId: Int = 1) {
         if (!musicEnabled || released.get()) return
-        val normalizedWorldId = worldId.coerceAtLeast(1)
+        val normalizedWorldId = resolveRequestedWorld(worldId).coerceAtLeast(1)
+        lastRequestedWorldId = normalizedWorldId
 
         if (isMusicRunning && currentMusicWorldId == normalizedWorldId) return
-        stopMusic()
+        stopMusicInternal(keepLastRequestedWorld = true)
 
         isMusicRunning = true
         currentMusicWorldId = normalizedWorldId
         musicThread = Thread({
             try {
                 val basePitch = when ((normalizedWorldId - 1) % 4) {
-                    0 -> 261.63 // Forest
-                    1 -> 293.66 // Desert
-                    2 -> 329.63 // Snow
-                    else -> 220.00 // Lava / Cave
+                    0 -> 261.63
+                    1 -> 293.66
+                    2 -> 329.63
+                    else -> 220.00
                 }
                 val melodyOffsets = floatArrayOf(0f, 4f, 7f, 12f, 7f, 4f, 2f, 5f)
                 var step = 0
@@ -241,7 +247,7 @@ class SoundManager(val context: Context) {
                 while (isMusicRunning && musicEnabled && !released.get() && !Thread.currentThread().isInterrupted) {
                     val semitones = melodyOffsets[step % melodyOffsets.size]
                     val notePitch = basePitch * Math.pow(2.0, semitones / 12.0)
-                    // Music deliberately bypasses soundEnabled. Music and SFX are separate settings.
+                    // Music bypasses soundEnabled by design: the two settings are independent.
                     playToneBlocking(notePitch, 145, notePitch, 0.20f)
                     step++
                     Thread.sleep(90L)
@@ -261,15 +267,20 @@ class SoundManager(val context: Context) {
 
     @Synchronized
     fun stopMusic() {
+        stopMusicInternal(keepLastRequestedWorld = true)
+    }
+
+    private fun stopMusicInternal(keepLastRequestedWorld: Boolean) {
         isMusicRunning = false
         currentMusicWorldId = -1
         musicThread?.interrupt()
         musicThread = null
+        if (!keepLastRequestedWorld) lastRequestedWorldId = 1
     }
 
     fun release() {
         if (!released.compareAndSet(false, true)) return
-        stopMusic()
+        stopMusicInternal(keepLastRequestedWorld = false)
         sfxExecutor.shutdownNow()
     }
 
