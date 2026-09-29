@@ -9,6 +9,12 @@ enum class ElementType {
     SPIKE,
     COIN,
     STAR,
+    GEM,
+    POWERUP_MAGNET,
+    POWERUP_SHIELD,
+    POWERUP_SPEED,
+    POWERUP_HIGH_JUMP,
+    POWERUP_POWER,
     ENEMY,
     CHECKPOINT,
     FINISH_DOOR
@@ -91,7 +97,7 @@ object LevelGenerator {
                     }
                 }
 
-                // SECTION_B: Gap + high platform + coins
+                // SECTION_B: Gap + high platform + coins & power-ups
                 "SECTION_B" -> {
                     val platY = groundY - 100f
                     val platW = 180f
@@ -103,6 +109,8 @@ object LevelGenerator {
                     if (totalStarsPlaced < 3 && random.nextBoolean()) {
                         elements.add(LevelElement(ElementType.STAR, currentX + 90f, platY - 90f, 35f, 35f))
                         totalStarsPlaced++
+                    } else if (random.nextFloat() < 0.35f) {
+                        elements.add(LevelElement(ElementType.POWERUP_HIGH_JUMP, currentX + 130f, platY - 80f, 32f, 32f))
                     }
                     currentX += platW
                 }
@@ -120,7 +128,7 @@ object LevelGenerator {
                     currentX += platW
                 }
 
-                // SECTION_D: Moving platform
+                // SECTION_D: Moving platform + Shield / Magnet
                 "SECTION_D" -> {
                     val platY = groundY - 50f
                     val platW = 140f
@@ -132,13 +140,18 @@ object LevelGenerator {
                         moveDistanceX = moveDist,
                         speed = platSpeed.coerceAtMost(5.0f)
                     ))
-                    // Coins above moving platform
-                    elements.add(LevelElement(ElementType.COIN, currentX + 40f, platY - 40f, 30f, 30f))
-                    elements.add(LevelElement(ElementType.COIN, currentX + 80f, platY - 40f, 30f, 30f))
+                    // Coins & Power-up above moving platform
+                    elements.add(LevelElement(ElementType.COIN, currentX + 30f, platY - 40f, 30f, 30f))
+                    elements.add(LevelElement(ElementType.COIN, currentX + 70f, platY - 40f, 30f, 30f))
+                    if (random.nextFloat() < 0.4f) {
+                        val pool = listOf(ElementType.POWERUP_SHIELD, ElementType.POWERUP_MAGNET)
+                        val pType = pool[random.nextInt(pool.size)]
+                        elements.add(LevelElement(pType, currentX + 105f, platY - 45f, 32f, 32f))
+                    }
                     currentX += platW + moveDist
                 }
 
-                // SECTION_E: Enemy + platform
+                // SECTION_E: Enemy + platform + Power / Gem
                 "SECTION_E" -> {
                     val platW = 200f
                     elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY, platW, 35f))
@@ -150,6 +163,11 @@ object LevelGenerator {
                         moveDistanceX = 70f,
                         speed = enemySpeed
                     ))
+                    if (random.nextFloat() < 0.35f) {
+                        val pool = listOf(ElementType.POWERUP_POWER, ElementType.GEM)
+                        val pType = pool[random.nextInt(pool.size)]
+                        elements.add(LevelElement(pType, currentX + 150f, groundY - 75f, 32f, 32f))
+                    }
                     currentX += platW
                 }
 
@@ -168,12 +186,15 @@ object LevelGenerator {
                     }
                 }
 
-                // SECTION_G: Bonus coin section
+                // SECTION_G: Bonus coin & speed section
                 "SECTION_G" -> {
                     val platW = 250f
                     elements.add(LevelElement(ElementType.PLATFORM, currentX, groundY - 30f, platW, 35f))
                     for (c in 0..4) {
                         elements.add(LevelElement(ElementType.COIN, currentX + 20f + c * 45f, groundY - 75f, 30f, 30f))
+                    }
+                    if (random.nextFloat() < 0.45f) {
+                        elements.add(LevelElement(ElementType.POWERUP_SPEED, currentX + 215f, groundY - 80f, 32f, 32f))
                     }
                     currentX += platW
                 }
