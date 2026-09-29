@@ -69,6 +69,13 @@ class MainActivity : AppCompatActivity() {
     override fun onBackPressed() {
         if (incOverlay.visibility == View.VISIBLE) {
             dismissWinnerOverlay()
+            if (currentScreenName == "GAMEPLAY") {
+                currentGameView?.resumeGame()
+            }
+            return
+        }
+        if (currentScreenName == "GAMEPLAY") {
+            showPauseOverlay()
             return
         }
         if (currentScreenName != "MAIN_MENU") {
@@ -78,9 +85,26 @@ class MainActivity : AppCompatActivity() {
         super.onBackPressed()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (this::saveData.isInitialized && saveData.musicEnabled) {
+            soundManager.startMusic(1)
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         dismissWinnerOverlay()
+        if (this::soundManager.isInitialized) {
+            soundManager.stopMusic()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (this::soundManager.isInitialized) {
+            soundManager.release()
+        }
     }
 
     private fun dismissWinnerOverlay() {

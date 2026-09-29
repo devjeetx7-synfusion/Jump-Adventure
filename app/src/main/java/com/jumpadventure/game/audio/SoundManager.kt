@@ -7,9 +7,19 @@ import android.media.AudioTrack
 import kotlin.concurrent.thread
 import kotlin.math.sin
 
-class SoundManager(context: Context) {
+class SoundManager(val context: Context) {
     var soundEnabled: Boolean = true
     var musicEnabled: Boolean = true
+        set(value) {
+            field = value
+            if (!value) {
+                stopMusic()
+            }
+        }
+
+    @Volatile
+    private var isMusicRunning = false
+    private var musicThread: Thread? = null
 
     /**
      * Synthesizes short audio tones dynamically using AudioTrack to ensure standalone audio without missing raw resources.
@@ -85,6 +95,25 @@ class SoundManager(context: Context) {
 
     fun playHit() {
         playTone(180.0, 200, 80.0)
+    }
+
+    fun playPowerUp() {
+        playTone(440.0, 160, 880.0) // Chime pitch slide up
+    }
+
+    fun playPowerUpActivation(type: String) {
+        when (type) {
+            "MAGNET" -> playTone(500.0, 180, 750.0)
+            "SHIELD" -> playTone(350.0, 200, 600.0)
+            "SPEED" -> playTone(600.0, 150, 1200.0)
+            "HIGH_JUMP" -> playTone(400.0, 180, 900.0)
+            "POWER" -> playTone(300.0, 220, 950.0)
+            else -> playTone(440.0, 160, 880.0)
+        }
+    }
+
+    fun playShieldBreak() {
+        playTone(250.0, 140, 120.0)
     }
 
     fun playLevelComplete() {
@@ -173,5 +202,45 @@ class SoundManager(context: Context) {
                 e.printStackTrace()
             }
         }
+    }
+
+    fun startMusic(worldId: Int = 1) {
+        if (!musicEnabled) return
+        if (isMusicRunning) return
+
+        isMusicRunning = true
+        musicThread = thread {
+            try {
+                val basePitch = when (worldId % 4) {
+                    1 -> 261.63 // C4 Forest
+                    2 -> 293.66 // D4 Desert
+                    3 -> 329.63 // E4 Snow
+                    else -> 220.00 // A3 Lava / Cave
+                }
+
+                val melodyOffsets = floatArrayOf(0f, 4f, 7f, 12f, 7f, 4f, 2f, 5f)
+                var step = 0
+
+                while (isMusicRunning && musicEnabled) {
+                    val notePitch = basePitch * Math.pow(2.0, melodyOffsets[step % melodyOffsets.size] / 12.0)
+                    playTone(notePitch, 160)
+                    step++
+                    Thread.sleep(280)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isMusicRunning = false
+            }
+        }
+    }
+
+    fun stopMusic() {
+        isMusicRunning = false
+        musicThread = null
+    }
+
+    fun release() {
+        stopMusic()
     }
 }
