@@ -88,7 +88,11 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (this::saveData.isInitialized && saveData.musicEnabled) {
-            soundManager.startMusic(1)
+            if (currentScreenName == "GAME") {
+                soundManager.resumeMusic()
+            } else {
+                soundManager.startMusic(1)
+            }
         }
     }
 
@@ -96,7 +100,7 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
         dismissWinnerOverlay()
         if (this::soundManager.isInitialized) {
-            soundManager.stopMusic()
+            soundManager.pauseMusic()
         }
     }
 

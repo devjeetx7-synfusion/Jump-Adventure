@@ -48,7 +48,7 @@ class GameDialogView @JvmOverloads constructor(
         setWillNotDraw(false)
         val density = resources.displayMetrics.density
         val padding = (20 * density).toInt()
-        setPadding(padding, padding, padding, padding + (6 * density).toInt())
+        setPadding(padding, padding, padding, padding + (16 * density).toInt()) // Add bottom space for shadow/panel
 
         val contentLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -96,12 +96,11 @@ class GameDialogView @JvmOverloads constructor(
     fun applyResponsiveConstraints(windowWidth: Int, usableWindowHeight: Int) {
         val density = resources.displayMetrics.density
         val targetWidth = (windowWidth * 0.90f).toInt().coerceIn((280 * density).toInt(), (520 * density).toInt())
-        val maxDialogHeight = (usableWindowHeight * 0.84f).toInt()
 
         isCompactMode = usableWindowHeight < (640 * density).toInt()
 
         val padding = if (isCompactMode) (14 * density).toInt() else (20 * density).toInt()
-        setPadding(padding, padding, padding, padding + (6 * density).toInt())
+        setPadding(padding, padding, padding, padding + (16 * density).toInt())
 
         layoutParams = (layoutParams ?: LayoutParams(targetWidth, LayoutParams.WRAP_CONTENT)).apply {
             width = targetWidth

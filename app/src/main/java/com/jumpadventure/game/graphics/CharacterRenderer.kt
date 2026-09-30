@@ -8,6 +8,38 @@ object CharacterRenderer {
 
     enum class AnimState { IDLE, RUN, JUMP, FALL }
 
+    private val skinPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val darkOutlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#1B1B2F")
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val eyePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#1B1B2F") }
+    private val eyeHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val outfitPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val hairHatPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val shoePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val shoeSolePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#37474F") }
+    private val legPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val zipPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#1B1B2F")
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    private val browPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#3E2723")
+        strokeWidth = 4f
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
+    private val cheekPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#40FF8A80") }
+    private val reusablePath = Path()
+    private val reusableRect = RectF()
+
     fun drawCharacter(
         canvas: Canvas,
         bounds: RectF,
@@ -271,7 +303,6 @@ object CharacterRenderer {
             val eyeX2 = headCX + headRadius * 0.65f
             val eyeY = headCY - headRadius * 0.05f
 
-            val browPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#3E2723"); strokeWidth = 4f; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
             if (!characterId.contains("NINJA")) {
                canvas.drawLine(eyeX1 - 8f, eyeY - 14f, eyeX1 + 8f, eyeY - 10f, browPaint)
                canvas.drawLine(eyeX2 - 8f, eyeY - 10f, eyeX2 + 8f, eyeY - 14f, browPaint)
@@ -287,22 +318,20 @@ object CharacterRenderer {
                 canvas.drawCircle(eyeX2 + 3f, eyeY - 3f, width * 0.02f, eyeHighlightPaint)
             }
 
-            val cheekPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#40FF8A80") }
             canvas.drawCircle(eyeX1, eyeY + 12f, 6f, cheekPaint)
             canvas.drawCircle(eyeX2, eyeY + 12f, 6f, cheekPaint)
 
             when {
                 characterId == "DEFAULT" -> {
-                    val hoodPath = Path().apply {
-                        moveTo(headCX - headRadius - 8f, headCY + headRadius + 4f)
-                        quadTo(headCX - headRadius - 12f, headCY - headRadius - 12f, headCX, headCY - headRadius - 16f)
-                        quadTo(headCX + headRadius + 12f, headCY - headRadius - 12f, headCX + headRadius + 8f, headCY + headRadius + 4f)
-                        close()
-                    }
-                    val hoodGradient = LinearGradient(headCX, headCY - headRadius - 16f, headCX, headCY + headRadius, outfitPaint.color, darkenColor(outfitPaint.color, 0.7f), Shader.TileMode.CLAMP)
-                    outfitPaint.shader = hoodGradient
-                    canvas.drawPath(hoodPath, outfitPaint)
-                    canvas.drawPath(hoodPath, darkOutlinePaint)
+                    reusablePath.reset()
+                    reusablePath.moveTo(headCX - headRadius - 8f, headCY + headRadius + 4f)
+                    reusablePath.quadTo(headCX - headRadius - 12f, headCY - headRadius - 12f, headCX, headCY - headRadius - 16f)
+                    reusablePath.quadTo(headCX + headRadius + 12f, headCY - headRadius - 12f, headCX + headRadius + 8f, headCY + headRadius + 4f)
+                    reusablePath.close()
+
+                    outfitPaint.shader = LinearGradient(headCX, headCY - headRadius - 16f, headCX, headCY + headRadius, outfitPaint.color, darkenColor(outfitPaint.color, 0.7f), Shader.TileMode.CLAMP)
+                    canvas.drawPath(reusablePath, outfitPaint)
+                    canvas.drawPath(reusablePath, darkOutlinePaint)
                     outfitPaint.shader = null
 
                     canvas.drawCircle(headCX + 6f, headCY + 2f, headRadius - 2f, skinPaint)

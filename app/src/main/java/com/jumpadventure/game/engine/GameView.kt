@@ -185,6 +185,15 @@ class GameView(
         style = Paint.Style.FILL
     }
     private val reusableRect = RectF()
+    private val controlShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(85, 0, 20, 50) }
+    private val controlGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val controlFillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val controlBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val controlBadgeBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E60F172A") }
+    private val controlBadgeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
+    private val controlIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    private val controlMagnetStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.STROKE }
+    private val reusablePath = Path()
 
     private val leftButtonRect = RectF()
     private val rightButtonRect = RectF()
@@ -1241,113 +1250,90 @@ class GameView(
         val radius = minOf(rect.width(), rect.height()) * 0.5f
         val cx = rect.centerX()
         val cy = rect.centerY() - if (pressed) 1f else 0f
-        val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(85, 0, 20, 50) }
-        canvas.drawCircle(cx, rect.centerY() + if (pressed) 2f else 6f, radius - 1f, shadow)
+        canvas.drawCircle(cx, rect.centerY() + if (pressed) 2f else 6f, radius - 1f, controlShadowPaint)
 
         if (active) {
-            val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = topColor
-                alpha = 105
-                style = Paint.Style.STROKE
-                strokeWidth = 6f
-            }
-            canvas.drawCircle(cx, cy, radius + 4f + (sin(animTick * 8.0) * 3.0).toFloat(), glow)
+            controlGlowPaint.color = topColor
+            controlGlowPaint.alpha = 105
+            controlGlowPaint.strokeWidth = 6f
+            canvas.drawCircle(cx, cy, radius + 4f + (sin(animTick * 8.0) * 3.0).toFloat(), controlGlowPaint)
         }
 
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = LinearGradient(rect.left, rect.top, rect.left, rect.bottom, if (active) Color.WHITE else topColor, bottomColor, Shader.TileMode.CLAMP)
-        }
-        canvas.drawCircle(cx, cy, radius - 2f, fill)
+        controlFillPaint.shader = LinearGradient(rect.left, rect.top, rect.left, rect.bottom, if (active) Color.WHITE else topColor, bottomColor, Shader.TileMode.CLAMP)
+        canvas.drawCircle(cx, cy, radius - 2f, controlFillPaint)
+        controlFillPaint.shader = null
 
-        val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            alpha = 230
-            style = Paint.Style.STROKE
-            strokeWidth = if (active) 5f else 3.5f
-        }
-        canvas.drawCircle(cx, cy, radius - 2f, border)
+        controlBorderPaint.color = Color.WHITE
+        controlBorderPaint.alpha = 230
+        controlBorderPaint.strokeWidth = if (active) 5f else 3.5f
+        canvas.drawCircle(cx, cy, radius - 2f, controlBorderPaint)
 
         if (!badge.isNullOrEmpty()) {
             val badgeW = radius * 1.55f
             val badgeH = radius * 0.55f
             val badgeRect = RectF(cx - badgeW / 2f, cy + radius * 0.42f, cx + badgeW / 2f, cy + radius * 0.97f)
-            val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E60F172A") }
-            val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
-                textSize = badgeH * 0.70f
-                typeface = Typeface.DEFAULT_BOLD
-                textAlign = Paint.Align.CENTER
-            }
-            canvas.drawRoundRect(badgeRect, 8f, 8f, bg)
-            canvas.drawText(badge, cx, badgeRect.centerY() + text.textSize * 0.35f, text)
+            controlBadgeTextPaint.color = if (active) Color.parseColor("#FFD43B") else Color.WHITE
+            controlBadgeTextPaint.textSize = badgeH * 0.70f
+            canvas.drawRoundRect(badgeRect, 8f, 8f, controlBadgeBgPaint)
+            canvas.drawText(badge, cx, badgeRect.centerY() + controlBadgeTextPaint.textSize * 0.35f, controlBadgeTextPaint)
         }
     }
 
     private fun drawArrow(canvas: Canvas, rect: RectF, right: Boolean) {
-        val icon = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         val cx = rect.centerX()
         val cy = rect.centerY()
         val s = rect.width() * 0.22f
-        val path = Path().apply {
-            if (right) {
-                moveTo(cx - s * 0.8f, cy - s)
-                lineTo(cx + s * 0.9f, cy)
-                lineTo(cx - s * 0.8f, cy + s)
-            } else {
-                moveTo(cx + s * 0.8f, cy - s)
-                lineTo(cx - s * 0.9f, cy)
-                lineTo(cx + s * 0.8f, cy + s)
-            }
-            close()
+        reusablePath.reset()
+        if (right) {
+            reusablePath.moveTo(cx - s * 0.8f, cy - s)
+            reusablePath.lineTo(cx + s * 0.9f, cy)
+            reusablePath.lineTo(cx - s * 0.8f, cy + s)
+        } else {
+            reusablePath.moveTo(cx + s * 0.8f, cy - s)
+            reusablePath.lineTo(cx - s * 0.9f, cy)
+            reusablePath.lineTo(cx + s * 0.8f, cy + s)
         }
-        canvas.drawPath(path, icon)
+        reusablePath.close()
+        canvas.drawPath(reusablePath, controlIconPaint)
     }
 
     private fun drawMagnetIcon(canvas: Canvas) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.STROKE
-            strokeWidth = magnetButtonRect.width() * 0.12f
-        }
+        controlMagnetStrokePaint.strokeWidth = magnetButtonRect.width() * 0.12f
         val cx = magnetButtonRect.centerX()
         val cy = magnetButtonRect.centerY()
         val s = magnetButtonRect.width() * 0.26f
-        canvas.drawArc(RectF(cx - s, cy - s, cx + s, cy + s * 0.5f), 180f, 180f, false, p)
-        canvas.drawLine(cx - s, cy, cx - s, cy + s * 0.5f, p)
-        canvas.drawLine(cx + s, cy, cx + s, cy + s * 0.5f, p)
+        canvas.drawArc(RectF(cx - s, cy - s, cx + s, cy + s * 0.5f), 180f, 180f, false, controlMagnetStrokePaint)
+        canvas.drawLine(cx - s, cy, cx - s, cy + s * 0.5f, controlMagnetStrokePaint)
+        canvas.drawLine(cx + s, cy, cx + s, cy + s * 0.5f, controlMagnetStrokePaint)
     }
 
     private fun drawSpeedIcon(canvas: Canvas) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         val cx = speedButtonRect.centerX()
         val cy = speedButtonRect.centerY()
         val s = speedButtonRect.width() * 0.28f
-        val path = Path().apply {
-            moveTo(cx - s * 0.4f, cy + s * 0.6f)
-            lineTo(cx + s * 0.1f, cy + s * 0.05f)
-            lineTo(cx - s * 0.1f, cy + s * 0.05f)
-            lineTo(cx + s * 0.4f, cy - s * 0.6f)
-            lineTo(cx - s * 0.1f, cy - s * 0.05f)
-            lineTo(cx + s * 0.1f, cy - s * 0.05f)
-            close()
-        }
-        canvas.drawPath(path, p)
+        reusablePath.reset()
+        reusablePath.moveTo(cx - s * 0.4f, cy + s * 0.6f)
+        reusablePath.lineTo(cx + s * 0.1f, cy + s * 0.05f)
+        reusablePath.lineTo(cx - s * 0.1f, cy + s * 0.05f)
+        reusablePath.lineTo(cx + s * 0.4f, cy - s * 0.6f)
+        reusablePath.lineTo(cx - s * 0.1f, cy - s * 0.05f)
+        reusablePath.lineTo(cx + s * 0.1f, cy - s * 0.05f)
+        reusablePath.close()
+        canvas.drawPath(reusablePath, controlIconPaint)
     }
 
     private fun drawShieldIcon(canvas: Canvas) {
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         val cx = shieldButtonRect.centerX()
         val cy = shieldButtonRect.centerY()
         val s = shieldButtonRect.width() * 0.28f
-        val path = Path().apply {
-            moveTo(cx, cy - s * 0.65f)
-            lineTo(cx + s * 0.55f, cy - s * 0.35f)
-            lineTo(cx + s * 0.45f, cy + s * 0.35f)
-            quadTo(cx, cy + s * 0.7f, cx - s * 0.45f, cy + s * 0.35f)
-            lineTo(cx - s * 0.55f, cy - s * 0.35f)
-            close()
-        }
-        canvas.drawPath(path, p)
+        reusablePath.reset()
+        reusablePath.moveTo(cx, cy - s * 0.65f)
+        reusablePath.lineTo(cx + s * 0.55f, cy - s * 0.35f)
+        reusablePath.lineTo(cx + s * 0.45f, cy + s * 0.35f)
+        reusablePath.quadTo(cx, cy + s * 0.7f, cx - s * 0.45f, cy + s * 0.35f)
+        reusablePath.lineTo(cx - s * 0.55f, cy - s * 0.35f)
+        reusablePath.close()
+        canvas.drawPath(reusablePath, controlIconPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
