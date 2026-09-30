@@ -266,6 +266,20 @@ class SoundManager(val context: Context) {
     }
 
     @Synchronized
+    fun pauseMusic() {
+        if (isMusicRunning) {
+            stopMusicInternal(keepLastRequestedWorld = true)
+        }
+    }
+
+    @Synchronized
+    fun resumeMusic() {
+        if (!isMusicRunning && !released.get() && musicEnabled) {
+            startMusic(lastRequestedWorldId)
+        }
+    }
+
+    @Synchronized
     fun stopMusic() {
         stopMusicInternal(keepLastRequestedWorld = true)
     }

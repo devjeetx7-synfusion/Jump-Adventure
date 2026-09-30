@@ -10,7 +10,7 @@ class LevelSafetyTest {
 
     @Test
     fun generatedLevelsAlwaysContainExactlyThreeStars() {
-        val levels = listOf(1, 2, 5, 10, 25, 50, 75, 100, 250, 500, 1000, 2500)
+        val levels = listOf(1, 2, 5, 10, 25, 50, 75, 100, 250, 500, 1000, 2500, 5000)
         levels.forEach { levelNumber ->
             val layout = LevelGenerator.generateLevel(levelNumber)
             assertEquals(
@@ -23,7 +23,7 @@ class LevelSafetyTest {
 
     @Test
     fun everyStarHasStaticSupportBelowIt() {
-        val levels = listOf(1, 3, 7, 25, 51, 100, 250, 1000)
+        val levels = listOf(1, 3, 7, 25, 51, 100, 250, 1000, 5000)
         levels.forEach { levelNumber ->
             val layout = LevelGenerator.generateLevel(levelNumber)
             val platforms = layout.elements.filter { it.type == ElementType.PLATFORM }
@@ -45,7 +45,7 @@ class LevelSafetyTest {
 
     @Test
     fun generatedLevelAlwaysEndsWithFinishDoorOnSupport() {
-        listOf(1, 50, 100, 500, 2000).forEach { levelNumber ->
+        listOf(1, 50, 100, 500, 2000, 5000).forEach { levelNumber ->
             val layout = LevelGenerator.generateLevel(levelNumber)
             val door = layout.elements.last { it.type == ElementType.FINISH_DOOR }
             val supported = layout.elements.any { platform ->

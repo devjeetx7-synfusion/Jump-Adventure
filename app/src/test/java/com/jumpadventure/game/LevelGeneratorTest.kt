@@ -27,6 +27,10 @@ class LevelGeneratorTest {
         val level1000 = LevelGenerator.generateLevel(1000)
         assertTrue(level1000.elements.isNotEmpty())
         assertTrue(level1000.totalWidth > 1000f)
+
+        val level5000 = LevelGenerator.generateLevel(5000)
+        assertTrue(level5000.elements.isNotEmpty())
+        assertTrue(level5000.totalWidth > 1500f)
     }
 
     @Test
