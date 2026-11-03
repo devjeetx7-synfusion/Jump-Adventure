@@ -263,7 +263,7 @@ class CharacterPreviewView @JvmOverloads constructor(
             JumpState.JUMP_ANTICIPATION -> CharacterRenderer.AnimState.IDLE
             JumpState.JUMP_RISING -> CharacterRenderer.AnimState.JUMP
             JumpState.JUMP_FALLING -> CharacterRenderer.AnimState.FALL
-            JumpState.JUMP_LANDING -> CharacterRenderer.AnimState.IDLE
+            JumpState.JUMP_LANDING -> CharacterRenderer.AnimState.LAND
         }
 
         CharacterRenderer.drawCharacter(
