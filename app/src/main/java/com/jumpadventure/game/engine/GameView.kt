@@ -147,6 +147,11 @@ class GameView(
     private var moveRightPressed = false
     private var isFacingRight = true
     private var animTick = 0f
+
+    // Timed animation overrides (LAND / HIT / GAME_OVER) layered over the
+    // physics-driven states so landings and hits read clearly.
+    private var animOverride: CharacterRenderer.AnimState? = null
+    private var animOverrideRemaining = 0f
     private var cameraX = 0f
 
     private var coinsCollectedInLevel = 0
@@ -253,6 +258,8 @@ class GameView(
         damageInvulnerabilityRemaining = 0f
         velocityX = 0f
         velocityY = 0f
+        animOverride = null
+        animOverrideRemaining = 0f
 
         configureCharacterSkills(saveData.selectedCharacter)
 
@@ -509,7 +516,16 @@ class GameView(
         updateParticles(dtFactor)
         updateMovingElements(dtFactor)
         applyAttraction(dtFactor)
+
+        // Landing detection: remember airborne state + fall speed before collision.
+        val wasGroundedBeforeMove = isGrounded
+        val fallSpeedBeforeMove = velocityY
         moveAndCollide(dtFactor)
+        if (!wasGroundedBeforeMove && isGrounded && fallSpeedBeforeMove > 9f) {
+            animOverride = CharacterRenderer.AnimState.LAND
+            animOverrideRemaining = 0.16f
+            soundManager.playLand()
+        }
         handleCollectiblesAndHazards()
 
         if (playerY > 1200f) handlePlayerHit()
@@ -529,6 +545,15 @@ class GameView(
     private fun updateTimers(deltaTime: Float) {
         if (damageInvulnerabilityRemaining > 0f) {
             damageInvulnerabilityRemaining = (damageInvulnerabilityRemaining - deltaTime).coerceAtLeast(0f)
+        }
+
+        if (animOverrideRemaining > 0f) {
+            animOverrideRemaining -= deltaTime
+            if (animOverrideRemaining <= 0f) {
+                animOverrideRemaining = 0f
+                // GAME_OVER stays until the run is reset; everything else clears.
+                if (animOverride != CharacterRenderer.AnimState.GAME_OVER) animOverride = null
+            }
         }
 
         powerUps.tick(deltaTime)
@@ -855,9 +880,15 @@ class GameView(
             moveRightPressed = false
             velocityX = 0f
             velocityY = 0f
+            animOverride = CharacterRenderer.AnimState.GAME_OVER
+            animOverrideRemaining = Float.MAX_VALUE
+            soundManager.playGameOver()
             onGameOver()
             return
         }
+
+        animOverride = CharacterRenderer.AnimState.HIT
+        animOverrideRemaining = 0.4f
 
         val respawn = findSafeRespawnPoint(checkpointX, checkpointY)
         playerX = respawn.first
@@ -1267,6 +1298,8 @@ class GameView(
 
         val bounds = RectF(playerX, playerY, playerX + visualWidth, playerY + visualHeight)
         val animState = when {
+            animOverride != null -> animOverride!!
+            !isGrounded && midAirJumpsDone > 0 && velocityY < 0f -> CharacterRenderer.AnimState.DOUBLE_JUMP
             !isGrounded && velocityY < 0f -> CharacterRenderer.AnimState.JUMP
             !isGrounded -> CharacterRenderer.AnimState.FALL
             abs(velocityX) > 0.4f -> CharacterRenderer.AnimState.RUN
