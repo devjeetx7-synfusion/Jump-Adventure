@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compact pill badge used for the coin / star counters in the gameplay HUD. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="22dp" />
+    <solid android:color="#F2FFFFFF" />
+    <stroke
+        android:width="2dp"
+        android:color="#C7D8E8" />
+</shape>

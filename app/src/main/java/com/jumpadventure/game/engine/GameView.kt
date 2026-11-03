@@ -68,6 +68,21 @@ class GameView(
     private val baseJumpStrength = -17f
     private val gravityPerFrame = 0.75f
     private val maxFallVelocity = 25f
+
+    /** Fixed duration for the POWER pickup, which has no upgrade track in the shop. */
+    private val POWER_DURATION = 8f
+
+    /** Short grace window after a shield plate absorbs a hit. */
+    private val SHIELD_HIT_INVULNERABILITY = 0.25f
+
+    /** Assumed ground surface when a level has no platform under the spawn X. */
+    private val DEFAULT_SPAWN_SURFACE_Y = 800f
+
+    /** Tolerance when picking the surface "at or below" the reference feet. */
+    private val SPAWN_SURFACE_SEARCH_SLACK = 48f
+
+    /** How many positions to step forward while looking for a hazard-free spawn. */
+    private val MAX_RESPAWN_HAZARD_SEARCH = 6
     private var isGrounded = false
     private var lives = 3
     private var checkpointX = 50f
@@ -98,35 +113,35 @@ class GameView(
     private var gameOverHandled = false
 
     // Power-up state. Pickups for HUD power-ups become charges instead of granting
-    // unlimited activation from the touch buttons.
-    var isMagnetActive = false
-        private set
-    var magnetTimeRemaining = 0f
-        private set
-    private var magnetCharges = 0
+    // unlimited activation from the touch buttons. All activation / duration /
+    // charge rules live in PowerUpState so they can be unit-tested.
+    internal val powerUps = PowerUpState()
 
-    var isShieldActive = false
-        private set
-    var shieldTimeRemaining = 0f
-        private set
-    private var shieldCharges = 0
-    private var shieldHitsRemaining = 0
+    val isMagnetActive: Boolean get() = powerUps.magnet.isActive
+    val magnetTimeRemaining: Float get() = powerUps.magnet.timeRemaining
+    private val magnetCharges: Int get() = powerUps.magnet.charges
 
-    var isSpeedActive = false
-        private set
-    var speedTimeRemaining = 0f
-        private set
-    private var speedCharges = 0
+    val isShieldActive: Boolean get() = powerUps.shield.isActive
+    val shieldTimeRemaining: Float get() = powerUps.shield.timeRemaining
+    private val shieldCharges: Int get() = powerUps.shield.charges
+    private val shieldHitsRemaining: Int get() = powerUps.shieldHitsRemaining
 
-    var isHighJumpActive = false
-        private set
-    var highJumpTimeRemaining = 0f
-        private set
+    val isSpeedActive: Boolean get() = powerUps.speed.isActive
+    val speedTimeRemaining: Float get() = powerUps.speed.timeRemaining
+    private val speedCharges: Int get() = powerUps.speed.charges
 
-    var isPowerActive = false
-        private set
-    var powerTimeRemaining = 0f
-        private set
+    val isHighJumpActive: Boolean get() = powerUps.highJump.isActive
+    val highJumpTimeRemaining: Float get() = powerUps.highJump.timeRemaining
+
+    val isPowerActive: Boolean get() = powerUps.power.isActive
+    val powerTimeRemaining: Float get() = powerUps.power.timeRemaining
+
+    /** True once the level has been won or lost; the run can no longer resume. */
+    val isRunFinished: Boolean
+        get() = levelCompletionHandled || gameOverHandled
+
+    /** Number of lives left, exposed for HUD / diagnostics. */
+    val livesRemaining: Int get() = lives
 
     private var moveLeftPressed = false
     private var moveRightPressed = false
@@ -190,6 +205,7 @@ class GameView(
     private val controlFillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val controlBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val controlBadgeBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#E60F172A") }
+    private val controlBuffBgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val controlBadgeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
     private val controlIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private val controlMagnetStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; style = Paint.Style.STROKE }
@@ -227,40 +243,25 @@ class GameView(
         worldInfo = WorldRepository.getWorldForLevel(currentLevelNumber)
         levelLayout = LevelGenerator.generateLevel(currentLevelNumber)
 
-        playerX = 50f
-        playerY = findSafeSpawnY(playerX)
-        velocityX = 0f
-        velocityY = 0f
-        checkpointX = playerX
-        checkpointY = playerY
         lives = 3
         levelCompletionHandled = false
         gameOverHandled = false
-        isGrounded = true
         moveLeftPressed = false
         moveRightPressed = false
         coyoteTimeRemaining = coyoteTimeSeconds
         jumpBufferRemaining = 0f
         damageInvulnerabilityRemaining = 0f
+        velocityX = 0f
+        velocityY = 0f
 
         configureCharacterSkills(saveData.selectedCharacter)
 
-        magnetCharges = 0
-        shieldCharges = 0
-        speedCharges = 0
-        isMagnetActive = false
-        magnetTimeRemaining = 0f
-        isSpeedActive = false
-        speedTimeRemaining = 0f
-        isHighJumpActive = false
-        highJumpTimeRemaining = 0f
-        isPowerActive = false
-        powerTimeRemaining = 0f
+        powerUps.resetAll()
 
         val startsWithShield = saveData.selectedCharacter in setOf("ROBOT", "ROBOT_X", "CYBER_BOT", "SAMURAI")
-        isShieldActive = startsWithShield
-        shieldTimeRemaining = if (startsWithShield) shieldDuration() else 0f
-        shieldHitsRemaining = if (startsWithShield) shieldHitCapacity() else 0
+        if (startsWithShield) {
+            powerUps.activateShield(shieldDuration(), shieldHitCapacity())
+        }
 
         coinsCollectedInLevel = 0
         starsCollectedInLevel = 0
@@ -268,11 +269,19 @@ class GameView(
         hudUpdateAccumulator = 0f
         levelStartTime = System.currentTimeMillis()
 
+        // Elements must be instantiated BEFORE the spawn point is resolved,
+        // because findSafeSpawnY() reads live element positions.
         activeElements.clear()
         levelLayout.elements.forEach { elem ->
             activeElements.add(ActiveElement(elem, elem.x, elem.y))
         }
         trailParticles.clear()
+
+        playerX = 50f
+        playerY = findSafeSpawnY(playerX)
+        isGrounded = true
+        checkpointX = playerX
+        checkpointY = playerY
 
         skyPaint.color = Color.parseColor(worldInfo.skyColorHex)
         platformPaint.color = Color.parseColor(worldInfo.platformColorHex)
@@ -314,24 +323,35 @@ class GameView(
     fun stopGameLoop() {
         isRunning = false
         isPaused = false
-        gameThread?.interrupt()
-        gameThread?.let { thread ->
-            if (thread !== Thread.currentThread()) {
-                runCatching { thread.join(600) }
-            }
+        val thread = gameThread
+        thread?.interrupt()
+        if (thread != null && thread !== Thread.currentThread()) {
+            runCatching { thread.join(600) }
+            gameThread = null
+        } else if (thread == null) {
+            gameThread = null
         }
-        gameThread = null
+        // If called from the game thread itself, leave gameThread set: it will be
+        // cleared by the loop exiting, and resumeGame() treats a dead thread as
+        // "not running" anyway.
     }
 
     fun pauseGame() {
-        isPaused = true
+        // Clear input state before flipping the flag so a pointer that was held
+        // down when the overlay opened cannot resume movement on unpause.
         moveLeftPressed = false
         moveRightPressed = false
+        activeJumpPointers.clear()
+        isPaused = true
     }
 
     fun resumeGame() {
+        // Preserve the level-complete freeze: completeLevel() sets isPaused, and
+        // resuming there would let the player keep moving behind the win dialog.
+        if (levelCompletionHandled || gameOverHandled) return
         isPaused = false
-        if (holder.surface.isValid && (gameThread == null || gameThread?.isAlive != true)) {
+        val thread = gameThread
+        if (holder.surface.isValid && (thread == null || !thread.isAlive)) {
             isRunning = true
             gameThread = Thread(this, "JumpAdventure-GameLoop").apply { start() }
         }
@@ -511,42 +531,7 @@ class GameView(
             damageInvulnerabilityRemaining = (damageInvulnerabilityRemaining - deltaTime).coerceAtLeast(0f)
         }
 
-        if (isMagnetActive) {
-            magnetTimeRemaining -= deltaTime
-            if (magnetTimeRemaining <= 0f) {
-                magnetTimeRemaining = 0f
-                isMagnetActive = false
-            }
-        }
-        if (isShieldActive) {
-            shieldTimeRemaining -= deltaTime
-            if (shieldTimeRemaining <= 0f || shieldHitsRemaining <= 0) {
-                shieldTimeRemaining = 0f
-                shieldHitsRemaining = 0
-                isShieldActive = false
-            }
-        }
-        if (isSpeedActive) {
-            speedTimeRemaining -= deltaTime
-            if (speedTimeRemaining <= 0f) {
-                speedTimeRemaining = 0f
-                isSpeedActive = false
-            }
-        }
-        if (isHighJumpActive) {
-            highJumpTimeRemaining -= deltaTime
-            if (highJumpTimeRemaining <= 0f) {
-                highJumpTimeRemaining = 0f
-                isHighJumpActive = false
-            }
-        }
-        if (isPowerActive) {
-            powerTimeRemaining -= deltaTime
-            if (powerTimeRemaining <= 0f) {
-                powerTimeRemaining = 0f
-                isPowerActive = false
-            }
-        }
+        powerUps.tick(deltaTime)
     }
 
     private fun updateParticles(dtFactor: Float) {
@@ -613,6 +598,11 @@ class GameView(
     }
 
     private fun applyAttraction(dtFactor: Float) {
+        // Never drag collectibles around while the run is already over, and skip
+        // entirely when the player is mid-respawn / invulnerable so coins cannot
+        // be vacuumed across a hazard boundary.
+        if (gameOverHandled || levelCompletionHandled) return
+
         val magnetOn = isMagnetActive || isPassiveMagnet
         val magnetRange = magnetRadius()
         val starRange = starAssistRadius()
@@ -630,11 +620,21 @@ class GameView(
             }
             if (allowedRange <= 0.0) return@forEach
 
-            val dist = hypot((active.currentX - playerX).toDouble(), (active.currentY - playerY).toDouble())
+            // Measure and pull centre-to-centre. Comparing top-left corners made
+            // the effective radius depend on element size.
+            val collectibleCenterX = active.currentX + active.original.width / 2f
+            val collectibleCenterY = active.currentY + active.original.height / 2f
+            val playerCenterX = playerX + visualWidth / 2f
+            val playerCenterY = playerY + visualHeight / 2f
+
+            val dist = hypot(
+                (collectibleCenterX - playerCenterX).toDouble(),
+                (collectibleCenterY - playerCenterY).toDouble()
+            )
             if (dist < allowedRange) {
                 val pull = (0.18f * dtFactor).coerceAtMost(0.5f)
-                active.currentX += (playerX - active.currentX) * pull
-                active.currentY += (playerY - active.currentY) * pull
+                active.currentX += (playerCenterX - collectibleCenterX) * pull
+                active.currentY += (playerCenterY - collectibleCenterY) * pull
             }
         }
     }
@@ -685,7 +685,11 @@ class GameView(
                 if (velocityY >= 0f) {
                     val prevFeet = prevColliderTop + colliderHeight
                     if (prevFeet <= elemTop + 20f && curBottom >= elemTop - 4f) {
-                        playerY = elemTop - visualHeight
+                        // Align the COLLIDER bottom to the surface, not the visual
+                        // box. Using visualHeight here left the collider 20 units
+                        // inside the platform, so the sprite floated above every
+                        // surface by colliderOffsetY.
+                        playerY = elemTop - colliderOffsetY - colliderHeight
                         velocityY = 0f
                         isGrounded = true
                         midAirJumpsDone = 0
@@ -736,32 +740,48 @@ class GameView(
                 }
                 ElementType.POWERUP_MAGNET -> {
                     active.isCollected = true
-                    magnetCharges = (magnetCharges + 1).coerceAtMost(9)
-                    soundManager.playPowerUp()
+                    collectChargeablePowerUp(
+                        powerUps.magnet,
+                        { activateMagnetPowerUp() },
+                        magnetDuration()
+                    )
                 }
                 ElementType.POWERUP_SHIELD -> {
                     active.isCollected = true
-                    shieldCharges = (shieldCharges + 1).coerceAtMost(9)
-                    soundManager.playPowerUp()
+                    collectChargeablePowerUp(
+                        powerUps.shield,
+                        { activateShieldPowerUp() },
+                        shieldDuration()
+                    )
                 }
                 ElementType.POWERUP_SPEED -> {
                     active.isCollected = true
-                    speedCharges = (speedCharges + 1).coerceAtMost(9)
-                    soundManager.playPowerUp()
+                    collectChargeablePowerUp(
+                        powerUps.speed,
+                        { activateSpeedPowerUp() },
+                        speedDuration()
+                    )
                 }
                 ElementType.POWERUP_HIGH_JUMP -> {
                     active.isCollected = true
+                    // High Jump has no HUD button, so it activates immediately.
+                    // Re-collecting while active refreshes the timer rather than
+                    // being silently discarded.
                     activateHighJumpPowerUp()
+                    soundManager.playPowerUp()
                 }
                 ElementType.POWERUP_POWER -> {
                     active.isCollected = true
                     activatePowerPowerUp()
+                    soundManager.playPowerUp()
                 }
                 ElementType.CHECKPOINT -> {
                     if (!active.isActivated) {
                         active.isActivated = true
-                        checkpointX = active.currentX
-                        checkpointY = findSafeSpawnY(checkpointX)
+                        val safe = findSafeRespawnPoint(active.currentX, active.currentY)
+                        checkpointX = safe.first
+                        checkpointY = safe.second
+                        soundManager.playStar()
                     }
                 }
                 ElementType.SPIKE -> handleHazard(active, spike = true)
@@ -770,6 +790,36 @@ class GameView(
                 else -> Unit
             }
         }
+    }
+
+    /**
+     * Pickup rule for the three HUD power-ups (Magnet / Shield / Speed).
+     *
+     * Previously every pickup unconditionally added a charge capped at 9, so
+     * collecting an 11th pickup while already holding 9 silently did nothing.
+     * Now the pickup always has an effect:
+     *  - if the power-up is currently running, the remaining time is topped up
+     *    back to a full duration (never shortened, so no pickup is wasted);
+     *  - otherwise a charge is banked for the on-screen button to spend.
+     */
+    private fun collectChargeablePowerUp(
+        slot: PowerUpState.Slot,
+        activate: () -> Unit,
+        fullDuration: Float
+    ) {
+        if (slot.isActive) {
+            val extended = maxOf(slot.timeRemaining, fullDuration)
+            activate()
+            if (slot.timeRemaining < extended) {
+                slot.activate(extended)
+            }
+        } else if (slot.charges >= PowerUpState.MAX_CHARGES) {
+            // Charge rack is full: refresh the timer instead of dropping the pickup.
+            activate()
+        } else {
+            slot.addCharge()
+        }
+        soundManager.playPowerUp()
     }
 
     private fun handleHazard(active: ActiveElement, spike: Boolean) {
@@ -782,14 +832,9 @@ class GameView(
         }
         if (spike && isFireResistant) return
 
-        if (isShieldActive && shieldHitsRemaining > 0) {
-            shieldHitsRemaining--
-            damageInvulnerabilityRemaining = 0.25f
+        if (powerUps.absorbShieldHit()) {
+            damageInvulnerabilityRemaining = SHIELD_HIT_INVULNERABILITY
             soundManager.playShieldBreak()
-            if (shieldHitsRemaining <= 0) {
-                isShieldActive = false
-                shieldTimeRemaining = 0f
-            }
             if (!spike) active.isCollected = true
             return
         }
@@ -814,8 +859,9 @@ class GameView(
             return
         }
 
-        playerX = checkpointX
-        playerY = checkpointY
+        val respawn = findSafeRespawnPoint(checkpointX, checkpointY)
+        playerX = respawn.first
+        playerY = respawn.second
         velocityX = 0f
         velocityY = 0f
         isGrounded = true
@@ -824,16 +870,80 @@ class GameView(
         damageInvulnerabilityRemaining = damageInvulnerabilitySeconds
     }
 
-    private fun findSafeSpawnY(x: Float): Float {
-        val support = levelLayout.elements
+    /**
+     * Finds a standing Y position for [x].
+     *
+     * Previously this used `minByOrNull { it.y }`, i.e. the HIGHEST platform
+     * overlapping x, which could place the player several screens above the
+     * checkpoint. It also read from `levelLayout` instead of `activeElements`,
+     * so moving platforms were evaluated at their spawn position rather than
+     * where they actually are. Now it prefers the lowest platform at-or-below
+     * [referenceY] (the player's current feet), uses live element positions,
+     * and refuses surfaces that have a spike resting on them.
+     */
+    private fun findSafeSpawnY(x: Float, referenceY: Float = Float.MAX_VALUE): Float {
+        val left = x + colliderOffsetX
+        val right = left + colliderWidth
+
+        val solids = activeElements
             .asSequence()
+            .filter { !it.isCollected && isSolid(it.original.type) }
             .filter {
-                isSolid(it.type) &&
-                    x + colliderOffsetX + colliderWidth > it.x &&
-                    x + colliderOffsetX < it.x + it.width
+                right > it.currentX &&
+                    left < it.currentX + it.original.width
             }
-            .minByOrNull { it.y }
-        return support?.y?.minus(visualHeight) ?: (800f - visualHeight)
+            .toList()
+        if (solids.isEmpty()) return DEFAULT_SPAWN_SURFACE_Y - visualHeight
+
+        val referenceFeet = if (referenceY == Float.MAX_VALUE) {
+            Float.MAX_VALUE
+        } else {
+            referenceY + colliderOffsetY + colliderHeight
+        }
+
+        // Lowest surface at or just below the reference feet; fall back to the
+        // lowest surface overall when the player is below every platform.
+        val support = solids
+            .filter { it.currentY >= referenceFeet - SPAWN_SURFACE_SEARCH_SLACK }
+            .minByOrNull { it.currentY }
+            ?: solids.maxByOrNull { it.currentY }!!
+
+        return support.currentY - colliderOffsetY - colliderHeight
+    }
+
+    /**
+     * Resolves a respawn point for [x] that is not overlapping a hazard.
+     *
+     * Without this, a checkpoint or level start placed next to a spike would
+     * respawn the player directly back into the hazard, burning all three
+     * lives in a single frame each time.
+     */
+    private fun findSafeRespawnPoint(x: Float, referenceY: Float): Pair<Float, Float> {
+        var spawnX = x
+        repeat(MAX_RESPAWN_HAZARD_SEARCH) {
+            val spawnY = findSafeSpawnY(spawnX, referenceY)
+            if (!isSpawnBlockedByHazard(spawnX, spawnY)) return spawnX to spawnY
+            // Step forward past the hazard and retry on the next surface.
+            spawnX += colliderWidth
+        }
+        val fallbackY = findSafeSpawnY(x, referenceY)
+        return x to fallbackY
+    }
+
+    /** True when a spike or enemy overlaps the standing box at [x]. */
+    private fun isSpawnBlockedByHazard(x: Float, surfaceY: Float): Boolean {
+        val left = x + colliderOffsetX
+        val right = left + colliderWidth
+        val feet = surfaceY + colliderOffsetY + colliderHeight
+        val head = surfaceY + colliderOffsetY
+        return activeElements.any { active ->
+            if (active.isCollected) return@any false
+            val type = active.original.type
+            if (type != ElementType.SPIKE && type != ElementType.ENEMY) return@any false
+            val overlapsX = right > active.currentX && left < active.currentX + active.original.width
+            val overlapsY = active.currentY + active.original.height > head && active.currentY < feet
+            overlapsX && overlapsY
+        }
     }
 
     private fun completeLevel() {
@@ -852,6 +962,9 @@ class GameView(
     }
 
     fun triggerJump() {
+        // Ignore input once the run is decided; otherwise the player could keep
+        // inflating totalJumps and playing jump sounds behind the win dialog.
+        if (gameOverHandled || levelCompletionHandled || isPaused) return
         when {
             isGrounded || coyoteTimeRemaining > 0f -> performGroundJump()
             midAirJumpsDone < maxMidAirJumps -> {
@@ -885,53 +998,57 @@ class GameView(
     }
 
     fun activateMagnetPowerUp() {
-        isMagnetActive = true
-        magnetTimeRemaining = magnetDuration()
+        powerUps.magnet.activate(magnetDuration())
         soundManager.playPowerUpActivation("MAGNET")
     }
 
     fun activateShieldPowerUp() {
-        isShieldActive = true
-        shieldTimeRemaining = shieldDuration()
-        shieldHitsRemaining = shieldHitCapacity()
+        powerUps.activateShield(shieldDuration(), shieldHitCapacity())
         soundManager.playPowerUpActivation("SHIELD")
     }
 
     fun activateSpeedPowerUp() {
-        isSpeedActive = true
-        speedTimeRemaining = speedDuration()
+        powerUps.speed.activate(speedDuration())
         soundManager.playPowerUpActivation("SPEED")
     }
 
     fun activateHighJumpPowerUp() {
-        isHighJumpActive = true
-        highJumpTimeRemaining = highJumpDuration()
+        powerUps.highJump.activate(highJumpDuration())
         soundManager.playPowerUpActivation("HIGH_JUMP")
     }
 
     fun activatePowerPowerUp() {
-        isPowerActive = true
-        powerTimeRemaining = 8f
+        powerUps.power.activate(POWER_DURATION)
         soundManager.playPowerUpActivation("POWER")
     }
 
     private fun tryUseMagnetCharge() {
-        if (isMagnetActive || isPassiveMagnet || magnetCharges <= 0) return
-        magnetCharges--
-        activateMagnetPowerUp()
+        if (!isPowerUpInputAllowed()) return
+        // Passive-magnet heroes always have the magnet on; spending a charge
+        // would be a wasted button press.
+        if (isPassiveMagnet) return
+        if (powerUps.magnet.consumeChargeAndActivate(magnetDuration())) {
+            soundManager.playPowerUpActivation("MAGNET")
+        }
     }
 
     private fun tryUseSpeedCharge() {
-        if (isSpeedActive || speedCharges <= 0) return
-        speedCharges--
-        activateSpeedPowerUp()
+        if (!isPowerUpInputAllowed()) return
+        if (powerUps.speed.consumeChargeAndActivate(speedDuration())) {
+            soundManager.playPowerUpActivation("SPEED")
+        }
     }
 
     private fun tryUseShieldCharge() {
-        if (isShieldActive || shieldCharges <= 0) return
-        shieldCharges--
-        activateShieldPowerUp()
+        if (!isPowerUpInputAllowed()) return
+        if (powerUps.consumeShieldChargeAndActivate(shieldDuration(), shieldHitCapacity())) {
+            soundManager.playPowerUpActivation("SHIELD")
+        }
     }
+
+    /** Power-up buttons must not fire while paused or after the run ended. */
+    private fun isPowerUpInputAllowed(): Boolean =
+        !isPaused && !gameOverHandled && !levelCompletionHandled
 
     private fun drawFrame() {
         if (!holder.surface.isValid) return
@@ -1220,11 +1337,12 @@ class GameView(
 
         val speedBadge = when {
             isSpeedActive -> String.format("%.1fs", speedTimeRemaining)
-            characterSpeedMultiplier > 1.15f -> "PASSIVE"
             speedCharges > 0 -> "x$speedCharges"
             else -> "0"
         }
-        val speedUsable = isSpeedActive || speedCharges > 0 || characterSpeedMultiplier > 1.15f
+        // A hero with an innate speed bonus cannot spend a charge on anything the
+        // button would add, so the button is only "usable" when a charge exists.
+        val speedUsable = isSpeedActive || speedCharges > 0
         drawControlCircle(canvas, speedButtonRect, false, isSpeedActive, if (speedUsable) Color.parseColor("#FFD43B") else Color.parseColor("#64748B"), Color.parseColor("#FF9F1C"), speedBadge)
         drawSpeedIcon(canvas)
 
@@ -1236,6 +1354,53 @@ class GameView(
         val shieldUsable = isShieldActive || shieldCharges > 0
         drawControlCircle(canvas, shieldButtonRect, false, isShieldActive, if (shieldUsable) Color.parseColor("#36C96F") else Color.parseColor("#64748B"), Color.parseColor("#059669"), shieldBadge)
         drawShieldIcon(canvas)
+
+        drawTimedBuffs(canvas, textPaint)
+    }
+
+    /**
+     * High Jump and Power have no touch button, so without this strip the player
+     * had no feedback at all that they were running. Drawn as compact pills in
+     * the control row, above the power-up column.
+     */
+    private fun drawTimedBuffs(canvas: Canvas, textPaint: Paint) {
+        val buffs = mutableListOf<Triple<String, Float, Int>>()
+        if (isHighJumpActive) {
+            buffs.add(Triple("HIGH JUMP", highJumpTimeRemaining, Color.parseColor("#A855F7")))
+        }
+        if (isPowerActive) {
+            buffs.add(Triple("POWER", powerTimeRemaining, Color.parseColor("#FFB300")))
+        }
+        if (buffs.isEmpty()) return
+
+        val density = resources.displayMetrics.density
+        val pillHeight = 26f * density
+        val gap = 5f * density
+        val badgeX = magnetButtonRect.left
+        var y = shieldButtonRect.top - gap - pillHeight
+
+        textPaint.textSize = 12f * density
+        textPaint.textAlign = Paint.Align.LEFT
+
+        buffs.asReversed().forEach { (label, remaining, color) ->
+            val valueText = String.format("%.1fs", remaining.coerceAtLeast(0f))
+            val labelWidth = textPaint.measureText(label)
+            val valueWidth = textPaint.measureText(valueText)
+            val pillWidth = labelWidth + valueWidth + 20f * density
+
+            controlBuffBgPaint.color = color
+            controlBuffBgPaint.alpha = 220
+            reusableRect.set(badgeX, y, badgeX + pillWidth, y + pillHeight)
+            canvas.drawRoundRect(reusableRect, pillHeight / 2f, pillHeight / 2f, controlBuffBgPaint)
+
+            textPaint.color = Color.WHITE
+            canvas.drawText(label, badgeX + 9f * density, y + pillHeight * 0.68f, textPaint)
+            textPaint.color = Color.parseColor("#0F172A")
+            canvas.drawText(valueText, badgeX + 9f * density + labelWidth, y + pillHeight * 0.68f, textPaint)
+            y -= (pillHeight + gap)
+        }
+
+        textPaint.textAlign = Paint.Align.CENTER
     }
 
     private fun drawControlCircle(
@@ -1337,6 +1502,15 @@ class GameView(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // While paused or after the run ended the overlay owns input. Returning
+        // true consumes the event so it cannot fall through to the Activity.
+        if (isPaused || gameOverHandled || levelCompletionHandled) {
+            moveLeftPressed = false
+            moveRightPressed = false
+            activeJumpPointers.clear()
+            return true
+        }
+
         val actionIndex = event.actionIndex
         val actionMasked = event.actionMasked
 
