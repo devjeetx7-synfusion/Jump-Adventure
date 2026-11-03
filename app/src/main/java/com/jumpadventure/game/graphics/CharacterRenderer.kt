@@ -247,7 +247,7 @@ object CharacterRenderer {
         // --------------------------------------------------------------
         // FRONT ARM
         // --------------------------------------------------------------
-        drawLimb(canvas, cx, shoulderY, armA1, armLen, width * 0.075f, outfit, skin, width)
+        drawLimb(canvas, cx, shoulderY, armA1, armLen, width * 0.075f, outfit, SKIN, width)
 
         // --------------------------------------------------------------
         // HEAD
