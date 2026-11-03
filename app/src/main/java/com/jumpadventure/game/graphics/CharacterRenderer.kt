@@ -168,7 +168,7 @@ object CharacterRenderer {
         // --------------------------------------------------------------
         // BACK ARM (behind torso)
         // --------------------------------------------------------------
-        drawLimb(canvas, cx, shoulderY, armA2, armLen, width * 0.075f, shade(outfit, 0.72f), shade(skin, 0.9f), width)
+        drawLimb(canvas, cx, shoulderY, armA2, armLen, width * 0.075f, shade(outfit, 0.72f), shade(SKIN, 0.9f), width)
 
         // --------------------------------------------------------------
         // LEGS + SHOES
