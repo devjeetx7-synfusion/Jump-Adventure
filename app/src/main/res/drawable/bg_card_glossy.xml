@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default card surface used by the Heroes / Shop / Trophies grids. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:top="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <solid android:color="#33000000" />
+        </shape>
+    </item>
+
+    <item android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#FFFFFF"
+                android:endColor="#EAF2FA" />
+            <stroke
+                android:width="2dp"
+                android:color="#C7D8E8" />
+        </shape>
+    </item>
+</layer-list>

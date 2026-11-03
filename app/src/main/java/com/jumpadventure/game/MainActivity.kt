@@ -44,6 +44,28 @@ class MainActivity : AppCompatActivity() {
 
     private var currentScreenName: String = "MAIN_MENU"
 
+    /** True when the currently visible modal was opened on top of a live level. */
+    private var dialogPausedLiveGame: Boolean = false
+
+    /**
+     * Closes the generic modal and restores whatever was underneath it.
+     *
+     * Returning to the pause board (instead of hiding the overlay entirely)
+     * means an in-game dialog never leaves the player on an unresponsive
+     * frozen level with no visible way out.
+     */
+    private fun dismissCustomGameDialog() {
+        incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
+            ?.visibility = View.GONE
+        if (dialogPausedLiveGame && currentScreenName == "GAMEPLAY") {
+            dialogPausedLiveGame = false
+            showPauseOverlay()
+        } else {
+            dialogPausedLiveGame = false
+            incOverlay.visibility = View.GONE
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -87,17 +109,37 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (this::saveData.isInitialized && saveData.musicEnabled) {
-            if (currentScreenName == "GAME") {
+        if (!this::saveData.isInitialized) return
+
+        if (saveData.musicEnabled) {
+            if (currentScreenName == "GAMEPLAY") {
+                // Let the engine own the pitch; it knows the active world.
                 soundManager.resumeMusic()
             } else {
                 soundManager.startMusic(1)
             }
         }
+
+        // onPause() paused the engine. If the run is still live and no overlay is
+        // showing, surface the pause menu so returning to the app never lands the
+        // player on a silently frozen level.
+        if (currentScreenName == "GAMEPLAY" &&
+            incOverlay.visibility != View.VISIBLE &&
+            currentGameView?.isRunFinished != true &&
+            currentGameView != null
+        ) {
+            showPauseOverlay()
+        }
     }
 
     override fun onPause() {
         super.onPause()
+        // Pause the simulation before touching the overlay. Previously only the
+        // overlay was dismissed, so backgrounding mid-level left the 60 fps game
+        // thread running and advanced the player while the app was invisible.
+        if (currentScreenName == "GAMEPLAY") {
+            currentGameView?.pauseGame()
+        }
         dismissWinnerOverlay()
         if (this::soundManager.isInitialized) {
             soundManager.pauseMusic()
@@ -293,6 +335,28 @@ class MainActivity : AppCompatActivity() {
         charPreviewView.playerSpeedMultiplier = saveData.playerSpeedMultiplier
     }
 
+    /**
+     * Persists the save and then re-syncs the currency HUD from what was
+     * actually written.
+     *
+     * SaveManager may reject a currency grant as untrusted. Refreshing the
+     * badges afterwards means the player can never see a balance that does not
+     * exist on disk.
+     */
+    private fun persistProgress() {
+        saveManager.saveData(saveData)
+        refreshCurrencyBadges()
+    }
+
+    private fun refreshCurrencyBadges() {
+        if (!this::badgeCoins.isInitialized) return
+        badgeCoins.amount = saveData.coins
+        badgeGems.amount = saveData.gems
+        if (this::secondaryBadgeCoins.isInitialized) {
+            secondaryBadgeCoins.amount = saveData.coins
+        }
+    }
+
     private fun setupMainMenuListeners() {
         incMainMenu.findViewById<ImageButton>(R.id.btnSettings).setOnClickListener {
             soundManager.playButtonClick()
@@ -397,7 +461,7 @@ class MainActivity : AppCompatActivity() {
      * ------------------------------------------------------------------------ */
     private fun startLevelGameplay(levelNum: Int) {
         saveData.currentLevel = levelNum
-        saveManager.saveData(saveData)
+        persistProgress()
 
         val gameContainer = incGameplay.findViewById<FrameLayout>(R.id.gameViewContainer)
         currentGameView?.stopGameLoop()
@@ -565,7 +629,7 @@ class MainActivity : AppCompatActivity() {
         val prevStars = saveData.levelStars[saveData.currentLevel] ?: 0
         if (starsEarned > prevStars) saveData.levelStars[saveData.currentLevel] = starsEarned
         if (saveData.currentLevel >= saveData.highestLevel) saveData.highestLevel = saveData.currentLevel + 1
-        saveManager.saveData(saveData)
+        persistProgress()
 
         incOverlay.visibility = View.VISIBLE
         incOverlay.bringToFront()
@@ -874,7 +938,7 @@ class MainActivity : AppCompatActivity() {
                     soundManager.playButtonClick()
                     if (isUnlocked) {
                         saveData.selectedCharacter = item.id
-                        saveManager.saveData(saveData)
+                        persistProgress()
                         openCharactersScreen()
                     } else {
                         showCustomCharacterPreviewDialog(item)
@@ -903,7 +967,7 @@ class MainActivity : AppCompatActivity() {
                     saveData.coins -= item.priceCoins
                     saveData.unlockedCharacters.add(item.id)
                     saveData.selectedCharacter = item.id
-                    saveManager.saveData(saveData)
+                    persistProgress()
                     openCharactersScreen()
                 } else {
                     showCustomGameDialog(
@@ -926,12 +990,19 @@ class MainActivity : AppCompatActivity() {
         onConfirm: (() -> Unit)? = null,
         onCancel: (() -> Unit)? = null
     ) {
+        // A modal can be opened while a level is live. Freeze the simulation so
+        // the player is not killed behind the dialog.
+        val pausedLiveGame = currentScreenName == "GAMEPLAY" &&
+            currentGameView?.isRunFinished != true
+        if (pausedLiveGame) currentGameView?.pauseGame()
+
         incOverlay.visibility = View.VISIBLE
         incOverlay.bringToFront()
         val boardContainer = incOverlay.findViewById<FrameLayout>(R.id.overlayBoardContainer)
         boardContainer.visibility = View.GONE
 
         val customDialog = incOverlay.findViewById<com.jumpadventure.game.graphics.GameDialogView>(R.id.customGameDialog)
+        dialogPausedLiveGame = pausedLiveGame
         customDialog.visibility = View.VISIBLE
         customDialog.isClickable = true
         customDialog.isFocusable = true
@@ -952,8 +1023,7 @@ class MainActivity : AppCompatActivity() {
             ).apply { setMargins(0, 0, 0, (6 * density).toInt()) }
             setOnClickListener {
                 soundManager.playButtonClick()
-                customDialog.visibility = View.GONE
-                incOverlay.visibility = View.GONE
+                dismissCustomGameDialog()
                 onConfirm?.invoke()
             }
         }
@@ -969,8 +1039,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 setOnClickListener {
                     soundManager.playButtonClick()
-                    customDialog.visibility = View.GONE
-                    incOverlay.visibility = View.GONE
+                    dismissCustomGameDialog()
                     onCancel?.invoke()
                 }
             }
@@ -1167,14 +1236,14 @@ class MainActivity : AppCompatActivity() {
                     soundManager.playButtonClick()
                     if (isUnlocked) {
                         saveData.selectedCharacter = item.id
-                        saveManager.saveData(saveData)
+                        persistProgress()
                         openShopScreen()
                     } else {
                         if (saveData.coins >= item.priceCoins) {
                             saveData.coins -= item.priceCoins
                             saveData.unlockedCharacters.add(item.id)
                             saveData.selectedCharacter = item.id
-                            saveManager.saveData(saveData)
+                            persistProgress()
                             openShopScreen()
                         } else {
                             showCustomGameDialog(
@@ -1291,14 +1360,14 @@ class MainActivity : AppCompatActivity() {
                     soundManager.playButtonClick()
                     if (isUnlocked) {
                         saveData.selectedSkin = item.id
-                        saveManager.saveData(saveData)
+                        persistProgress()
                         openShopScreen()
                     } else {
                         if (saveData.coins >= item.priceCoins) {
                             saveData.coins -= item.priceCoins
                             saveData.unlockedSkins.add(item.id)
                             saveData.selectedSkin = item.id
-                            saveManager.saveData(saveData)
+                            persistProgress()
                             openShopScreen()
                         } else {
                             showCustomGameDialog(
@@ -1421,14 +1490,14 @@ class MainActivity : AppCompatActivity() {
                     soundManager.playButtonClick()
                     if (isUnlocked) {
                         saveData.selectedTrail = item.id
-                        saveManager.saveData(saveData)
+                        persistProgress()
                         openShopScreen()
                     } else {
                         if (saveData.coins >= item.priceCoins) {
                             saveData.coins -= item.priceCoins
                             saveData.unlockedTrails.add(item.id)
                             saveData.selectedTrail = item.id
-                            saveManager.saveData(saveData)
+                            persistProgress()
                             openShopScreen()
                         } else {
                             showCustomGameDialog(
@@ -1530,7 +1599,7 @@ class MainActivity : AppCompatActivity() {
                         if (saveData.coins >= upgradePrice) {
                             saveData.coins -= upgradePrice
                             saveData.powerUpLevels[item.id] = currentLvl + 1
-                            saveManager.saveData(saveData)
+                            persistProgress()
                             openShopScreen()
                         } else {
                             showCustomGameDialog(
@@ -1640,7 +1709,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         saveData.coins += amount
                     }
-                    saveManager.saveData(saveData)
+                    persistProgress()
                     secondaryBadgeCoins.amount = saveData.coins
                     showCustomGameDialog(
                         title = "REWARD CLAIMED!",
@@ -1816,7 +1885,7 @@ class MainActivity : AppCompatActivity() {
                     setOnClickListener {
                         soundManager.playButtonClick()
                         saveData.currentLevel = world.startLevel
-                        saveManager.saveData(saveData)
+                        persistProgress()
                         openLevelMapScreen()
                     }
                 } else {
@@ -1986,7 +2055,7 @@ class MainActivity : AppCompatActivity() {
                             soundManager.playCoin()
                             saveData.coins += item.rewardCoins
                             saveData.unlockedAchievements.add(item.id)
-                            saveManager.saveData(saveData)
+                            persistProgress()
                             openAchievementsScreen()
                         }
                     }
@@ -2040,9 +2109,14 @@ class MainActivity : AppCompatActivity() {
                 (290 * density).toInt()
             ).apply { setMargins(0, (8 * density).toInt(), 0, (12 * density).toInt()) }
 
+            // Live preview only; keep the in-memory value in sync without I/O.
             onSpeedChangedListener = { newSpeed ->
                 saveData.playerSpeedMultiplier = newSpeed
-                saveManager.saveData(saveData)
+            }
+            // Persist once, when the gesture finishes.
+            onSpeedChangeCommittedListener = { newSpeed ->
+                saveData.playerSpeedMultiplier = newSpeed
+                persistProgress()
             }
         }
         container.addView(speedControlView)
@@ -2059,7 +2133,7 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 saveData.soundEnabled = !saveData.soundEnabled
                 soundManager.soundEnabled = saveData.soundEnabled
-                saveManager.saveData(saveData)
+                persistProgress()
                 subText = if (saveData.soundEnabled) "STATE: ON" else "STATE: OFF"
             }
         }
@@ -2077,7 +2151,7 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 saveData.musicEnabled = !saveData.musicEnabled
                 soundManager.musicEnabled = saveData.musicEnabled
-                saveManager.saveData(saveData)
+                persistProgress()
                 subText = if (saveData.musicEnabled) "STATE: ON" else "STATE: OFF"
             }
         }
@@ -2182,7 +2256,7 @@ class MainActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             soundManager.playButtonClick()
             customView.saveToSaveData(saveData)
-            saveManager.saveData(saveData)
+            persistProgress()
             showCustomGameDialog(
                 title = "LAYOUT SAVED",
                 message = "Your custom gameplay controls layout has been saved!",
@@ -2200,7 +2274,7 @@ class MainActivity : AppCompatActivity() {
                 secondaryBtnText = "CANCEL",
                 onConfirm = {
                     customView.resetToDefault(saveData)
-                    saveManager.saveData(saveData)
+                    persistProgress()
                     updateControlInfo(customView.selectedControl)
                 }
             )

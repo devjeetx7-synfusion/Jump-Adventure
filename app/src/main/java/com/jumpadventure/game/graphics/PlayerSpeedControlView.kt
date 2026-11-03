@@ -26,6 +26,16 @@ class PlayerSpeedControlView @JvmOverloads constructor(
             }
         }
 
+    /**
+     * Fired once when a drag / tap gesture finishes.
+     *
+     * [onSpeedChangedListener] fires on every pointer move so the preview can
+     * animate live, but persisting to disk at drag rate caused a full
+     * SharedPreferences + JSON write per touch event. Callers should save on
+     * this callback instead.
+     */
+    var onSpeedChangeCommittedListener: ((Float) -> Unit)? = null
+
     var selectedCharacterId: String = "DEFAULT"
         set(value) {
             field = value
@@ -257,14 +267,17 @@ class PlayerSpeedControlView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 if (btnSlowRect.contains(x, y)) {
                     speedMultiplier = 0.85f
+                    onSpeedChangeCommittedListener?.invoke(speedMultiplier)
                     return true
                 }
                 if (btnNormalRect.contains(x, y)) {
                     speedMultiplier = 1.15f
+                    onSpeedChangeCommittedListener?.invoke(speedMultiplier)
                     return true
                 }
                 if (btnFastRect.contains(x, y)) {
                     speedMultiplier = 1.40f
+                    onSpeedChangeCommittedListener?.invoke(speedMultiplier)
                     return true
                 }
 
@@ -282,7 +295,10 @@ class PlayerSpeedControlView @JvmOverloads constructor(
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                isDraggingThumb = false
+                if (isDraggingThumb) {
+                    isDraggingThumb = false
+                    onSpeedChangeCommittedListener?.invoke(speedMultiplier)
+                }
             }
         }
         return super.onTouchEvent(event)

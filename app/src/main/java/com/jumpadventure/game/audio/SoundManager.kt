@@ -2,8 +2,11 @@ package com.jumpadventure.game.audio
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioTrack
+import android.os.Build
 import android.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -28,8 +31,20 @@ class SoundManager(val context: Context) {
         }
 
     private val released = AtomicBoolean(false)
-    private val sfxExecutor = Executors.newSingleThreadExecutor { runnable ->
+
+    /**
+     * Short sound effects play on their own pool so a long cue (the victory
+     * fanfare, which sleeps between notes) can no longer swallow the button
+     * clicks and pickup sounds queued behind it. Two threads is enough: effects
+     * are tens of milliseconds and the executor queues the rest.
+     */
+    private val sfxExecutor = Executors.newFixedThreadPool(2) { runnable ->
         Thread(runnable, "JumpAdventure-SFX").apply { isDaemon = true }
+    }
+
+    /** Serialises music so notes never overlap themselves. */
+    private val musicExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "JumpAdventure-Music").apply { isDaemon = true }
     }
 
     @Volatile
@@ -88,34 +103,54 @@ class SoundManager(val context: Context) {
             generated[idx + 1] = ((shortValue.toInt() shr 8) and 0xFF).toByte()
         }
 
-        val track = AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-            )
-            .setBufferSizeInBytes(generated.size)
-            .setTransferMode(AudioTrack.MODE_STATIC)
-            .build()
+        val track = buildTrack(sampleRate, generated.size) ?: return
 
         try {
             track.write(generated, 0, generated.size)
             track.play()
             Thread.sleep(safeDuration.toLong() + 15L)
         } finally {
-            runCatching {
-                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
-            }
-            track.release()
+            releaseTrack(track)
         }
+    }
+
+    /**
+     * Builds a static [AudioTrack] for one generated PCM buffer.
+     *
+     * Returns null instead of throwing when the device refuses a track (audio
+     * HAL exhaustion, muted hardware, or a sample count the buffer cannot hold).
+     * Previously such a failure propagated out of the note generator and could
+     * take the game thread down with it.
+     */
+    private fun buildTrack(sampleRate: Int, bufferSizeBytes: Int): AudioTrack? {
+        if (released.get() || bufferSizeBytes <= 0) return null
+        return runCatching {
+            AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_GAME)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(bufferSizeBytes)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+        }.onFailure { Log.w(TAG, "Could not create AudioTrack", it) }.getOrNull()
+    }
+
+    private fun releaseTrack(track: AudioTrack) {
+        runCatching {
+            if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
+        }
+        runCatching { track.flush() }
+        runCatching { track.release() }
     }
 
     fun playJump() = playSfxTone(300.0, 120, 600.0)
@@ -163,33 +198,14 @@ class SoundManager(val context: Context) {
                 generated[idx + 1] = ((shortValue.toInt() shr 8) and 0xFF).toByte()
             }
 
-            val track = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_GAME)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(generated.size)
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .build()
+            val track = buildTrack(sampleRate, generated.size) ?: return@submitSfx
 
             try {
                 track.write(generated, 0, generated.size)
                 track.play()
                 Thread.sleep(durationMs.toLong() + 15L)
             } finally {
-                runCatching {
-                    if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
-                }
-                track.release()
+                releaseTrack(track)
             }
         }
     }
@@ -231,6 +247,8 @@ class SoundManager(val context: Context) {
         if (isMusicRunning && currentMusicWorldId == normalizedWorldId) return
         stopMusicInternal(keepLastRequestedWorld = true)
 
+        requestAudioFocus()
+
         isMusicRunning = true
         currentMusicWorldId = normalizedWorldId
         musicThread = Thread({
@@ -257,7 +275,13 @@ class SoundManager(val context: Context) {
             } catch (t: Throwable) {
                 Log.w(TAG, "Music playback failed", t)
             } finally {
-                isMusicRunning = false
+                // Only clear the flag if this thread is still the current music
+                // thread. A fast pause/resume restart used to have the dying
+                // thread clobber the flag of its replacement, leaving the game
+                // permanently silent.
+                if (musicThread === Thread.currentThread()) {
+                    isMusicRunning = false
+                }
             }
         }, "JumpAdventure-Music").apply {
             isDaemon = true
@@ -267,6 +291,7 @@ class SoundManager(val context: Context) {
 
     @Synchronized
     fun pauseMusic() {
+        abandonAudioFocus()
         if (isMusicRunning) {
             stopMusicInternal(keepLastRequestedWorld = true)
         }
@@ -276,6 +301,67 @@ class SoundManager(val context: Context) {
     fun resumeMusic() {
         if (!isMusicRunning && !released.get() && musicEnabled) {
             startMusic(lastRequestedWorldId)
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Audio focus. Without this the game kept playing over the user's own
+    // music and never ducked for calls or other apps.
+    // ---------------------------------------------------------------------
+
+    private var audioFocusRequest: Any? = null
+
+    private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
+        when (change) {
+            AudioManager.AUDIOFOCUS_LOSS,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> pauseMusic()
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> { /* music volume is fixed per-note */ }
+            AudioManager.AUDIOFOCUS_GAIN -> if (musicEnabled && !released.get()) {
+                resumeMusic()
+            }
+        }
+    }
+
+    private fun audioManager(): AudioManager? =
+        runCatching {
+            context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        }.getOrNull()
+
+    private fun requestAudioFocus() {
+        val manager = audioManager() ?: return
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val attrs = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+                val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(attrs)
+                    .setOnAudioFocusChangeListener(focusChangeListener)
+                    .build()
+                audioFocusRequest = request
+                manager.requestAudioFocus(request)
+            } else {
+                @Suppress("DEPRECATION")
+                manager.requestAudioFocus(
+                    focusChangeListener,
+                    AudioManager.STREAM_MUSIC,
+                    AudioManager.AUDIOFOCUS_GAIN
+                )
+            }
+        }.onFailure { Log.w(TAG, "Audio focus request failed", it) }
+    }
+
+    private fun abandonAudioFocus() {
+        val manager = audioManager() ?: return
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                (audioFocusRequest as? AudioFocusRequest)?.let { manager.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                manager.abandonAudioFocus(focusChangeListener)
+            }
+            audioFocusRequest = null
         }
     }
 
@@ -295,7 +381,8 @@ class SoundManager(val context: Context) {
     fun release() {
         if (!released.compareAndSet(false, true)) return
         stopMusicInternal(keepLastRequestedWorld = false)
-        sfxExecutor.shutdownNow()
+        runCatching { sfxExecutor.shutdownNow() }
+        runCatching { musicExecutor.shutdownNow() }
     }
 
     companion object {
